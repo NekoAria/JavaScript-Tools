@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Danbooru Image Comparator
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      0.7
+// @version      0.8
 // @description  Compare images on Danbooru with multiple modes and transformations
 // @author       Neko_Aria
 // @match        https://danbooru.donmai.us/posts/*
@@ -29,6 +29,7 @@
       RELATED_POSTS: "article.post-preview:not(.current-post)",
       PARENT_PREVIEW: "#has-parent-relationship-preview",
       CHILDREN_PREVIEW: "#has-children-relationship-preview",
+      MAIN_MENU: "#main-menu",
     };
 
     static STORAGE_KEY = "danbooru_comparator_mode";
@@ -98,6 +99,8 @@
       document.querySelectorAll(selector).forEach((article) => {
         this.addCompareLinkToPost(article);
       });
+
+      this.addCompareToMainMenu();
     }
 
     addCompareLinkToPost(article) {
@@ -115,6 +118,27 @@
       } else {
         article.appendChild(link);
       }
+    }
+
+    addCompareToMainMenu() {
+      const mainMenu = this.getElement(DanbooruImageComparator.SELECTORS.MAIN_MENU);
+      if (!mainMenu || mainMenu.querySelector("#nav-compare")) {
+        return;
+      }
+
+      const compareMenuItem = document.createElement("li");
+      compareMenuItem.id = "nav-compare";
+
+      const compareLink = document.createElement("a");
+      compareLink.href = "#";
+      compareLink.textContent = "Compare";
+      compareLink.onclick = (e) => {
+        e.preventDefault();
+        this.openComparator(null);
+      };
+
+      compareMenuItem.appendChild(compareLink);
+      mainMenu.appendChild(compareMenuItem);
     }
 
     createCompareLink(postId) {
@@ -136,7 +160,9 @@
 
     openComparator(postId) {
       this.createInterface();
-      setTimeout(() => this.loadImage(postId), 100);
+      if (postId) {
+        setTimeout(() => this.loadImage(postId), 100);
+      }
     }
 
     // Post data retrieval methods

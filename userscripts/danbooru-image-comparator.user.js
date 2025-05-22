@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Danbooru Image Comparator
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      0.4
+// @version      0.5
 // @description  Compare images on Danbooru to identify differences, with rotation, flipping and difference mode support
 // @author       Neko_Aria
 // @match        https://danbooru.donmai.us/posts/*
@@ -53,6 +53,7 @@
 
       this.initializeState();
       this.setupInterface();
+      this.zoomState = { scale: 1, x: 0, y: 0 };
     }
 
     // Check if current page supports the comparator
@@ -814,6 +815,9 @@
 
     // Update comparison display mode
     updateComparisonMode() {
+      // Save current state
+      this.saveZoomState();
+
       const mode = this.getElementById("comparison-mode").value;
       this.resetComparisonDisplay();
 
@@ -828,11 +832,60 @@
           this.setupDifferenceMode();
           break;
         default:
-          // Side-by-side is default, no additional setup needed
+          // Side-by-side is the default mode, restore to standard pan-zoom
+          setTimeout(() => {
+            this.restoreZoomState();
+          }, 100);
           break;
       }
 
       setTimeout(() => this.applyTransforms(), 0);
+    }
+
+    // Save current zoom state
+    saveZoomState() {
+      // Get state from current active panzoom instance
+      const activeInstance = this.getActiveInstance();
+      if (activeInstance) {
+        const pan = activeInstance.getPan();
+        const scale = activeInstance.getScale();
+
+        this.zoomState = {
+          scale: scale,
+          x: pan.x,
+          y: pan.y,
+        };
+      }
+    }
+
+    // Get current active panzoom instance
+    getActiveInstance() {
+      // Check instances in priority order
+      if (this.panzoomInstances.overlay) {
+        return this.panzoomInstances.overlay;
+      }
+      if (this.panzoomInstances.left) {
+        return this.panzoomInstances.left;
+      }
+      if (this.panzoomInstances.right) {
+        return this.panzoomInstances.right;
+      }
+      return null;
+    }
+
+    // Restore zoom state to all active instances
+    restoreZoomState() {
+      // Restore to all active panzoom instances
+      Object.values(this.panzoomInstances).forEach((instance) => {
+        if (instance) {
+          // Use silent option to avoid triggering events
+          instance.zoom(this.zoomState.scale, { animate: false, silent: true });
+          instance.pan(this.zoomState.x, this.zoomState.y, {
+            animate: false,
+            silent: true,
+          });
+        }
+      });
     }
 
     // Reset comparison interface to default state
@@ -997,6 +1050,18 @@
 
       this.panzoomInstances.overlay = Panzoom(overlayPan, panzoomOptions);
 
+      // Restore saved zoom state
+      setTimeout(() => {
+        this.panzoomInstances.overlay.zoom(this.zoomState.scale, {
+          animate: false,
+          silent: true,
+        });
+        this.panzoomInstances.overlay.pan(this.zoomState.x, this.zoomState.y, {
+          animate: false,
+          silent: true,
+        });
+      }, 0);
+
       // Create and store the wheel event handler
       const wheelHandler = (event) => {
         event.preventDefault();
@@ -1114,6 +1179,11 @@
 
       this.panzoomInstances.left = Panzoom(leftPan, panzoomOptions);
       this.panzoomInstances.right = Panzoom(rightPan, panzoomOptions);
+
+      // Restore zoom state
+      setTimeout(() => {
+        this.restoreZoomState();
+      }, 0);
 
       this.synchronizePanZoom(
         leftPan,

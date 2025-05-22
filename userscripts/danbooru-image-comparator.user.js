@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Danbooru Image Comparator
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      0.1
+// @version      0.2
 // @description  Compare images on Danbooru to identify differences, with rotation and flipping support
 // @author       Neko_Aria
 // @match        https://danbooru.donmai.us/posts/*
@@ -40,6 +40,11 @@
       CHILDREN_PREVIEW: "#has-children-relationship-preview",
     };
 
+    // Storage keys
+    static STORAGE_KEYS = {
+      COMPARISON_MODE: "danbooru_comparator_mode",
+    };
+
     constructor() {
       if (!this.isValidPage()) {
         return;
@@ -51,7 +56,10 @@
 
     // Check if current page supports the comparator
     isValidPage() {
-      return /\/(posts|uploads)\/\d+($|\?)/.test(window.location.href);
+      // Updated regex to support multi-asset uploads: /uploads/123/assets/456
+      return /\/(posts|uploads)\/\d+($|\?|\/assets\/\d+)/.test(
+        window.location.href
+      );
     }
 
     // Initialize all state variables
@@ -68,6 +76,13 @@
       this.transformState = {
         left: { flipH: false, flipV: false, rotation: 0 },
         right: { flipH: false, flipV: false, rotation: 0 },
+      };
+
+      // Store pan-zoom instances
+      this.panzoomInstances = {
+        left: null,
+        right: null,
+        overlay: null,
       };
     }
 
@@ -318,6 +333,11 @@
       this.createPostSelector();
       this.bindEvents();
       this.initializePanZoom();
+
+      // Set saved comparison mode or default to side-by-side
+      const savedMode = this.getSavedComparisonMode();
+      this.getElementById("comparison-mode").value = savedMode;
+      this.updateComparisonMode();
     }
 
     // Build the main container HTML structure
@@ -386,7 +406,9 @@
                 <img id="right-image" />
               </div>
             </div>
-            <div id="comparison-overlay-container"></div>
+            <div id="comparison-overlay-container">
+              <div class="sync-pan" id="overlay-pan"></div>
+            </div>
             <div id="fade-controls" style="display: none;">
               <label>Opacity:
                 <input type="range" id="opacity-slider" min="0" max="100" value="50">
@@ -476,7 +498,13 @@
         ["close-comparison", () => this.closeInterface()],
         ["load-comparison", () => this.handleLoadComparison()],
         ["swap-images", () => this.swapImages()],
-        ["comparison-mode", () => this.updateComparisonMode()],
+        [
+          "comparison-mode",
+          () => {
+            this.updateComparisonMode();
+            this.saveComparisonMode();
+          },
+        ],
       ];
 
       eventMap.forEach(([id, handler]) => {
@@ -516,6 +544,7 @@
     // Close comparison interface
     closeInterface() {
       this.resetAllTransforms();
+      this.destroyPanZoom();
       const container = this.getElementById("image-comparison-container");
       if (container) {
         document.body.removeChild(container);
@@ -778,7 +807,8 @@
         fadeControls: this.getElementById("fade-controls"),
       };
 
-      elements.overlay.innerHTML = "";
+      elements.overlay.innerHTML =
+        '<div class="sync-pan" id="overlay-pan"></div>';
       elements.overlay.style.display = "none";
       elements.fadeControls.style.display = "none";
 
@@ -787,6 +817,12 @@
         this.getElementById(id).style.display =
           id === "comparison-divider" ? "block" : "flex";
       });
+
+      // Destroy overlay panzoom if it exists
+      if (this.panzoomInstances.overlay) {
+        this.panzoomInstances.overlay.destroy();
+        this.panzoomInstances.overlay = null;
+      }
     }
 
     // Setup slider comparison mode
@@ -794,6 +830,7 @@
       this.hideMainElements();
       this.showOverlayContainer();
       this.createOverlayImages();
+      this.initializeOverlayPanZoom();
       setTimeout(() => this.initializeSlider(), 0);
     }
 
@@ -802,6 +839,7 @@
       this.hideMainElements();
       this.showOverlayContainer();
       this.createOverlayImages();
+      this.initializeOverlayPanZoom();
 
       this.getElementById("overlay-image").style.opacity = "0.5";
       this.getElementById("fade-controls").style.display = "block";
@@ -823,7 +861,7 @@
 
     // Create overlay images for slider/fade modes
     createOverlayImages() {
-      const container = this.getElementById("comparison-overlay-container");
+      const container = this.getElementById("overlay-pan");
       const leftImage = this.getElementById("left-image");
       const rightImage = this.getElementById("right-image");
 
@@ -839,6 +877,26 @@
       rightClone.style.cssText = overlayStyle;
 
       container.append(leftClone, rightClone);
+    }
+
+    // Initialize pan-zoom for overlay mode
+    initializeOverlayPanZoom() {
+      const overlayPan = this.getElementById("overlay-pan");
+
+      const panzoomOptions = {
+        maxScale: Infinity,
+      };
+
+      this.panzoomInstances.overlay = Panzoom(overlayPan, panzoomOptions);
+
+      // Bind wheel events for overlay
+      const overlayContainer = this.getElementById(
+        "comparison-overlay-container"
+      );
+      overlayContainer.addEventListener("wheel", (event) => {
+        event.preventDefault();
+        this.panzoomInstances.overlay.zoomWithWheel(event);
+      });
     }
 
     // === SLIDER MODE ===
@@ -932,16 +990,22 @@
       const rightPan = this.getElementById("right-pan");
 
       const panzoomOptions = {
-        maxScale: 10,
-        minScale: 0.1,
-        contain: "outside",
+        maxScale: Infinity,
       };
 
-      const leftPanzoom = Panzoom(leftPan, panzoomOptions);
-      const rightPanzoom = Panzoom(rightPan, panzoomOptions);
+      this.panzoomInstances.left = Panzoom(leftPan, panzoomOptions);
+      this.panzoomInstances.right = Panzoom(rightPan, panzoomOptions);
 
-      this.synchronizePanZoom(leftPan, rightPan, leftPanzoom, rightPanzoom);
-      this.bindPanZoomEvents(leftPanzoom, rightPanzoom);
+      this.synchronizePanZoom(
+        leftPan,
+        rightPan,
+        this.panzoomInstances.left,
+        this.panzoomInstances.right
+      );
+      this.bindPanZoomEvents(
+        this.panzoomInstances.left,
+        this.panzoomInstances.right
+      );
     }
 
     // Synchronize pan and zoom between images
@@ -993,25 +1057,66 @@
       });
 
       this.getElementById("reset-zoom").addEventListener("click", () => {
-        leftPanzoom.reset();
-        rightPanzoom.reset();
+        this.resetZoom();
       });
-
-      // Store for external access
-      window.zoomPanState = {
-        reset: () => {
-          leftPanzoom.reset();
-          rightPanzoom.reset();
-        },
-      };
     }
 
     // Reset zoom to default
     resetZoom() {
-      window.zoomPanState?.reset();
+      if (this.panzoomInstances.left) {
+        this.panzoomInstances.left.reset();
+      }
+      if (this.panzoomInstances.right) {
+        this.panzoomInstances.right.reset();
+      }
+      if (this.panzoomInstances.overlay) {
+        this.panzoomInstances.overlay.reset();
+      }
+    }
+
+    // Destroy all pan-zoom instances
+    destroyPanZoom() {
+      Object.values(this.panzoomInstances).forEach((instance) => {
+        if (instance) {
+          instance.destroy();
+        }
+      });
+      this.panzoomInstances = { left: null, right: null, overlay: null };
     }
 
     // === UTILITY METHODS ===
+
+    // Save comparison mode to localStorage
+    saveComparisonMode() {
+      const mode = this.getElementById("comparison-mode").value;
+      try {
+        localStorage.setItem(
+          DanbooruImageComparator.STORAGE_KEYS.COMPARISON_MODE,
+          mode
+        );
+      } catch (e) {
+        console.warn("Failed to save comparison mode:", e);
+      }
+    }
+
+    // Get saved comparison mode from localStorage
+    getSavedComparisonMode() {
+      try {
+        const saved = localStorage.getItem(
+          DanbooruImageComparator.STORAGE_KEYS.COMPARISON_MODE
+        );
+        // Return saved mode if valid, otherwise default to side-by-side
+        if (
+          saved &&
+          Object.values(DanbooruImageComparator.MODES).includes(saved)
+        ) {
+          return saved;
+        }
+      } catch (e) {
+        console.warn("Failed to load comparison mode:", e);
+      }
+      return DanbooruImageComparator.MODES.SIDE_BY_SIDE;
+    }
 
     // Show error message to user
     showError(message) {
@@ -1041,6 +1146,10 @@
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-color: rgba(0, 0, 0, 0.9); z-index: 10000;
             display: flex; flex-direction: column; color: white;
+          }
+
+          #image-comparison-container img {
+            image-rendering: pixelated;
           }
   
           #comparison-header {

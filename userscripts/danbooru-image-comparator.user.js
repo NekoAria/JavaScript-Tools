@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Danbooru Image Comparator
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      0.8
+// @version      0.9
 // @description  Compare images on Danbooru with multiple modes and transformations
 // @author       Neko_Aria
 // @match        https://danbooru.donmai.us/posts/*
@@ -984,6 +984,31 @@
       const mouseUpHandler = () => {
         isDragging = false;
       };
+
+      // Get current slider position to reapply when zooming or dragging
+      const getCurrentSliderPosition = () => {
+        return parseInt(slider.style.left) || container.clientWidth / 2;
+      };
+
+      // Add panzoom change listener
+      const panzoomChangeHandler = () => {
+        const currentPosition = getCurrentSliderPosition();
+        this.updateSlider(slider, rightImage, currentPosition, container);
+      };
+
+      // Add panzoom change listener
+      const overlayPan = document.getElementById("overlay-pan");
+      if (overlayPan && this.panzoomInstances.overlay) {
+        overlayPan.addEventListener("panzoomchange", panzoomChangeHandler);
+        overlayPan.addEventListener("panzoomzoom", panzoomChangeHandler);
+        overlayPan.addEventListener("panzoompan", panzoomChangeHandler);
+
+        this.eventCleanup.push(() => {
+          overlayPan.removeEventListener("panzoomchange", panzoomChangeHandler);
+          overlayPan.removeEventListener("panzoomzoom", panzoomChangeHandler);
+          overlayPan.removeEventListener("panzoompan", panzoomChangeHandler);
+        });
+      }
 
       slider.addEventListener("mousedown", mouseDownHandler);
       container.addEventListener("mousemove", mouseMoveHandler);

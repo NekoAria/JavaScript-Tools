@@ -1,0 +1,31 @@
+{
+  "name": "javascript-tools",
+  "scripts": {
+    "lint": "eslint",
+    "format": "prettier",
+    "check": "prettier --write . && eslint --fix",
+    "prepare": "husky"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.{js,ts,mjs,jsx,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,jsonc,css,md}": [
+      "prettier --write"
+    ]
+  },
+  "dependencies": {
+    "@eslint/js": "^9.27.0",
+    "eslint": "^9.26.0",
+    "globals": "^16.1.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.0.0",
+    "prettier": "^3.5.3"
+  }
+}

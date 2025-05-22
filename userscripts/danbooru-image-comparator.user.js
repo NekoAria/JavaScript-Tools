@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Danbooru Image Comparator
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      0.5
+// @version      0.6
 // @description  Compare images on Danbooru to identify differences, with rotation, flipping and difference mode support
 // @author       Neko_Aria
 // @match        https://danbooru.donmai.us/posts/*
@@ -818,6 +818,9 @@
       // Save current state
       this.saveZoomState();
 
+      // First clean up any existing event listeners to prevent duplicates
+      this.cleanupEventListeners();
+
       const mode = this.getElementById("comparison-mode").value;
       this.resetComparisonDisplay();
 
@@ -840,6 +843,30 @@
       }
 
       setTimeout(() => this.applyTransforms(), 0);
+    }
+
+    // Helper method to clean up event listeners before mode change
+    cleanupEventListeners() {
+      // Clean up wheel event listeners on main containers
+      ["left-side", "right-side", "comparison-overlay-container"].forEach(
+        (id) => {
+          const element = this.getElementById(id);
+          if (element && element._wheelListener) {
+            element.removeEventListener("wheel", element._wheelListener);
+            delete element._wheelListener;
+          }
+        }
+      );
+
+      // If we're using overlay mode, make sure to clean that up too
+      if (this.panzoomInstances.overlay) {
+        const overlayContainer = this.getElementById(
+          "comparison-overlay-container"
+        );
+        if (overlayContainer) {
+          this.cleanWheelListeners(overlayContainer);
+        }
+      }
     }
 
     // Save current zoom state
@@ -896,6 +923,7 @@
         differenceControls: this.getElementById("difference-controls"),
       };
 
+      // First clear the overlay container properly to remove any event listeners
       elements.overlay.innerHTML =
         '<div class="sync-pan" id="overlay-pan"></div>';
       elements.overlay.style.display = "none";
@@ -1062,6 +1090,9 @@
         });
       }, 0);
 
+      // Clean up previous wheel listeners in a safer way
+      this.cleanWheelListeners(overlayContainer);
+
       // Create and store the wheel event handler
       const wheelHandler = (event) => {
         event.preventDefault();
@@ -1073,6 +1104,22 @@
 
       // Bind wheel events for overlay
       overlayContainer.addEventListener("wheel", wheelHandler);
+    }
+
+    // Helper function to safely remove wheel listeners from an element
+    cleanWheelListeners(element) {
+      if (!element) {
+        return;
+      }
+
+      // Remove our known wheel listener if it exists
+      if (element._wheelListener) {
+        element.removeEventListener("wheel", element._wheelListener);
+        delete element._wheelListener;
+      }
+
+      // For safety, we can add a data attribute to track our event binding
+      element.setAttribute("data-wheel-cleaned", "true");
     }
 
     // === SLIDER MODE ===
@@ -1090,13 +1137,14 @@
       }
 
       const centerX = container.clientWidth / 2;
-      this.updateSliderPosition(slider, rightImage, centerX);
+      this.updateSliderPosition(slider, rightImage, centerX, container);
       this.bindSliderEvents(slider, rightImage, container);
     }
 
     // Update slider position and image clipping
-    updateSliderPosition(slider, rightImage, x) {
-      const containerWidth = slider.parentElement.clientWidth;
+    updateSliderPosition(slider, rightImage, x, container) {
+      // Use the container as the width source, avoiding reliance on slider.parentElement
+      const containerWidth = container.clientWidth;
       x = Math.max(0, Math.min(x, containerWidth));
 
       slider.style.left = x + "px";
@@ -1109,7 +1157,7 @@
 
       const updatePosition = (e) => {
         const x = e.clientX - container.getBoundingClientRect().left;
-        this.updateSliderPosition(slider, rightImage, x);
+        this.updateSliderPosition(slider, rightImage, x, container);
       };
 
       slider.addEventListener("mousedown", (e) => {
@@ -1345,6 +1393,14 @@
           delete element[property];
         }
       });
+
+      // Clean overlay container in a safer way
+      const overlayContainer = this.getElementById(
+        "comparison-overlay-container"
+      );
+      if (overlayContainer) {
+        this.cleanWheelListeners(overlayContainer);
+      }
     }
 
     // === UTILITY METHODS ===

@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Danbooru Image Comparator
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      0.2
-// @description  Compare images on Danbooru to identify differences, with rotation and flipping support
+// @version      0.3
+// @description  Compare images on Danbooru to identify differences, with rotation, flipping and difference mode support
 // @author       Neko_Aria
 // @match        https://danbooru.donmai.us/posts/*
 // @match        https://danbooru.donmai.us/uploads/*
@@ -18,6 +18,7 @@
       SIDE_BY_SIDE: "side-by-side",
       SLIDER: "slider",
       FADE: "fade",
+      DIFFERENCE: "difference",
     };
 
     // Image rotation angles
@@ -361,6 +362,7 @@
                 <option value="side-by-side">Side by Side</option>
                 <option value="slider">Slider</option>
                 <option value="fade">Fade</option>
+                <option value="difference">Difference</option>
               </select>
             </div>
             <div id="post-info-display"></div>
@@ -414,6 +416,16 @@
                 <input type="range" id="opacity-slider" min="0" max="100" value="50">
               </label>
               <span id="opacity-value">50%</span>
+            </div>
+            <div id="difference-controls" style="display: none;">
+              <label>Background:
+                <select id="difference-background">
+                  <option value="black">Black</option>
+                  <option value="white">White</option>
+                  <option value="grey">Grey</option>
+                </select>
+              </label>
+              <button id="invert-difference" class="control-btn">Invert</button>
             </div>
           </div>
         `;
@@ -490,6 +502,7 @@
       this.bindControlEvents();
       this.bindTransformEvents();
       this.bindInputEvents();
+      this.bindDifferenceEvents();
     }
 
     // Bind main control button events
@@ -539,6 +552,25 @@
           }
         }
       );
+    }
+
+    // Bind difference mode specific events
+    bindDifferenceEvents() {
+      // Background change event
+      const backgroundSelect = this.getElementById("difference-background");
+      if (backgroundSelect) {
+        backgroundSelect.addEventListener("change", () => {
+          this.updateDifferenceBackground();
+        });
+      }
+
+      // Invert difference event
+      const invertBtn = this.getElementById("invert-difference");
+      if (invertBtn) {
+        invertBtn.addEventListener("click", () => {
+          this.toggleDifferenceInvert();
+        });
+      }
     }
 
     // Close comparison interface
@@ -792,6 +824,9 @@
         case DanbooruImageComparator.MODES.FADE:
           this.setupFadeMode();
           break;
+        case DanbooruImageComparator.MODES.DIFFERENCE:
+          this.setupDifferenceMode();
+          break;
         default:
           // Side-by-side is default, no additional setup needed
           break;
@@ -805,18 +840,24 @@
       const elements = {
         overlay: this.getElementById("comparison-overlay-container"),
         fadeControls: this.getElementById("fade-controls"),
+        differenceControls: this.getElementById("difference-controls"),
       };
 
       elements.overlay.innerHTML =
         '<div class="sync-pan" id="overlay-pan"></div>';
       elements.overlay.style.display = "none";
       elements.fadeControls.style.display = "none";
+      elements.differenceControls.style.display = "none";
 
       // Show default side-by-side elements
       ["left-side", "right-side", "comparison-divider"].forEach((id) => {
         this.getElementById(id).style.display =
           id === "comparison-divider" ? "block" : "flex";
       });
+
+      // Reset overlay container background
+      elements.overlay.style.backgroundColor = "";
+      elements.overlay.classList.remove("difference-inverted");
 
       // Destroy overlay panzoom if it exists
       if (this.panzoomInstances.overlay) {
@@ -846,6 +887,58 @@
       this.initializeOpacitySlider();
     }
 
+    // Setup difference comparison mode
+    setupDifferenceMode() {
+      this.hideMainElements();
+      this.showOverlayContainer();
+      this.createOverlayImages();
+      this.initializeOverlayPanZoom();
+
+      // Apply difference blend mode to the top image
+      const overlayImage = this.getElementById("overlay-image");
+      overlayImage.style.mixBlendMode = "difference";
+      overlayImage.style.opacity = "1";
+
+      // Set default background to grey for better difference visibility
+      this.getElementById(
+        "comparison-overlay-container"
+      ).style.backgroundColor = "#808080";
+
+      // Show difference controls
+      this.getElementById("difference-controls").style.display = "block";
+
+      // Set default background selector value
+      this.getElementById("difference-background").value = "grey";
+    }
+
+    // Update difference mode background color
+    updateDifferenceBackground() {
+      const background = this.getElementById("difference-background").value;
+      const container = this.getElementById("comparison-overlay-container");
+
+      const colors = {
+        black: "#000000",
+        white: "#ffffff",
+        grey: "#808080",
+      };
+
+      container.style.backgroundColor = colors[background] || "#ffffff";
+    }
+
+    // Toggle difference invert effect
+    toggleDifferenceInvert() {
+      const container = this.getElementById("comparison-overlay-container");
+      const invertBtn = this.getElementById("invert-difference");
+
+      if (container.classList.contains("difference-inverted")) {
+        container.classList.remove("difference-inverted");
+        invertBtn.textContent = "Invert";
+      } else {
+        container.classList.add("difference-inverted");
+        invertBtn.textContent = "Normal";
+      }
+    }
+
     // Hide main comparison elements
     hideMainElements() {
       ["left-side", "right-side", "comparison-divider"].forEach((id) => {
@@ -859,7 +952,7 @@
         "block";
     }
 
-    // Create overlay images for slider/fade modes
+    // Create overlay images for slider/fade/difference modes
     createOverlayImages() {
       const container = this.getElementById("overlay-pan");
       const leftImage = this.getElementById("left-image");
@@ -1181,6 +1274,10 @@
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             overflow: hidden; display: none; z-index: 10002;
           }
+
+          #comparison-overlay-container.difference-inverted {
+            filter: invert(1);
+          }
   
           #comparison-slider {
             position: absolute; top: 0; bottom: 0; width: 4px;
@@ -1201,10 +1298,10 @@
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: hidden;
           }
   
-          #fade-controls {
+          #fade-controls, #difference-controls {
             position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
             z-index: 10004; background-color: rgba(0, 0, 0, 0.7);
-            padding: 10px; border-radius: 5px;
+            padding: 10px; border-radius: 5px; display: flex; align-items: center; gap: 10px;
           }
   
           #opacity-slider { width: 200px; margin-right: 10px; }

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Danbooru Image Comparator
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      0.3
+// @version      0.4
 // @description  Compare images on Danbooru to identify differences, with rotation, flipping and difference mode support
 // @author       Neko_Aria
 // @match        https://danbooru.donmai.us/posts/*
@@ -372,6 +372,22 @@
               <button id="reset-zoom" class="control-btn">Reset Zoom</button>
               <button id="close-comparison" class="control-btn">✕</button>
             </div>
+            <div id="fade-controls" class="header-section" style="display: none;">
+              <label>Opacity:
+                <input type="range" id="opacity-slider" min="0" max="100" value="50">
+              </label>
+              <span id="opacity-value">50%</span>
+            </div>
+            <div id="difference-controls" class="header-section" style="display: none;">
+              <label>Background:
+                <select id="difference-background">
+                  <option value="black">Black</option>
+                  <option value="white">White</option>
+                  <option value="grey">Grey</option>
+                </select>
+              </label>
+              <button id="invert-difference" class="control-btn">Invert</button>
+            </div>
           </div>
           ${this.getComparisonContentHTML()}
         `;
@@ -410,22 +426,6 @@
             </div>
             <div id="comparison-overlay-container">
               <div class="sync-pan" id="overlay-pan"></div>
-            </div>
-            <div id="fade-controls" style="display: none;">
-              <label>Opacity:
-                <input type="range" id="opacity-slider" min="0" max="100" value="50">
-              </label>
-              <span id="opacity-value">50%</span>
-            </div>
-            <div id="difference-controls" style="display: none;">
-              <label>Background:
-                <select id="difference-background">
-                  <option value="black">Black</option>
-                  <option value="white">White</option>
-                  <option value="grey">Grey</option>
-                </select>
-              </label>
-              <button id="invert-difference" class="control-btn">Invert</button>
             </div>
           </div>
         `;
@@ -511,17 +511,17 @@
         ["close-comparison", () => this.closeInterface()],
         ["load-comparison", () => this.handleLoadComparison()],
         ["swap-images", () => this.swapImages()],
-        [
-          "comparison-mode",
-          () => {
-            this.updateComparisonMode();
-            this.saveComparisonMode();
-          },
-        ],
       ];
 
       eventMap.forEach(([id, handler]) => {
         this.getElementById(id).addEventListener("click", handler);
+      });
+
+      // Use 'change' event instead of 'click' for mode selection to prevent triggering on just clicking the dropdown
+      const modeSelector = this.getElementById("comparison-mode");
+      modeSelector.addEventListener("change", () => {
+        this.updateComparisonMode();
+        this.saveComparisonMode();
       });
     }
 
@@ -883,7 +883,7 @@
       this.initializeOverlayPanZoom();
 
       this.getElementById("overlay-image").style.opacity = "0.5";
-      this.getElementById("fade-controls").style.display = "block";
+      this.getElementById("fade-controls").style.display = "flex";
       this.initializeOpacitySlider();
     }
 
@@ -905,7 +905,7 @@
       ).style.backgroundColor = "#808080";
 
       // Show difference controls
-      this.getElementById("difference-controls").style.display = "block";
+      this.getElementById("difference-controls").style.display = "flex";
 
       // Set default background selector value
       this.getElementById("difference-background").value = "grey";
@@ -975,6 +975,21 @@
     // Initialize pan-zoom for overlay mode
     initializeOverlayPanZoom() {
       const overlayPan = this.getElementById("overlay-pan");
+      const overlayContainer = this.getElementById(
+        "comparison-overlay-container"
+      );
+
+      // First destroy existing overlay panzoom if it exists
+      if (this.panzoomInstances.overlay) {
+        this.panzoomInstances.overlay.destroy();
+
+        // Remove existing wheel event listeners to prevent duplicates
+        const oldListener = overlayContainer._wheelListener;
+        if (oldListener) {
+          overlayContainer.removeEventListener("wheel", oldListener);
+          delete overlayContainer._wheelListener;
+        }
+      }
 
       const panzoomOptions = {
         maxScale: Infinity,
@@ -982,14 +997,17 @@
 
       this.panzoomInstances.overlay = Panzoom(overlayPan, panzoomOptions);
 
-      // Bind wheel events for overlay
-      const overlayContainer = this.getElementById(
-        "comparison-overlay-container"
-      );
-      overlayContainer.addEventListener("wheel", (event) => {
+      // Create and store the wheel event handler
+      const wheelHandler = (event) => {
         event.preventDefault();
         this.panzoomInstances.overlay.zoomWithWheel(event);
-      });
+      };
+
+      // Store reference to listener for future cleanup
+      overlayContainer._wheelListener = wheelHandler;
+
+      // Bind wheel events for overlay
+      overlayContainer.addEventListener("wheel", wheelHandler);
     }
 
     // === SLIDER MODE ===
@@ -1082,6 +1100,14 @@
       const leftPan = this.getElementById("left-pan");
       const rightPan = this.getElementById("right-pan");
 
+      // Destroy existing instances first
+      if (this.panzoomInstances.left) {
+        this.panzoomInstances.left.destroy();
+      }
+      if (this.panzoomInstances.right) {
+        this.panzoomInstances.right.destroy();
+      }
+
       const panzoomOptions = {
         maxScale: Infinity,
       };
@@ -1103,10 +1129,25 @@
 
     // Synchronize pan and zoom between images
     synchronizePanZoom(leftPan, rightPan, leftPanzoom, rightPanzoom) {
+      // Remove existing event listeners if present
+      if (leftPan._panzoomChangeListener) {
+        leftPan.removeEventListener(
+          "panzoomchange",
+          leftPan._panzoomChangeListener
+        );
+      }
+      if (rightPan._panzoomChangeListener) {
+        rightPan.removeEventListener(
+          "panzoomchange",
+          rightPan._panzoomChangeListener
+        );
+      }
+
       // add flag to prevent infinite loop
       let isUpdating = false;
 
-      leftPan.addEventListener("panzoomchange", (event) => {
+      // Create new listeners
+      leftPan._panzoomChangeListener = (event) => {
         if (isUpdating) {
           return;
         }
@@ -1117,9 +1158,9 @@
         rightPanzoom.zoom(scale, { animate: false, silent: true });
         rightPanzoom.pan(x, y, { animate: false, silent: true });
         isUpdating = false;
-      });
+      };
 
-      rightPan.addEventListener("panzoomchange", (event) => {
+      rightPan._panzoomChangeListener = (event) => {
         if (isUpdating) {
           return;
         }
@@ -1130,7 +1171,14 @@
         leftPanzoom.zoom(scale, { animate: false, silent: true });
         leftPanzoom.pan(x, y, { animate: false, silent: true });
         isUpdating = false;
-      });
+      };
+
+      // Add new listeners
+      leftPan.addEventListener("panzoomchange", leftPan._panzoomChangeListener);
+      rightPan.addEventListener(
+        "panzoomchange",
+        rightPan._panzoomChangeListener
+      );
     }
 
     // Bind pan and zoom events
@@ -1138,20 +1186,41 @@
       // fix wheel event binding - should bind to parent container instead of content area
       const leftSide = this.getElementById("left-side");
       const rightSide = this.getElementById("right-side");
+      const resetZoomButton = this.getElementById("reset-zoom");
 
-      leftSide.addEventListener("wheel", (event) => {
+      // Remove existing wheel listeners if any
+      if (leftSide._wheelListener) {
+        leftSide.removeEventListener("wheel", leftSide._wheelListener);
+      }
+      if (rightSide._wheelListener) {
+        rightSide.removeEventListener("wheel", rightSide._wheelListener);
+      }
+      if (resetZoomButton._clickListener) {
+        resetZoomButton.removeEventListener(
+          "click",
+          resetZoomButton._clickListener
+        );
+      }
+
+      // Create and store new listeners
+      leftSide._wheelListener = (event) => {
         event.preventDefault();
         leftPanzoom.zoomWithWheel(event);
-      });
+      };
 
-      rightSide.addEventListener("wheel", (event) => {
+      rightSide._wheelListener = (event) => {
         event.preventDefault();
         rightPanzoom.zoomWithWheel(event);
-      });
+      };
 
-      this.getElementById("reset-zoom").addEventListener("click", () => {
+      resetZoomButton._clickListener = () => {
         this.resetZoom();
-      });
+      };
+
+      // Add new listeners
+      leftSide.addEventListener("wheel", leftSide._wheelListener);
+      rightSide.addEventListener("wheel", rightSide._wheelListener);
+      resetZoomButton.addEventListener("click", resetZoomButton._clickListener);
     }
 
     // Reset zoom to default
@@ -1167,14 +1236,45 @@
       }
     }
 
-    // Destroy all pan-zoom instances
+    // Destroy all pan-zoom instances and clean up event listeners
     destroyPanZoom() {
+      // Clean up PanZoom instances
       Object.values(this.panzoomInstances).forEach((instance) => {
         if (instance) {
           instance.destroy();
         }
       });
       this.panzoomInstances = { left: null, right: null, overlay: null };
+
+      // Clean up event listeners
+      const elementsToClean = [
+        {
+          id: "left-pan",
+          property: "_panzoomChangeListener",
+          event: "panzoomchange",
+        },
+        {
+          id: "right-pan",
+          property: "_panzoomChangeListener",
+          event: "panzoomchange",
+        },
+        { id: "left-side", property: "_wheelListener", event: "wheel" },
+        { id: "right-side", property: "_wheelListener", event: "wheel" },
+        {
+          id: "comparison-overlay-container",
+          property: "_wheelListener",
+          event: "wheel",
+        },
+        { id: "reset-zoom", property: "_clickListener", event: "click" },
+      ];
+
+      elementsToClean.forEach(({ id, property, event }) => {
+        const element = this.getElementById(id);
+        if (element && element[property]) {
+          element.removeEventListener(event, element[property]);
+          delete element[property];
+        }
+      });
     }
 
     // === UTILITY METHODS ===
@@ -1250,7 +1350,19 @@
             background-color: var(--grey-9); z-index: 10001; flex-wrap: wrap; gap: 10px;
           }
   
-          .header-section { display: flex; align-items: center; gap: 10px; }
+          .header-section { 
+            display: flex; align-items: center; gap: 10px; 
+          }
+
+          #fade-controls, #difference-controls {
+            flex-wrap: wrap;
+            width: 100%;
+            justify-content: center;
+            order: 10;
+            padding-top: 5px;
+            margin-top: 5px;
+            border-top: 1px solid var(--grey-7);
+          }
   
           #comparison-content {
             flex: 1; display: flex; overflow: hidden; position: relative;
@@ -1298,15 +1410,9 @@
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: hidden;
           }
   
-          #fade-controls, #difference-controls {
-            position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
-            z-index: 10004; background-color: rgba(0, 0, 0, 0.7);
-            padding: 10px; border-radius: 5px; display: flex; align-items: center; gap: 10px;
-          }
-  
           #opacity-slider { width: 200px; margin-right: 10px; }
   
-          #transform-controls { display: flex; align-items: center; gap: 5px; }
+          #transform-controls { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
   
           /* Transform classes */
           .flip-h { transform: scaleX(-1); }

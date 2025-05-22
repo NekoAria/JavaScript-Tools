@@ -9,12 +9,22 @@ export default [
       globals: {
         ...globals.browser,
         ...globals.greasemonkey,
+        Panzoom: "readonly",
       },
     },
     rules: {
       // Base ESLint rules
       ...js.configs.recommended.rules,
       curly: ["error", "all"],
+      "prefer-destructuring": [
+        "error",
+        {
+          VariableDeclarator: {
+            array: false,
+            object: true,
+          },
+        },
+      ],
     },
   },
   {
@@ -23,7 +33,6 @@ export default [
       globals: {
         ...globals.browser,
         ...globals.greasemonkey,
-        Panzoom: "readonly",
       },
     },
   },

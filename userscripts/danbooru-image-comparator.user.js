@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Danbooru Image Comparator
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      0.9
+// @version      0.10
 // @description  Compare images on Danbooru with multiple modes and transformations
 // @author       Neko_Aria
 // @match        https://danbooru.donmai.us/posts/*
@@ -443,6 +443,21 @@
       this.bindTransformEvents();
       this.bindInputEvents();
       this.bindModeEvents();
+      this.bindKeyboardShortcuts();
+    }
+
+    bindKeyboardShortcuts() {
+      this.escKeyHandler = (e) => {
+        if (e.key === "Escape") {
+          this.closeInterface();
+        }
+      };
+    
+      document.addEventListener("keydown", this.escKeyHandler);
+      
+      this.eventCleanup.push(() => {
+        document.removeEventListener("keydown", this.escKeyHandler);
+      });
     }
 
     bindControlEvents() {

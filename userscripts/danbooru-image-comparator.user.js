@@ -1,15 +1,17 @@
 // ==UserScript==
 // @name         Danbooru Image Comparator
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      0.10
+// @version      0.11
 // @description  Compare images on Danbooru with multiple modes and transformations
 // @author       Neko_Aria
 // @match        https://danbooru.donmai.us/posts/*
 // @match        https://danbooru.donmai.us/uploads/*
-// @resource     STYLE https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts/danbooru-image-comparator.css
-// @require      https://unpkg.com/@panzoom/panzoom@4.6.0/dist/panzoom.min.js
 // @grant        GM_addStyle
 // @grant        GM_getResourceText
+// @resource     STYLE https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts/danbooru-image-comparator.css
+// @require      https://unpkg.com/@panzoom/panzoom@4.6.0/dist/panzoom.min.js
+// @downloadURL  https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts/danbooru-image-comparator.user.js
+// @updateURL    https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts/danbooru-image-comparator.user.js
 // ==/UserScript==
 
 (function () {
@@ -293,6 +295,10 @@
       const container = document.createElement("div");
       container.id = "image-comparison-container";
       container.innerHTML = this.getInterfaceHTML();
+
+      container.setAttribute("tabindex", "0");
+      container.style.outline = "none";
+
       document.body.appendChild(container);
 
       this.createPostSelector();
@@ -457,10 +463,10 @@
         }
       };
 
-      document.addEventListener("keydown", this.escKeyHandler);
+      document.addEventListener("keydown", this.escKeyHandler, true);
 
       this.eventCleanup.push(() => {
-        document.removeEventListener("keydown", this.escKeyHandler);
+        document.removeEventListener("keydown", this.escKeyHandler, true);
       });
     }
 
@@ -772,6 +778,13 @@
       }
 
       setTimeout(() => this.applyTransforms(), 0);
+
+      requestAnimationFrame(() => {
+        const container = document.getElementById("image-comparison-container");
+        if (container) {
+          container.focus();
+        }
+      });
     }
 
     cleanupModeElements() {

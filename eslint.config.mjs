@@ -26,6 +26,7 @@ export default [
           },
         },
       ],
+      "prefer-template": "error",
     },
   },
   {

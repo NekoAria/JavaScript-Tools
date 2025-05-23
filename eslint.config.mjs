@@ -16,6 +16,7 @@ export default [
       // Base ESLint rules
       ...js.configs.recommended.rules,
       curly: ["error", "all"],
+      "operator-assignment": "error",
       "prefer-destructuring": [
         "error",
         {

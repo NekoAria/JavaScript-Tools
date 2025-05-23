@@ -1,14 +1,14 @@
 // ==UserScript==
 // @name         Danbooru Image Comparator
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      0.11
+// @version      0.12
 // @description  Compare images on Danbooru with multiple modes and transformations
 // @author       Neko_Aria
 // @match        https://danbooru.donmai.us/posts/*
 // @match        https://danbooru.donmai.us/uploads/*
 // @grant        GM_addStyle
 // @grant        GM_getResourceText
-// @resource     STYLE https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts/danbooru-image-comparator.css?t=20250523
+// @resource     STYLE https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts/danbooru-image-comparator.css?t=202505231805
 // @require      https://unpkg.com/@panzoom/panzoom@4.6.0/dist/panzoom.min.js
 // @downloadURL  https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts/danbooru-image-comparator.user.js
 // @updateURL    https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts/danbooru-image-comparator.user.js
@@ -59,6 +59,7 @@
       this.isUploadPage = location.href.includes("/uploads/");
       this.currentPostId = this.getElement(DanbooruImageComparator.SELECTORS.POST_ID)?.content;
       this.originalImageUrl = this.getOriginalImageUrl();
+      this.currentMode = DanbooruImageComparator.MODES.SIDE_BY_SIDE;
 
       this.transforms = {
         left: { flipH: false, flipV: false, rotation: 0 },
@@ -760,6 +761,12 @@
       this.cleanupWheelListeners();
 
       const mode = document.getElementById("comparison-mode").value;
+      const previousMode = this.currentMode || DanbooruImageComparator.MODES.SIDE_BY_SIDE;
+
+      // Adjust zoom state before mode switch
+      this.adjustZoomStateForModeSwitch(previousMode, mode);
+
+      this.currentMode = mode;
       this.resetDisplay();
 
       switch (mode) {
@@ -835,14 +842,100 @@
           scale: activeInstance.getScale(),
           x: pan.x,
           y: pan.y,
+          mode: this.currentMode || document.getElementById("comparison-mode").value,
         };
       }
     }
 
+    // Check if it's overlay mode
+    isOverlayMode(mode) {
+      return [
+        DanbooruImageComparator.MODES.SLIDER,
+        DanbooruImageComparator.MODES.FADE,
+        DanbooruImageComparator.MODES.DIFFERENCE,
+      ].includes(mode);
+    }
     getActivePanzoomInstance() {
       return (
         this.panzoomInstances.overlay || this.panzoomInstances.left || this.panzoomInstances.right
       );
+    }
+
+    // Improved zoom state transition, considering actual image size and container layout
+    adjustZoomStateForModeSwitch(fromMode, toMode) {
+      if (!this.zoomState || this.zoomState.scale <= 1) {
+        return; // If no zoom, no need to adjust
+      }
+
+      const isFromOverlay = this.isOverlayMode(fromMode);
+      const isToOverlay = this.isOverlayMode(toMode);
+
+      if (isFromOverlay && !isToOverlay) {
+        // Switch from overlay mode to side-by-side mode
+        this.adjustOverlayToSideBySide();
+      } else if (!isFromOverlay && isToOverlay) {
+        // Switch from side-by-side mode to overlay mode
+        this.adjustSideBySideToOverlay();
+      }
+    }
+
+    // Adjust from overlay mode to side-by-side mode
+    adjustOverlayToSideBySide() {
+      const comparisonContent = document.getElementById("comparison-content");
+      if (!comparisonContent) {
+        return;
+      }
+
+      // Get container dimensions
+      const totalWidth = comparisonContent.clientWidth;
+      const dividerWidth = 4; // Divider width
+      const sideWidth = (totalWidth - dividerWidth) / 2;
+
+      // Calculate width scale
+      const widthScale = sideWidth / totalWidth;
+
+      // Adjust pan position
+      // Since now the image is centered on both sides, we need to recalculate the position
+      this.zoomState.x *= widthScale;
+
+      // Ensure the adjusted position is still reasonable
+      this.constrainPanPosition(sideWidth, comparisonContent.clientHeight);
+    }
+
+    // Adjust from side-by-side mode to overlay mode
+    adjustSideBySideToOverlay() {
+      const comparisonContent = document.getElementById("comparison-content");
+      if (!comparisonContent) {
+        return;
+      }
+
+      const totalWidth = comparisonContent.clientWidth;
+      const dividerWidth = 4;
+      const sideWidth = (totalWidth - dividerWidth) / 2;
+
+      // Calculate width scale
+      const widthScale = totalWidth / sideWidth;
+
+      // Adjust pan position
+      this.zoomState.x *= widthScale;
+
+      // Ensure the adjusted position is still reasonable
+      this.constrainPanPosition(totalWidth, comparisonContent.clientHeight);
+    }
+
+    // Constrain pan position within reasonable range
+    constrainPanPosition(containerWidth, containerHeight) {
+      if (this.zoomState.scale <= 1) {
+        return;
+      }
+
+      // Calculate maximum allowed pan distance
+      const maxPanX = (containerWidth * (this.zoomState.scale - 1)) / 2;
+      const maxPanY = (containerHeight * (this.zoomState.scale - 1)) / 2;
+
+      // Constrain pan position
+      this.zoomState.x = Math.max(-maxPanX, Math.min(maxPanX, this.zoomState.x));
+      this.zoomState.y = Math.max(-maxPanY, Math.min(maxPanY, this.zoomState.y));
     }
 
     restoreZoomState() {

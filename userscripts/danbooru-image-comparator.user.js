@@ -6,7 +6,10 @@
 // @author       Neko_Aria
 // @match        https://danbooru.donmai.us/posts/*
 // @match        https://danbooru.donmai.us/uploads/*
+// @resource     STYLE https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts/danbooru-image-comparator.css
 // @require      https://unpkg.com/@panzoom/panzoom@4.6.0/dist/panzoom.min.js
+// @grant        GM_addStyle
+// @grant        GM_getResourceText
 // ==/UserScript==
 
 (function () {
@@ -39,8 +42,9 @@
         return;
       }
 
+      GM_addStyle(GM_getResourceText("STYLE"));
+
       this.initState();
-      this.injectStyles();
       this.addCompareLinks();
       this.setupObserver();
     }
@@ -1186,154 +1190,6 @@
         console.warn("Failed to load mode:", e);
       }
       return DanbooruImageComparator.MODES.SIDE_BY_SIDE;
-    }
-
-    injectStyles() {
-      const style = document.createElement("style");
-      style.textContent = `
-        #image-comparison-container {
-          position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-          background-color: rgba(0, 0, 0, 0.9); z-index: 10000;
-          display: flex; flex-direction: column; color: white;
-        }
-
-        #image-comparison-container img {
-          image-rendering: pixelated;
-        }
-
-        #comparison-header {
-          padding: 8px; 
-          display: flex; 
-          flex-direction: column;
-          background-color: var(--grey-9); 
-          z-index: 10001;
-        }
-
-        .header-section { 
-          display: flex; align-items: center; gap: 10px; 
-        }
-        
-        .primary-controls {
-          justify-content: space-between; 
-          flex-wrap: wrap;
-          width: 100%;
-        }
-        
-        .right-controls {
-          display: flex;
-          gap: 10px;
-          margin-left: auto;
-        }
-
-        #all-controls-row {
-          display: flex;
-          justify-content: flex-start;
-          align-items: center;
-          gap: 20px;
-          flex-wrap: wrap;
-          padding-top: 8px;
-          margin-top: 8px;
-          border-top: 1px solid var(--grey-7);
-          overflow-x: auto;
-          width: 100%;
-        }
-
-        #transform-controls { 
-          display: flex; 
-          align-items: center; 
-          gap: 5px; 
-        }
-
-        #filter-controls { 
-          display: flex; 
-          align-items: center; 
-          gap: 10px; 
-        }
-
-        #fade-controls, #difference-controls {
-          display: none;
-          align-items: center;
-          gap: 10px;
-        }
-
-        #comparison-content {
-          flex: 1; display: flex; overflow: hidden; position: relative;
-        }
-
-        .comparison-side {
-          flex: 1; display: flex; justify-content: center; align-items: center;
-          overflow: hidden; position: relative;
-        }
-
-        .comparison-side img {
-          max-width: 100%; max-height: 100%; object-fit: contain;
-          margin: auto; display: block;
-        }
-
-        #comparison-divider {
-          width: 4px; height: 100%; background-color: white; cursor: col-resize;
-        }
-
-        #comparison-overlay-container {
-          position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-          overflow: hidden; display: none; z-index: 10002;
-        }
-
-        #comparison-overlay-container.difference-inverted {
-          filter: invert(1);
-        }
-
-        #comparison-slider {
-          position: absolute; top: 0; bottom: 0; width: 4px;
-          background-color: white; cursor: col-resize; z-index: 10003;
-        }
-
-        #comparison-slider::after {
-          content: ''; position: absolute; top: 50%; left: 50%;
-          transform: translate(-50%, -50%); width: 30px; height: 30px;
-          background-color: white; border-radius: 50%;
-        }
-
-        .post-selector {
-          display: flex; align-items: center; margin-right: 10px;
-        }
-
-        .sync-pan {
-          position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: hidden;
-        }
-
-        #opacity-slider, #brightness-slider, #saturate-slider { width: 120px; margin-right: 5px; }
-
-        /* Transform classes */
-        .flip-h { transform: scaleX(-1); }
-        .flip-v { transform: scaleY(-1); }
-        .rotate-90 { transform: rotate(90deg); }
-        .rotate-180 { transform: rotate(180deg); }
-        .rotate-270 { transform: rotate(270deg); }
-
-        /* Combined transformations */
-        .flip-h.flip-v { transform: scale(-1, -1); }
-        .flip-h.rotate-90 { transform: scaleX(-1) rotate(90deg); }
-        .flip-h.rotate-180 { transform: scaleX(-1) rotate(180deg); }
-        .flip-h.rotate-270 { transform: scaleX(-1) rotate(270deg); }
-        .flip-v.rotate-90 { transform: scaleY(-1) rotate(90deg); }
-        .flip-v.rotate-180 { transform: scaleY(-1) rotate(180deg); }
-        .flip-v.rotate-270 { transform: scaleY(-1) rotate(270deg); }
-        .flip-h.flip-v.rotate-90 { transform: scale(-1, -1) rotate(90deg); }
-        .flip-h.flip-v.rotate-180 { transform: scale(-1, -1) rotate(180deg); }
-        .flip-h.flip-v.rotate-270 { transform: scale(-1, -1) rotate(270deg); }
-
-        .control-btn {
-          white-space: nowrap;
-        }
-        
-        .mode-control-section {
-          padding-top: 0;
-          margin-top: 0;
-          border-top: none;
-        }
-      `;
-      document.head.appendChild(style);
     }
 
     updateFilters() {

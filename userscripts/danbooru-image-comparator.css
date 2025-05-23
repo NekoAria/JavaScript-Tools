@@ -1,0 +1,234 @@
+#all-controls-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 20px;
+  margin-top: 8px;
+  border-top: 1px solid var(--grey-7);
+  padding-top: 8px;
+  width: 100%;
+  overflow-x: auto;
+}
+
+#comparison-content {
+  display: flex;
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+}
+
+#comparison-divider {
+  cursor: col-resize;
+  background-color: white;
+  width: 4px;
+  height: 100%;
+}
+
+#comparison-header {
+  display: flex;
+  flex-direction: column;
+  z-index: 10001;
+  background-color: var(--grey-9);
+  padding: 8px;
+}
+
+#comparison-overlay-container {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 10002;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+#comparison-overlay-container.difference-inverted {
+  filter: invert(1);
+}
+
+#comparison-slider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 10003;
+  cursor: col-resize;
+  background-color: white;
+  width: 4px;
+}
+
+#comparison-slider::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background-color: white;
+  width: 30px;
+  height: 30px;
+  content: "";
+}
+
+#fade-controls,
+#difference-controls {
+  display: none;
+  align-items: center;
+  gap: 10px;
+}
+
+#filter-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#image-comparison-container {
+  display: flex;
+  position: fixed;
+  top: 0;
+  left: 0;
+  flex-direction: column;
+  z-index: 10000;
+  background-color: rgba(0, 0, 0, 0.9);
+  width: 100%;
+  height: 100%;
+  color: white;
+}
+
+#image-comparison-container img {
+  image-rendering: pixelated;
+}
+
+#opacity-slider,
+#brightness-slider,
+#saturate-slider {
+  margin-right: 5px;
+  width: 120px;
+}
+
+#transform-controls {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.comparison-side {
+  display: flex;
+  position: relative;
+  flex: 1;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.comparison-side img {
+  display: block;
+  margin: auto;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.control-btn {
+  white-space: nowrap;
+}
+
+.flip-h.flip-v.rotate-180 {
+  transform: scale(-1, -1) rotate(180deg);
+}
+
+.flip-h.flip-v.rotate-270 {
+  transform: scale(-1, -1) rotate(270deg);
+}
+
+.flip-h.flip-v.rotate-90 {
+  transform: scale(-1, -1) rotate(90deg);
+}
+
+.flip-h.rotate-180 {
+  transform: scaleX(-1) rotate(180deg);
+}
+
+.flip-h.rotate-270 {
+  transform: scaleX(-1) rotate(270deg);
+}
+
+.flip-h.rotate-90 {
+  transform: scaleX(-1) rotate(90deg);
+}
+
+.flip-v {
+  transform: scaleY(-1);
+}
+
+.flip-v.rotate-180 {
+  transform: scaleY(-1) rotate(180deg);
+}
+
+.flip-v.rotate-270 {
+  transform: scaleY(-1) rotate(270deg);
+}
+
+.flip-v.rotate-90 {
+  transform: scaleY(-1) rotate(90deg);
+}
+
+.header-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mode-control-section {
+  margin-top: 0;
+  border-top: none;
+  padding-top: 0;
+}
+
+.post-selector {
+  display: flex;
+  align-items: center;
+  margin-right: 10px;
+}
+
+.primary-controls {
+  flex-wrap: wrap;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.right-controls {
+  display: flex;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.rotate-180 {
+  transform: rotate(180deg);
+}
+
+.rotate-270 {
+  transform: rotate(270deg);
+}
+
+.rotate-90 {
+  transform: rotate(90deg);
+}
+
+.sync-pan {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.flip-h.flip-v {
+  transform: scale(-1, -1);
+}
+
+.flip-h {
+  transform: scaleX(-1);
+}

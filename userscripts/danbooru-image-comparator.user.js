@@ -303,7 +303,7 @@
     getInterfaceHTML() {
       return `
         <div id="comparison-header">
-          <div class="header-section">
+          <div class="header-section header-row primary-controls">
             <span>Current: ${this.currentPostId || "upload"}</span>
             <input id="second-image-input" type="text" placeholder="Enter ID or URL" />
             <button id="load-comparison" class="control-btn">Load</button>
@@ -314,13 +314,12 @@
               <option value="fade">Fade</option>
               <option value="difference">Difference</option>
             </select>
-          </div>
-          <div id="post-info-display"></div>
-          ${this.getTransformControlsHTML()}
-          <div class="header-section">
-            <button id="swap-images" class="control-btn">Swap</button>
-            <button id="reset-zoom" class="control-btn">Reset Zoom</button>
-            <button id="close-comparison" class="control-btn">✕</button>
+            <div id="post-info-display"></div>
+            <div class="right-controls">
+              <button id="swap-images" class="control-btn">Swap</button>
+              <button id="reset-zoom" class="control-btn">Reset Zoom</button>
+              <button id="close-comparison" class="control-btn">✕</button>
+            </div>
           </div>
           ${this.getModeControlsHTML()}
         </div>
@@ -328,35 +327,39 @@
       `;
     }
 
-    getTransformControlsHTML() {
-      return `
-        <div id="transform-controls">
-          <button id="flip-h-left" class="control-btn" title="Flip Left Horizontally">↔️ L</button>
-          <button id="flip-v-left" class="control-btn" title="Flip Left Vertically">↕️ L</button>
-          <button id="rotate-left" class="control-btn" title="Rotate Left">🔄 L</button>
-          <button id="flip-h-right" class="control-btn" title="Flip Right Horizontally">↔️ R</button>
-          <button id="flip-v-right" class="control-btn" title="Flip Right Vertically">↕️ R</button>
-          <button id="rotate-right" class="control-btn" title="Rotate Right">🔄 R</button>
-          <button id="reset-transform" class="control-btn" title="Reset Transforms">Reset</button>
-        </div>
-      `;
-    }
-
     getModeControlsHTML() {
       return `
-        <div id="fade-controls" class="header-section" style="display: none;">
-          <label>Opacity: <input type="range" id="opacity-slider" min="0" max="100" value="50"></label>
-          <span id="opacity-value">50%</span>
-        </div>
-        <div id="difference-controls" class="header-section" style="display: none;">
-          <label>Background:
-            <select id="difference-background">
-              <option value="black">Black</option>
-              <option value="white">White</option>
-              <option value="grey">Grey</option>
-            </select>
-          </label>
-          <button id="invert-difference" class="control-btn">Invert</button>
+        <div id="all-controls-row" class="header-section mode-control-section">
+          <div id="transform-controls">
+            <button id="flip-h-left" class="control-btn" title="Flip Left Horizontally">↔️ L</button>
+            <button id="flip-v-left" class="control-btn" title="Flip Left Vertically">↕️ L</button>
+            <button id="rotate-left" class="control-btn" title="Rotate Left">🔄 L</button>
+            <button id="flip-h-right" class="control-btn" title="Flip Right Horizontally">↔️ R</button>
+            <button id="flip-v-right" class="control-btn" title="Flip Right Vertically">↕️ R</button>
+            <button id="rotate-right" class="control-btn" title="Rotate Right">🔄 R</button>
+            <button id="reset-transform" class="control-btn" title="Reset Transforms">Reset</button>
+          </div>
+          <div id="filter-controls">
+            <label>Brightness: <input type="range" id="brightness-slider" min="0" max="100" value="1"></label>
+            <span id="brightness-value">1</span>
+            <label>Saturate: <input type="range" id="saturate-slider" min="0" max="100" value="1"></label>
+            <span id="saturate-value">1</span>
+            <button id="reset-filters" class="control-btn">Reset Filters</button>
+          </div>
+          <div id="fade-controls">
+            <label>Opacity: <input type="range" id="opacity-slider" min="0" max="100" value="50"></label>
+            <span id="opacity-value">50%</span>
+          </div>
+          <div id="difference-controls">
+            <label>Background:
+              <select id="difference-background">
+                <option value="black">Black</option>
+                <option value="white">White</option>
+                <option value="grey">Grey</option>
+              </select>
+            </label>
+            <button id="invert-difference" class="control-btn">Invert</button>
+          </div>
         </div>
       `;
     }
@@ -508,6 +511,21 @@
       this.addEventListenerWithCleanup("invert-difference", "click", () => {
         this.toggleDifferenceInvert();
       });
+
+      // Filter controls
+      const brightnessSlider = document.getElementById("brightness-slider");
+      const saturateSlider = document.getElementById("saturate-slider");
+
+      if (brightnessSlider && saturateSlider) {
+        brightnessSlider.oninput = () => this.updateFilters();
+        saturateSlider.oninput = () => this.updateFilters();
+
+        this.addEventListenerWithCleanup("reset-filters", "click", () => {
+          brightnessSlider.value = 1;
+          saturateSlider.value = 1;
+          this.updateFilters();
+        });
+      }
     }
 
     addEventListenerWithCleanup(elementId, event, handler) {
@@ -823,6 +841,8 @@
       ["fade-controls", "difference-controls"].forEach((id) => {
         document.getElementById(id).style.display = "none";
       });
+
+      document.getElementById("filter-controls").style.display = "flex";
     }
 
     setupSliderMode() {
@@ -1167,17 +1187,58 @@
         }
 
         #comparison-header {
-          padding: 10px; display: flex; justify-content: space-between; align-items: center;
-          background-color: var(--grey-9); z-index: 10001; flex-wrap: wrap; gap: 10px;
+          padding: 8px; 
+          display: flex; 
+          flex-direction: column;
+          background-color: var(--grey-9); 
+          z-index: 10001;
         }
 
         .header-section { 
           display: flex; align-items: center; gap: 10px; 
         }
+        
+        .primary-controls {
+          justify-content: space-between; 
+          flex-wrap: wrap;
+          width: 100%;
+        }
+        
+        .right-controls {
+          display: flex;
+          gap: 10px;
+          margin-left: auto;
+        }
+
+        #all-controls-row {
+          display: flex;
+          justify-content: flex-start;
+          align-items: center;
+          gap: 20px;
+          flex-wrap: wrap;
+          padding-top: 8px;
+          margin-top: 8px;
+          border-top: 1px solid var(--grey-7);
+          overflow-x: auto;
+          width: 100%;
+        }
+
+        #transform-controls { 
+          display: flex; 
+          align-items: center; 
+          gap: 5px; 
+        }
+
+        #filter-controls { 
+          display: flex; 
+          align-items: center; 
+          gap: 10px; 
+        }
 
         #fade-controls, #difference-controls {
-          flex-wrap: wrap; width: 100%; justify-content: center; order: 10;
-          padding-top: 5px; margin-top: 5px; border-top: 1px solid var(--grey-7);
+          display: none;
+          align-items: center;
+          gap: 10px;
         }
 
         #comparison-content {
@@ -1226,9 +1287,7 @@
           position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: hidden;
         }
 
-        #opacity-slider { width: 200px; margin-right: 10px; }
-
-        #transform-controls { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+        #opacity-slider, #brightness-slider, #saturate-slider { width: 120px; margin-right: 5px; }
 
         /* Transform classes */
         .flip-h { transform: scaleX(-1); }
@@ -1248,8 +1307,31 @@
         .flip-h.flip-v.rotate-90 { transform: scale(-1, -1) rotate(90deg); }
         .flip-h.flip-v.rotate-180 { transform: scale(-1, -1) rotate(180deg); }
         .flip-h.flip-v.rotate-270 { transform: scale(-1, -1) rotate(270deg); }
+
+        .control-btn {
+          white-space: nowrap;
+        }
+        
+        .mode-control-section {
+          padding-top: 0;
+          margin-top: 0;
+          border-top: none;
+        }
       `;
       document.head.appendChild(style);
+    }
+
+    updateFilters() {
+      const brightnessValue = document.getElementById("brightness-slider").value;
+      const saturateValue = document.getElementById("saturate-slider").value;
+
+      document.getElementById("brightness-value").textContent = `${brightnessValue}`;
+      document.getElementById("saturate-value").textContent = `${saturateValue}`;
+
+      const overlayPan = document.getElementById("overlay-pan");
+      if (overlayPan) {
+        overlayPan.style.filter = `brightness(${brightnessValue}) saturate(${saturateValue})`;
+      }
     }
   }
 

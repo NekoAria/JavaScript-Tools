@@ -8,7 +8,7 @@
 // @match        https://danbooru.donmai.us/uploads/*
 // @grant        GM_addStyle
 // @grant        GM_getResourceText
-// @resource     STYLE https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts/danbooru-image-comparator.css
+// @resource     STYLE https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts/danbooru-image-comparator.css?t=20250523
 // @require      https://unpkg.com/@panzoom/panzoom@4.6.0/dist/panzoom.min.js
 // @downloadURL  https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts/danbooru-image-comparator.user.js
 // @updateURL    https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts/danbooru-image-comparator.user.js

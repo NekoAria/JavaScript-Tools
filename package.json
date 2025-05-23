@@ -1,31 +1,30 @@
 {
   "name": "javascript-tools",
   "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "lint": "eslint",
-    "format": "prettier",
-    "check": "prettier --write . && eslint --fix",
-    "prepare": "husky"
+    "lint:fix": "eslint --fix",
+    "prepare": "simple-git-hooks"
   },
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged"
-    }
+  "simple-git-hooks": {
+    "pre-commit": "pnpm exec lint-staged"
   },
   "lint-staged": {
-    "*.{js,ts,mjs,jsx,tsx}": [
+    "*.{js,mjs}": [
       "eslint --fix",
       "prettier --write"
     ],
-    "*.{json,jsonc,css,md}": [
+    "*.{json,css,md}": [
       "prettier --write"
     ]
   },
-  "dependencies": {
+  "devDependencies": {
     "@eslint/js": "^9.27.0",
     "eslint": "^9.26.0",
     "globals": "^16.1.0",
-    "husky": "^9.1.7",
     "lint-staged": "^16.0.0",
-    "prettier": "^3.5.3"
+    "prettier": "^3.5.3",
+    "simple-git-hooks": "2.13.0"
   }
 }

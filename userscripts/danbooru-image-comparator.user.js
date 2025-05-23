@@ -452,9 +452,9 @@
           this.closeInterface();
         }
       };
-    
+
       document.addEventListener("keydown", this.escKeyHandler);
-      
+
       this.eventCleanup.push(() => {
         document.removeEventListener("keydown", this.escKeyHandler);
       });

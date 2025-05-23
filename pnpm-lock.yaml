@@ -7,7 +7,7 @@ settings:
 importers:
 
   .:
-    dependencies:
+    devDependencies:
       '@eslint/js':
         specifier: ^9.27.0
         version: 9.27.0
@@ -17,15 +17,15 @@ importers:
       globals:
         specifier: ^16.1.0
         version: 16.1.0
-      husky:
-        specifier: ^9.1.7
-        version: 9.1.7
       lint-staged:
         specifier: ^16.0.0
         version: 16.0.0
       prettier:
         specifier: ^3.5.3
         version: 3.5.3
+      simple-git-hooks:
+        specifier: 2.13.0
+        version: 2.13.0
 
 packages:
 
@@ -292,11 +292,6 @@ packages:
     resolution: {integrity: sha512-EykJT/Q1KjTWctppgIAgfSO0tKVuZUjhgMr17kqTumMl6Afv3EISleU7qZUzoXDFTAHTDC4NOoG/ZxU3EvlMPQ==}
     engines: {node: '>=8'}
 
-  husky@9.1.7:
-    resolution: {integrity: sha512-5gs5ytaNjBrh5Ow3zrvdUUY+0VxIuWVL4i9irt6friV+BqdCfmV11CQTWMiBYWHbXhco+J1kHfTOUkePhCDvMA==}
-    engines: {node: '>=18'}
-    hasBin: true
-
   ignore@5.3.2:
     resolution: {integrity: sha512-hsBTNUqQTDwkWtcdYI2i06Y/nUBEsNEDJKjWdigLvegy8kDuJAS8uRlpkkcQpyEXL0Z/pjDy5HBmMjRCJ2gq+g==}
     engines: {node: '>= 4'}
@@ -469,6 +464,10 @@ packages:
   signal-exit@4.1.0:
     resolution: {integrity: sha512-bzyZ1e88w9O1iNJbKnOlvYTrWPDl46O1bG0D3XInv+9tkPrxrN8jUUTiFlDkkmKWgn1M6CfIA13SuGqOa9Korw==}
     engines: {node: '>=14'}
+
+  simple-git-hooks@2.13.0:
+    resolution: {integrity: sha512-N+goiLxlkHJlyaYEglFypzVNMaNplPAk5syu0+OPp/Bk6dwVoXF6FfOw2vO0Dp+JHsBaI+w6cm8TnFl2Hw6tDA==}
+    hasBin: true
 
   slice-ansi@5.0.0:
     resolution: {integrity: sha512-FC+lgizVPfie0kkhqUScwRu1O/lF6NOgJmlCgK+/LYxDCTk8sGelYaHDhFcDN+Sn3Cv+3VSa4Byeo+IMCzpMgQ==}
@@ -787,8 +786,6 @@ snapshots:
 
   has-flag@4.0.0: {}
 
-  husky@9.1.7: {}
-
   ignore@5.3.2: {}
 
   import-fresh@3.3.1:
@@ -945,6 +942,8 @@ snapshots:
   shebang-regex@3.0.0: {}
 
   signal-exit@4.1.0: {}
+
+  simple-git-hooks@2.13.0: {}
 
   slice-ansi@5.0.0:
     dependencies:

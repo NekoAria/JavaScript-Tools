@@ -1,11 +1,12 @@
 // ==UserScript==
 // @name         Danbooru Image Comparator
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      0.13
+// @version      0.14
 // @description  Compare images on Danbooru with multiple modes and transformations
 // @author       Neko_Aria
 // @match        https://danbooru.donmai.us/posts/*
 // @match        https://danbooru.donmai.us/uploads/*
+// @match        https://danbooru.donmai.us/iqdb_queries*
 // @grant        GM_addStyle
 // @grant        GM_getResourceText
 // @resource     STYLE https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts/danbooru-image-comparator.css?t=202505231805
@@ -32,12 +33,35 @@
       MAIN_IMAGE: "#image",
       SIMILAR_POSTS: "#iqdb-similar .post-preview",
       RELATED_POSTS: "article.post-preview:not(.current-post)",
+      IQDB_SIMILAR_POSTS: ".iqdb-posts .post-preview",
       PARENT_PREVIEW: "#has-parent-relationship-preview",
       CHILDREN_PREVIEW: "#has-children-relationship-preview",
       MAIN_MENU: "#main-menu",
     };
 
     static STORAGE_KEY = "danbooru_comparator_mode";
+
+    // Page configuration for different contexts
+    static PAGE_CONFIGS = {
+      iqdb: {
+        selector: "IQDB_SIMILAR_POSTS",
+        getPostsMethod: "getIqdbPosts",
+        labelPrefix: "IQDB",
+        checkParams: (instance) => instance.searchPostId || instance.searchUrl,
+      },
+      upload: {
+        selector: "SIMILAR_POSTS",
+        getPostsMethod: "getSimilarPosts",
+        labelPrefix: "upload",
+        checkParams: () => true,
+      },
+      default: {
+        selector: "RELATED_POSTS",
+        getPostsMethod: "getRelatedPosts",
+        labelPrefix: "Post",
+        checkParams: () => true,
+      },
+    };
 
     constructor() {
       if (!this.isValidPage()) {
@@ -52,16 +76,27 @@
     }
 
     isValidPage() {
-      return /\/(posts|uploads)\/\d+($|\?|\/assets\/\d+)/.test(location.href);
+      return (
+        /\/(posts|uploads)\/\d+($|\?|\/assets\/\d+)/.test(location.href) ||
+        /\/iqdb_queries/.test(location.href)
+      );
     }
 
     initState() {
-      this.isUploadPage = location.href.includes("/uploads/");
+      this.isUploadPage = location.pathname.startsWith("/uploads");
+      this.isIqdbPage = location.pathname.startsWith("/iqdb_queries");
       this.currentPostId = this.getElement(DanbooruImageComparator.SELECTORS.POST_ID)?.content;
+
+      // Extract search parameters for IQDB pages
+      if (this.isIqdbPage) {
+        this.searchPostId = this.getElement("#search_post_id")?.value?.trim();
+        this.searchUrl = this.getElement("#search_url")?.value?.trim();
+      }
+
       this.originalImageUrl = this.getOriginalImageUrl();
       this.currentMode = null;
 
-      // Initialize transform states for both images
+      // Initialize transform states for image manipulations
       this.transforms = {
         left: { flipH: false, flipV: false, rotation: 0 },
         right: { flipH: false, flipV: false, rotation: 0 },
@@ -70,6 +105,31 @@
       this.panzoomInstances = {};
       this.zoomState = { scale: 1, x: 0, y: 0 };
       this.eventCleanup = [];
+    }
+
+    getCurrentPageConfig() {
+      if (this.isIqdbPage) {
+        return DanbooruImageComparator.PAGE_CONFIGS.iqdb;
+      }
+      if (this.isUploadPage) {
+        return DanbooruImageComparator.PAGE_CONFIGS.upload;
+      }
+      return DanbooruImageComparator.PAGE_CONFIGS.default;
+    }
+
+    getCurrentLabel() {
+      const config = this.getCurrentPageConfig();
+      if (this.isIqdbPage) {
+        return this.searchPostId ? `Post #${this.searchPostId}` : config.labelPrefix;
+      }
+      return this.currentPostId ? `Post #${this.currentPostId}` : config.labelPrefix;
+    }
+
+    getCurrentImageId() {
+      if (this.isIqdbPage) {
+        return this.searchPostId || "iqdb";
+      }
+      return this.currentPostId || "upload";
     }
 
     getElement(selector) {
@@ -88,22 +148,31 @@
         }
       }
 
+      // For IQDB pages, return URL if available, null otherwise
+      if (this.isIqdbPage) {
+        return this.searchUrl || null;
+      }
+
       return (
         this.getElement(DanbooruImageComparator.SELECTORS.ORIGINAL_LINK)?.href ||
         this.getElement(DanbooruImageComparator.SELECTORS.MAIN_IMAGE)?.src
       );
     }
 
+    // Monitor DOM changes to add compare links to new content
     setupObserver() {
       const observer = new MutationObserver(() => this.addCompareLinks());
       observer.observe(document.body, { childList: true, subtree: true });
     }
 
     addCompareLinks() {
-      const selector = this.isUploadPage
-        ? DanbooruImageComparator.SELECTORS.SIMILAR_POSTS
-        : DanbooruImageComparator.SELECTORS.RELATED_POSTS;
+      const config = this.getCurrentPageConfig();
 
+      if (!config.checkParams(this)) {
+        return;
+      }
+
+      const selector = DanbooruImageComparator.SELECTORS[config.selector];
       document.querySelectorAll(selector).forEach((article) => {
         this.addCompareLinkToPost(article);
       });
@@ -114,7 +183,15 @@
     addCompareLinkToPost(article) {
       const postId = article.getAttribute("data-id");
 
-      if (!postId || postId === this.currentPostId || article.querySelector(".compare-link")) {
+      if (!postId || article.querySelector(".compare-link")) {
+        return;
+      }
+
+      // Skip current post to avoid self-comparison
+      if (
+        postId === this.currentPostId ||
+        (this.isIqdbPage && this.searchPostId && postId === this.searchPostId)
+      ) {
         return;
       }
 
@@ -173,12 +250,42 @@
       }
     }
 
-    // Extract related post data from various DOM sections
+    // Extract posts with similarity scores from DOM
+    extractPostsWithSimilarity(selector, additionalFilter = null) {
+      return Array.from(document.querySelectorAll(selector))
+        .map((article) => {
+          const postData = this.extractPostData(article);
+          if (!postData) {
+            return null;
+          }
+
+          if (additionalFilter && !additionalFilter(postData)) {
+            return null;
+          }
+
+          const similarityEl = article.querySelector(".iqdb-similarity-score");
+          postData.similarity = similarityEl?.textContent || "";
+          return postData;
+        })
+        .filter(Boolean);
+    }
+
     getRelatedPosts() {
       const posts = [];
       this.extractFromPreviews(posts);
       this.extractFromNotices(posts);
       return posts;
+    }
+
+    getSimilarPosts() {
+      return this.extractPostsWithSimilarity(DanbooruImageComparator.SELECTORS.SIMILAR_POSTS);
+    }
+
+    getIqdbPosts() {
+      return this.extractPostsWithSimilarity(
+        DanbooruImageComparator.SELECTORS.IQDB_SIMILAR_POSTS,
+        (postData) => !(this.searchPostId && postData.id === this.searchPostId),
+      );
     }
 
     extractFromPreviews(posts) {
@@ -232,7 +339,7 @@
       );
     }
 
-    // Determine relationship type based on post status classes
+    // Determine relationship type based on post hierarchy
     getRelationshipType(article, isParentPreview) {
       if (!isParentPreview) {
         return "Child";
@@ -274,27 +381,55 @@
       });
     }
 
-    // Extract similar posts data for upload pages
-    getSimilarPosts() {
-      if (!this.isUploadPage) {
-        return [];
+    async fetchPostData(postId) {
+      const response = await fetch(`/posts/${postId}.json`);
+      if (!response.ok) {
+        throw new Error("Post not found");
       }
-
-      return Array.from(document.querySelectorAll(DanbooruImageComparator.SELECTORS.SIMILAR_POSTS))
-        .map((article) => {
-          const postData = this.extractPostData(article);
-          if (!postData) {
-            return null;
-          }
-
-          const similarityEl = article.querySelector(".iqdb-similarity-score");
-          postData.similarity = similarityEl?.textContent || "";
-          return postData;
-        })
-        .filter(Boolean);
+      return response.json();
     }
 
-    createInterface() {
+    async loadPostData(postId, targetElement, updateInfoCallback = null) {
+      try {
+        const data = await this.fetchPostData(postId);
+        const imageUrl = data.file_url || data.large_file_url;
+
+        targetElement.src = imageUrl;
+        targetElement.setAttribute("data-id", postId);
+
+        if (updateInfoCallback) {
+          updateInfoCallback();
+        }
+
+        return data;
+      } catch (error) {
+        const errorMessage = `Failed to load post: ${error.message}`;
+        console.warn(errorMessage);
+        throw error;
+      }
+    }
+
+    async loadSearchImage() {
+      try {
+        const leftImage = document.getElementById("left-image");
+        await this.loadPostData(this.searchPostId, leftImage, () => this.updatePostInfo());
+      } catch (error) {
+        console.warn(`Failed to load search image: ${error.message}`);
+      }
+    }
+
+    async loadPostById(postId) {
+      try {
+        const rightImage = document.getElementById("right-image");
+        const data = await this.loadPostData(postId, rightImage);
+        this.displayImage(data, postId);
+      } catch (error) {
+        this.showError(`Failed to load post: ${error.message}`);
+      }
+    }
+
+    // Create the main comparison interface
+    async createInterface() {
       const container = document.createElement("div");
       container.id = "image-comparison-container";
       container.innerHTML = this.getInterfaceHTML();
@@ -311,14 +446,23 @@
       const savedMode = this.getSavedMode();
       this.currentMode = savedMode;
       document.getElementById("comparison-mode").value = savedMode;
+
+      // Load search image for IQDB pages if available
+      if (this.isIqdbPage && this.searchPostId && !this.originalImageUrl) {
+        await this.loadSearchImage();
+      }
+
       this.updateMode();
     }
 
     getInterfaceHTML() {
+      const currentLabel = this.getCurrentLabel();
+      const leftImageSrc = this.originalImageUrl || "";
+
       return `
         <div id="comparison-header">
           <div class="header-section header-row primary-controls">
-            <span>Current: ${this.currentPostId || "upload"}</span>
+            <span>Current: ${currentLabel}</span>
             <input id="second-image-input" type="text" placeholder="Enter ID or URL" />
             <button id="load-comparison" class="control-btn">Load</button>
             <span class="mode-label">Mode:</span>
@@ -337,7 +481,7 @@
           </div>
           ${this.getModeControlsHTML()}
         </div>
-        ${this.getComparisonContentHTML()}
+        ${this.getComparisonContentHTML(leftImageSrc)}
       `;
     }
 
@@ -378,14 +522,14 @@
       `;
     }
 
-    getComparisonContentHTML() {
+    getComparisonContentHTML(leftImageSrc = "") {
+      const leftImageId = this.getCurrentImageId();
+
       return `
         <div id="comparison-content">
           <div class="comparison-side" id="left-side">
             <div class="sync-pan" id="left-pan">
-              <img id="left-image" src="${this.originalImageUrl}" data-id="${
-                this.currentPostId || "upload"
-              }" />
+              <img id="left-image" src="${leftImageSrc}" data-id="${leftImageId}" />
             </div>
           </div>
           <div id="comparison-divider"></div>
@@ -402,7 +546,9 @@
     }
 
     createPostSelector() {
-      const posts = this.isUploadPage ? this.getSimilarPosts() : this.getRelatedPosts();
+      const config = this.getCurrentPageConfig();
+      const posts = this[config.getPostsMethod]();
+
       if (posts.length === 0) {
         return;
       }
@@ -417,7 +563,7 @@
       container.className = "post-selector";
 
       const label = document.createElement("span");
-      label.textContent = this.isUploadPage ? "Similar: " : "Related: ";
+      label.textContent = this.isIqdbPage || this.isUploadPage ? "Similar: " : "Related: ";
 
       const select = document.createElement("select");
       this.populateSelector(select, posts);
@@ -440,9 +586,9 @@
 
       posts.forEach((post) => {
         let text = `#${post.id}`;
-        if (this.isUploadPage && post.similarity) {
+        if ((this.isUploadPage || this.isIqdbPage) && post.similarity) {
           text += ` (${post.similarity})`;
-        } else if (!this.isUploadPage && post.relationshipType) {
+        } else if (!(this.isUploadPage || this.isIqdbPage) && post.relationshipType) {
           text += ` (${post.relationshipType})`;
         }
 
@@ -451,6 +597,7 @@
       });
     }
 
+    // Bind all event handlers with cleanup tracking
     bindAllEvents() {
       this.bindControlEvents();
       this.bindTransformEvents();
@@ -591,6 +738,7 @@
       this.loadImage(input);
     }
 
+    // Handle different input types: post ID, URL, or direct image URL
     loadImage(input) {
       if (/^\d+$/.test(input)) {
         this.loadPostById(input);
@@ -600,18 +748,6 @@
       } else {
         this.loadDirectUrl(input);
       }
-    }
-
-    loadPostById(postId) {
-      fetch(`/posts/${postId}.json`)
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error("Post not found");
-          }
-          return response.json();
-        })
-        .then((data) => this.displayImage(data, postId))
-        .catch((error) => this.showError(`Failed to load post: ${error.message}`));
     }
 
     displayImage(data, postId) {
@@ -628,7 +764,7 @@
 
     loadDirectUrl(url) {
       try {
-        new URL(url); // Validate URL
+        new URL(url);
         const rightImage = document.getElementById("right-image");
 
         rightImage.onerror = () => {
@@ -663,15 +799,22 @@
     updatePostInfo() {
       const leftId = document.getElementById("left-image").getAttribute("data-id");
       const rightId = document.getElementById("right-image").getAttribute("data-id");
-      const display = leftId && rightId ? `Compare: #${leftId} vs #${rightId}` : "";
+
+      let display = "";
+      if (leftId && rightId) {
+        const leftLabel = leftId === "iqdb" ? "IQDB" : `#${leftId}`;
+        const rightLabel = rightId === "custom" ? "Custom" : `#${rightId}`;
+        display = `Compare: ${leftLabel} vs ${rightLabel}`;
+      }
+
       document.getElementById("post-info-display").textContent = display;
     }
 
+    // Swap left and right images including their transform states
     swapImages() {
       const leftImg = document.getElementById("left-image");
       const rightImg = document.getElementById("right-image");
 
-      // Swap sources and data attributes
       [leftImg.src, rightImg.src] = [rightImg.src, leftImg.src];
 
       const leftId = leftImg.getAttribute("data-id");
@@ -679,7 +822,6 @@
       leftImg.setAttribute("data-id", rightId);
       rightImg.setAttribute("data-id", leftId);
 
-      // Swap transform states
       [this.transforms.left, this.transforms.right] = [this.transforms.right, this.transforms.left];
 
       this.updatePostInfo();
@@ -708,6 +850,7 @@
       this.applyTransforms();
     }
 
+    // Apply transforms to all relevant image elements
     applyTransforms() {
       const imageMap = {
         left: ["left-image", "overlay-left-image", "slider-left-image"],
@@ -754,7 +897,7 @@
       }
     }
 
-    // Main comparison mode switching logic
+    // Main comparison mode switching with zoom state preservation
     updateMode() {
       this.saveZoomState();
       this.cleanupModeElements();
@@ -797,7 +940,7 @@
       });
     }
 
-    // Calculate zoom adjustment when switching between side-by-side and overlay modes
+    // Calculate zoom adjustment for mode transitions
     calculateAndUpdateZoomState(fromMode, toMode) {
       if (!this.zoomState) {
         return;
@@ -856,8 +999,8 @@
       }
     }
 
+    // Clean up wheel event listeners to prevent conflicts
     cleanupWheelListeners() {
-      // Clean up wheel event listeners to prevent duplicates
       ["left-side", "right-side", "comparison-overlay-container"].forEach((id) => {
         const element = document.getElementById(id);
         if (element?._wheelListener) {
@@ -898,7 +1041,6 @@
       }
     }
 
-    // Check if mode uses overlay container
     isOverlayMode(mode) {
       return [
         DanbooruImageComparator.MODES.SLIDER,
@@ -1052,7 +1194,7 @@
       overlayContainer.addEventListener("wheel", wheelHandler);
     }
 
-    // Initialize slider comparison mode with draggable divider
+    // Initialize slider comparison with draggable divider
     initSlider() {
       const container = document.getElementById("comparison-overlay-container");
       const rightImage = document.getElementById("overlay-image");
@@ -1069,6 +1211,7 @@
       this.bindSliderEvents(slider, rightImage, container);
     }
 
+    // Update slider position and clip path for comparison
     updateSlider(slider, rightImage, containerX, container) {
       const containerWidth = container.clientWidth;
       containerX = Math.max(0, Math.min(containerX, containerWidth));
@@ -1089,6 +1232,7 @@
       }
     }
 
+    // Bind slider drag events with zoom coordination
     bindSliderEvents(slider, rightImage, container) {
       let isDragging = false;
 
@@ -1197,6 +1341,7 @@
       this.bindPanZoomEvents();
     }
 
+    // Synchronize pan and zoom between left and right panels
     syncPanZoom(leftPan, rightPan, leftPanzoom, rightPanzoom) {
       let isUpdating = false;
 
@@ -1263,6 +1408,7 @@
       this.panzoomInstances = {};
     }
 
+    // Persist user's preferred comparison mode
     saveMode() {
       const mode = document.getElementById("comparison-mode").value;
       try {

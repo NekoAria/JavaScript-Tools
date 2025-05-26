@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Danbooru Image Comparator
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      0.14
+// @version      0.15
 // @description  Compare images on Danbooru with multiple modes and transformations
 // @author       Neko_Aria
 // @match        https://danbooru.donmai.us/posts/*
@@ -9,10 +9,10 @@
 // @match        https://danbooru.donmai.us/iqdb_queries*
 // @grant        GM_addStyle
 // @grant        GM_getResourceText
-// @resource     STYLE https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts/danbooru-image-comparator.css?t=202505231805
+// @resource     STYLE https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts/booru-image-comparator.css
 // @require      https://unpkg.com/@panzoom/panzoom@4.6.0/dist/panzoom.min.js
-// @downloadURL  https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts/danbooru-image-comparator.user.js
-// @updateURL    https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts/danbooru-image-comparator.user.js
+// @downloadURL  https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts/booru-image-comparator.user.js
+// @updateURL    https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts/booru-image-comparator.user.js
 // ==/UserScript==
 
 (function () {

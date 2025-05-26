@@ -6,4 +6,4 @@
 
 ## Userscripts
 
-- [Danbooru Image Comparator](userscripts/danbooru-image-comparator.user.js)
+- [Booru Image Comparator](userscripts/booru-image-comparator.user.js)

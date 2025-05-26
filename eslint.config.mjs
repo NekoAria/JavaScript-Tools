@@ -4,7 +4,7 @@ import js from "@eslint/js";
 export default [
   {
     files: ["**/*.js"],
-    ignores: ["bookmarklets/**/*.min.js"],
+    ignores: ["**/*.min.js"],
     languageOptions: {
       globals: {
         ...globals.browser,

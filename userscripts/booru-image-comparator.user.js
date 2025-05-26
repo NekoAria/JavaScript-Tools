@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Universal Booru Image Comparator
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      1.0.0
+// @version      1.0.1
 // @description  Compare images on Danbooru / Yande.re / Konachan with multiple modes and transformations
 // @author       Neko_Aria
 // @match        https://danbooru.donmai.us/posts/*
@@ -883,11 +883,13 @@
 
     // Event binding
     bindEvents() {
-      this.bindControlEvents();
-      this.bindTransformEvents();
-      this.bindInputEvents();
-      this.bindModeEvents();
-      this.bindKeyboardEvents();
+      setTimeout(() => {
+        this.bindControlEvents();
+        this.bindTransformEvents();
+        this.bindInputEvents();
+        this.bindModeEvents();
+        this.bindKeyboardEvents();
+      }, 0);
     }
 
     bindControlEvents() {
@@ -967,8 +969,9 @@
     }
 
     addEventHandler(elementId, event, handler) {
-      const element = this.select(elementId);
+      const element = this.select(`#${elementId}`);
       if (!element) {
+        console.warn(`Element with id "${elementId}" not found`);
         return;
       }
 
@@ -980,7 +983,10 @@
     restoreMode() {
       const savedMode = this.getSavedMode();
       this.mode = savedMode;
-      this.select("#comparison-mode").value = savedMode;
+      const modeSelect = this.select("#comparison-mode");
+      if (modeSelect) {
+        modeSelect.value = savedMode;
+      }
     }
 
     getSavedMode() {
@@ -989,15 +995,17 @@
         return Object.values(COMPARISON_MODES).includes(saved)
           ? saved
           : COMPARISON_MODES.SIDE_BY_SIDE;
-      } catch (e) {
+      } catch {
         return COMPARISON_MODES.SIDE_BY_SIDE;
       }
     }
 
     saveMode() {
       try {
-        const mode = this.select("#comparison-mode").value;
-        localStorage.setItem(STORAGE_KEY, mode);
+        const modeSelect = this.select("#comparison-mode");
+        if (modeSelect) {
+          localStorage.setItem(STORAGE_KEY, modeSelect.value);
+        }
       } catch (e) {
         console.warn("Failed to save mode:", e);
       }
@@ -1013,7 +1021,12 @@
       this.cleanupModeElements();
       this.cleanupWheelListeners();
 
-      const newMode = this.select("#comparison-mode").value;
+      const modeSelect = this.select("#comparison-mode");
+      if (!modeSelect) {
+        return;
+      }
+
+      const newMode = modeSelect.value;
       const previousMode = this.mode;
       this.mode = newMode;
 
@@ -1052,16 +1065,20 @@
     resetDisplay() {
       // Reset main elements
       ["left-side", "right-side", "comparison-divider"].forEach((id) => {
-        const el = this.select(id);
-        el.style.display = id === "comparison-divider" ? "block" : "flex";
+        const el = this.select(`#${id}`);
+        if (el) {
+          el.style.display = id === "comparison-divider" ? "block" : "flex";
+        }
       });
 
       // Reset overlay container
       const overlayContainer = this.select("#comparison-overlay-container");
-      overlayContainer.innerHTML = '<div class="sync-pan" id="overlay-pan"></div>';
-      overlayContainer.style.display = "none";
-      overlayContainer.style.backgroundColor = "";
-      overlayContainer.classList.remove("difference-inverted");
+      if (overlayContainer) {
+        overlayContainer.innerHTML = '<div class="sync-pan" id="overlay-pan"></div>';
+        overlayContainer.style.display = "none";
+        overlayContainer.style.backgroundColor = "";
+        overlayContainer.classList.remove("difference-inverted");
+      }
 
       // Reset overlay image
       const overlayImage = this.select("#overlay-image");
@@ -1073,10 +1090,16 @@
 
       // Reset control visibility
       ["fade-controls", "difference-controls"].forEach((id) => {
-        this.select(id).style.display = "none";
+        const el = this.select(`#${id}`);
+        if (el) {
+          el.style.display = "none";
+        }
       });
 
-      this.select("#filter-controls").style.display = "flex";
+      const filterControls = this.select("#filter-controls");
+      if (filterControls) {
+        filterControls.style.display = "flex";
+      }
     }
 
     setupSliderMode() {
@@ -1099,7 +1122,10 @@
         overlayImage.style.display = "block";
       }
 
-      this.select("#fade-controls").style.display = "flex";
+      const fadeControls = this.select("#fade-controls");
+      if (fadeControls) {
+        fadeControls.style.display = "flex";
+      }
     }
 
     setupDifferenceMode() {
@@ -1115,26 +1141,51 @@
         overlayImage.style.display = "block";
       }
 
-      this.select("#comparison-overlay-container").style.backgroundColor = FILTER_COLORS.black;
-      this.select("#difference-controls").style.display = "flex";
-      this.select("#difference-background").value = "black";
+      const overlayContainer = this.select("#comparison-overlay-container");
+      if (overlayContainer) {
+        overlayContainer.style.backgroundColor = FILTER_COLORS.black;
+      }
+
+      const differenceControls = this.select("#difference-controls");
+      if (differenceControls) {
+        differenceControls.style.display = "flex";
+      }
+
+      const backgroundSelect = this.select("#difference-background");
+      if (backgroundSelect) {
+        backgroundSelect.value = "black";
+      }
     }
 
     hideMainElements() {
       ["left-side", "right-side", "comparison-divider"].forEach((id) => {
-        this.select(id).style.display = "none";
+        const el = this.select(`#${id}`);
+        if (el) {
+          el.style.display = "none";
+        }
       });
     }
 
     showOverlay() {
-      this.select("#comparison-overlay-container").style.display = "block";
+      const overlay = this.select("#comparison-overlay-container");
+      if (overlay) {
+        overlay.style.display = "block";
+      }
     }
 
     // Overlay and slider functionality
     createOverlayImages() {
       const container = this.select("#overlay-pan");
+      if (!container) {
+        return;
+      }
+
       const leftImage = this.select("#left-image");
       const rightImage = this.select("#right-image");
+
+      if (!leftImage || !rightImage) {
+        return;
+      }
 
       const overlayStyle =
         "position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; margin: auto;";
@@ -1159,7 +1210,7 @@
       const container = this.select("#comparison-overlay-container");
       const rightImage = this.select("#overlay-image");
 
-      if (!rightImage?.src?.trim()) {
+      if (!container || !rightImage?.src?.trim()) {
         return;
       }
 
@@ -1258,21 +1309,31 @@
     // Filter and effect controls
     updateOpacity() {
       const slider = this.select("#opacity-slider");
-      const opacity = slider.value / 100;
       const overlayImage = this.select("#overlay-image");
+      const opacityValue = this.select("#opacity-value");
 
-      if (overlayImage) {
+      if (slider && overlayImage && opacityValue) {
+        const opacity = slider.value / 100;
         overlayImage.style.opacity = opacity;
-        this.select("#opacity-value").textContent = `${slider.value}%`;
+        opacityValue.textContent = `${slider.value}%`;
       }
     }
 
     updateFilters() {
-      const brightness = this.select("#brightness-slider").value;
-      const saturate = this.select("#saturate-slider").value;
+      const brightnessSlider = this.select("#brightness-slider");
+      const saturateSlider = this.select("#saturate-slider");
+      const brightnessValue = this.select("#brightness-value");
+      const saturateValue = this.select("#saturate-value");
 
-      this.select("#brightness-value").textContent = brightness;
-      this.select("#saturate-value").textContent = saturate;
+      if (!brightnessSlider || !saturateSlider || !brightnessValue || !saturateValue) {
+        return;
+      }
+
+      const brightness = brightnessSlider.value;
+      const saturate = saturateSlider.value;
+
+      brightnessValue.textContent = brightness;
+      saturateValue.textContent = saturate;
 
       const overlayPan = this.select("#overlay-pan");
       if (overlayPan) {
@@ -1281,20 +1342,36 @@
     }
 
     resetFilters() {
-      this.select("#brightness-slider").value = 1;
-      this.select("#saturate-slider").value = 1;
+      const brightnessSlider = this.select("#brightness-slider");
+      const saturateSlider = this.select("#saturate-slider");
+
+      if (brightnessSlider) {
+        brightnessSlider.value = 1;
+      }
+      if (saturateSlider) {
+        saturateSlider.value = 1;
+      }
+
       this.updateFilters();
     }
 
     updateDifferenceBackground() {
-      const background = this.select("#difference-background").value;
-      this.select("#comparison-overlay-container").style.backgroundColor =
-        FILTER_COLORS[background] || FILTER_COLORS.black;
+      const backgroundSelect = this.select("#difference-background");
+      const overlayContainer = this.select("#comparison-overlay-container");
+
+      if (backgroundSelect && overlayContainer) {
+        const background = backgroundSelect.value;
+        overlayContainer.style.backgroundColor = FILTER_COLORS[background] || FILTER_COLORS.black;
+      }
     }
 
     toggleDifferenceInvert() {
       const container = this.select("#comparison-overlay-container");
       const button = this.select("#invert-difference");
+
+      if (!container || !button) {
+        return;
+      }
 
       if (container.classList.contains("difference-inverted")) {
         container.classList.remove("difference-inverted");
@@ -1307,12 +1384,17 @@
 
     // Image loading and management
     handleLoadImage() {
-      const input = this.select("#second-image-input").value.trim();
+      const input = this.select("#second-image-input");
       if (!input) {
+        return;
+      }
+
+      const inputValue = input.value.trim();
+      if (!inputValue) {
         this.showError("Please enter a valid post ID or URL");
         return;
       }
-      this.loadImage(input);
+      this.loadImage(inputValue);
     }
 
     loadImage(input) {
@@ -1337,6 +1419,10 @@
         const data = await this.fetchSinglePost(postId);
         const rightImage = this.select("#right-image");
 
+        if (!rightImage) {
+          return;
+        }
+
         const imageUrl = this.extractImageUrl(data);
         rightImage.src = imageUrl;
         rightImage.setAttribute("data-id", postId);
@@ -1359,7 +1445,10 @@
       }
 
       const data = await response.json();
-      return this.site === "danbooru" ? data : data.length > 0 ? data[0] : null;
+      if (this.site === "danbooru") {
+        return data;
+      }
+      return data.length > 0 ? data[0] : null;
     }
 
     extractImageUrl(data) {
@@ -1371,6 +1460,9 @@
         new URL(url); // Validate URL
 
         const rightImage = this.select("#right-image");
+        if (!rightImage) {
+          return;
+        }
 
         rightImage.onerror = () => {
           this.showError(`Failed to load image: ${url}`);
@@ -1424,6 +1516,9 @@
     async loadSearchImage() {
       try {
         const leftImage = this.select("#left-image");
+        if (!leftImage) {
+          return;
+        }
 
         if (this.site === "danbooru" && this.isIqdb && this.postId) {
           const data = await this.fetchSinglePost(this.postId);
@@ -1470,7 +1565,7 @@
       Object.values(imageMap)
         .flat()
         .forEach((id) => {
-          const img = this.select(id);
+          const img = this.select(`#${id}`);
           if (img) {
             img.classList.remove("flip-h", "flip-v", "rotate-90", "rotate-180", "rotate-270");
           }
@@ -1479,7 +1574,7 @@
       // Apply transforms
       Object.entries(imageMap).forEach(([side, imageIds]) => {
         imageIds.forEach((id) => {
-          const img = this.select(id);
+          const img = this.select(`#${id}`);
           if (img) {
             this.applyTransformToElement(img, this.transforms[side]);
           }
@@ -1512,6 +1607,10 @@
       const leftImg = this.select("#left-image");
       const rightImg = this.select("#right-image");
 
+      if (!leftImg || !rightImg) {
+        return;
+      }
+
       // Swap sources and IDs
       [leftImg.src, rightImg.src] = [rightImg.src, leftImg.src];
 
@@ -1536,7 +1635,11 @@
     // UI updates
     updateUI(postId) {
       this.updatePostInfo();
-      this.select("#second-image-input").value = postId === "custom" ? "" : postId;
+
+      const input = this.select("#second-image-input");
+      if (input) {
+        input.value = postId === "custom" ? "" : postId;
+      }
 
       const selector = this.select(".post-selector select");
       if (selector && postId !== "custom") {
@@ -1545,8 +1648,16 @@
     }
 
     updatePostInfo() {
-      const leftId = this.select("#left-image").getAttribute("data-id");
-      const rightId = this.select("#right-image").getAttribute("data-id");
+      const leftImg = this.select("#left-image");
+      const rightImg = this.select("#right-image");
+      const infoDisplay = this.select("#post-info-display");
+
+      if (!leftImg || !rightImg || !infoDisplay) {
+        return;
+      }
+
+      const leftId = leftImg.getAttribute("data-id");
+      const rightId = rightImg.getAttribute("data-id");
 
       let display = "";
       if (leftId && rightId) {
@@ -1555,7 +1666,7 @@
         display = `Compare: ${leftLabel} vs ${rightLabel}`;
       }
 
-      this.select("#post-info-display").textContent = display;
+      infoDisplay.textContent = display;
     }
 
     getImageLabel(imageId) {
@@ -1572,6 +1683,10 @@
     initPanZoom() {
       const leftPan = this.select("#left-pan");
       const rightPan = this.select("#right-pan");
+
+      if (!leftPan || !rightPan) {
+        return;
+      }
 
       // Destroy existing instances
       if (this.panzoomInstances.left) {
@@ -1597,6 +1712,10 @@
       const rightPan = this.select("#right-pan");
       const leftPanzoom = this.panzoomInstances.left;
       const rightPanzoom = this.panzoomInstances.right;
+
+      if (!leftPan || !rightPan || !leftPanzoom || !rightPanzoom) {
+        return;
+      }
 
       let isUpdating = false;
 
@@ -1628,6 +1747,10 @@
       const leftSide = this.select("#left-side");
       const rightSide = this.select("#right-side");
 
+      if (!leftSide || !rightSide) {
+        return;
+      }
+
       const createWheelHandler = (panzoom) => (event) => {
         event.preventDefault();
         panzoom.zoomWithWheel(event);
@@ -1650,6 +1773,10 @@
     initOverlayPanZoom() {
       const overlayPan = this.select("#overlay-pan");
       const overlayContainer = this.select("#comparison-overlay-container");
+
+      if (!overlayPan || !overlayContainer) {
+        return;
+      }
 
       this.panzoomInstances.overlay = Panzoom(overlayPan, { maxScale: Infinity });
 
@@ -1689,7 +1816,7 @@
           scale: activeInstance.getScale(),
           x: pan.x,
           y: pan.y,
-          mode: this.mode || this.select("#comparison-mode").value,
+          mode: this.mode || this.select("#comparison-mode")?.value,
         };
       }
     }
@@ -1784,11 +1911,8 @@
 
     cleanupWheelListeners() {
       ["left-side", "right-side", "comparison-overlay-container"].forEach((id) => {
-        const element = this.select(id);
-        if (element?._wheelListener) {
-          element.removeEventListener("wheel", element._wheelListener);
-          delete element._wheelListener;
-        }
+        const element = this.select(`#${id}`);
+        this.cleanWheelListenersFromElement(element);
       });
     }
 

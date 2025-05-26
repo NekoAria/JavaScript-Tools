@@ -6,4 +6,4 @@
 
 ## Userscripts
 
-- [Booru Image Comparator](userscripts/booru-image-comparator.user.js)
+- [Universal Booru Image Comparator](userscripts/booru-image-comparator.user.js)

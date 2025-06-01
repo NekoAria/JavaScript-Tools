@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Universal Booru Image Comparator
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      1.0.1
+// @version      1.1.0
 // @description  Compare images on Danbooru / Yande.re / Konachan with multiple modes and transformations
 // @author       Neko_Aria
 // @match        https://danbooru.donmai.us/posts/*
@@ -14,7 +14,7 @@
 // @grant        GM_addStyle
 // @grant        GM_getResourceText
 // @resource     STYLE https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts/booru-image-comparator.css?t=202505260800
-// @require      https://unpkg.com/@panzoom/panzoom@4.6.0/dist/panzoom.min.js
+// @require      https://cdn.jsdelivr.net/npm/@panzoom/panzoom@4.6.0/dist/panzoom.min.js
 // @downloadURL  https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts/booru-image-comparator.user.js
 // @updateURL    https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts/booru-image-comparator.user.js
 // ==/UserScript==
@@ -23,14 +23,8 @@
   "use strict";
 
   // Constants
-  const COMPARISON_MODES = {
-    SIDE_BY_SIDE: "side-by-side",
-    SLIDER: "slider",
-    FADE: "fade",
-    DIFFERENCE: "difference",
-  };
-
   const DIVIDER_WIDTH = 4;
+  const STORAGE_KEY = "universal_comparator_mode";
 
   const FILTER_COLORS = {
     black: "#000000",
@@ -38,6 +32,14 @@
     white: "#ffffff",
   };
 
+  const MODES = {
+    SIDE_BY_SIDE: "side-by-side",
+    SLIDER: "slider",
+    FADE: "fade",
+    DIFFERENCE: "difference",
+  };
+
+  // Priority order for displaying related posts
   const RELATIONSHIP_PRIORITY = {
     Similar: 0,
     Parent: 1,
@@ -45,151 +47,10 @@
     Child: 3,
   };
 
-  const STORAGE_KEY = "universal_comparator_mode";
-
-  const SITE_CONFIGS = {
-    danbooru: {
-      domain: "danbooru.donmai.us",
-      selectors: {
-        postId: 'meta[name="post-id"]',
-        uploadImage: ".media-asset-image",
-        originalLink: ".image-view-original-link",
-        mainImage: "#image",
-        relatedPosts: ".posts-container .post-preview",
-        similarPosts: ".iqdb-posts .post-preview",
-        parentPreview: "#has-parent-relationship-preview",
-        childrenPreview: "#has-children-relationship-preview",
-        mainMenu: "#main-menu",
-      },
-      apiEndpoint: (postId) => `/posts/${postId}.json`,
-    },
-    yandere: {
-      domain: "yande.re",
-      selectors: {
-        highresLink: "a#highres",
-        mainImage: "#image",
-        mainMenu: "#main-menu > ul",
-        urlInput: "#url",
-        similarPosts: "#post-list-posts li:not(#psource)",
-      },
-      apiEndpoint: (tags) => `/post.json?tags=${tags}`,
-    },
-    konachan: {
-      domain: "konachan.com",
-      selectors: {
-        highresLink: "a#highres",
-        mainImage: "#image",
-        mainMenu: "#main-menu > ul",
-        urlInput: "#url",
-        similarPosts: "#post-list-posts li:not(#psource)",
-      },
-      apiEndpoint: (tags) => `/post.json?tags=${tags}`,
-    },
-  };
-
-  class BooruImageComparator {
-    constructor() {
-      if (!this.isValidPage()) {
-        return;
-      }
-
-      GM_addStyle(GM_getResourceText("STYLE"));
-      this.init();
-    }
-
-    // Initialization
-    init() {
-      this.initializeState();
-      this.setupUI();
-      this.observeChanges();
-    }
-
-    initializeState() {
-      this.site = this.detectSite();
-      this.config = SITE_CONFIGS[this.site];
-      this.mode = null;
-
-      this.initPageSpecificState();
-      this.initTransforms();
-      this.initZoomState();
-      this.initEventCleanup();
-    }
-
-    initPageSpecificState() {
-      const { pathname } = window.location;
-
-      if (this.site === "danbooru") {
-        this.isUpload = pathname.startsWith("/uploads");
-        this.isIqdb = pathname.startsWith("/iqdb_queries");
-        this.postId = this.getPostId();
-        this.searchUrl = this.getSearchUrl();
-      } else {
-        this.isSimilar = /\/post\/similar/.test(pathname);
-        this.postId = this.extractPostIdFromPath(pathname);
-        this.searchUrl = this.isSimilar ? this.getCurrentSearchUrl() : null;
-      }
-
-      this.originalImageUrl = this.getOriginalImageUrl();
-    }
-
-    initTransforms() {
-      this.transforms = {
-        left: { flipH: false, flipV: false, rotation: 0 },
-        right: { flipH: false, flipV: false, rotation: 0 },
-      };
-    }
-
-    initZoomState() {
-      this.panzoomInstances = {};
-      this.zoomState = { scale: 1, x: 0, y: 0 };
-    }
-
-    initEventCleanup() {
-      this.eventCleanup = [];
-    }
-
-    // Page validation and site detection
-    isValidPage() {
-      const { hostname, pathname } = window.location;
-
-      if (hostname === "danbooru.donmai.us") {
-        return (
-          /\/(posts|uploads)\/\d+($|\?|\/assets\/\d+)/.test(location.href) ||
-          /\/iqdb_queries/.test(location.href)
-        );
-      }
-
-      return /\/post\/(show|similar)/.test(pathname);
-    }
-
-    detectSite() {
-      const { hostname } = window.location;
-
-      if (hostname === "danbooru.donmai.us") {
-        return "danbooru";
-      }
-      if (hostname === "yande.re") {
-        return "yandere";
-      }
-      if (hostname === "konachan.com") {
-        return "konachan";
-      }
-
-      return null;
-    }
-
-    // DOM utilities
-    select(selector) {
-      return selector ? document.querySelector(selector) : null;
-    }
-
-    selectAll(selector) {
-      return selector ? document.querySelectorAll(selector) : [];
-    }
-
-    createElement(tag, options = {}) {
+  // Utility functions
+  const utils = {
+    createElement: (tag, options = {}) => {
       const element = document.createElement(tag);
-
       if (options.id) {
         element.id = options.id;
       }
@@ -202,146 +63,191 @@
       if (options.textContent) {
         element.textContent = options.textContent;
       }
-
       return element;
-    }
+    },
 
-    // Data extraction
-    getPostId() {
-      if (this.isIqdb) {
-        const urlParams = new URLSearchParams(window.location.search);
-        return urlParams.get("post_id") || this.select("#search_post_id")?.value?.trim();
+    isValidPage: () => {
+      const { hostname, pathname } = window.location;
+      if (hostname === "danbooru.donmai.us") {
+        return (
+          /\/posts\/\d+/.test(location.href) ||
+          /\/uploads\/\d+/.test(location.href) ||
+          /\/iqdb_queries/.test(location.href)
+        );
       }
+      return /\/post\/(show|similar)/.test(pathname);
+    },
 
-      return this.select(this.config.selectors.postId)?.content;
-    }
+    detectSiteFromHostname: (hostname) => {
+      const siteMap = {
+        "danbooru.donmai.us": "danbooru",
+        "yande.re": "yandere",
+        "konachan.com": "konachan",
+      };
+      return siteMap[hostname] || null;
+    },
 
-    getSearchUrl() {
-      if (!this.isIqdb) {
-        return null;
-      }
+    detectSite: () => {
+      return utils.detectSiteFromHostname(window.location.hostname);
+    },
 
-      const urlParams = new URLSearchParams(window.location.search);
-      return urlParams.get("url") || this.select("#search_url")?.value?.trim();
-    }
-
-    extractPostIdFromPath(pathname) {
+    extractPostIdFromPath: (pathname) => {
       const match = pathname.match(/\/(?:show|similar)\/(\d+)/);
       return match ? match[1] : null;
-    }
+    },
 
-    getCurrentSearchUrl() {
-      const urlParams = new URLSearchParams(window.location.search);
-      const urlParam = urlParams.get("url");
-
-      if (urlParam) {
-        return decodeURIComponent(urlParam);
-      }
-
-      const urlInput = this.select(this.config.selectors.urlInput);
-      return urlInput?.value?.trim() || null;
-    }
-
-    // Image URL resolution
-    getOriginalImageUrl() {
-      if (this.site === "danbooru") {
-        return this.getDanbooruImageUrl();
-      }
-      return this.getYandereKonachanImageUrl();
-    }
-
-    getDanbooruImageUrl() {
-      if (this.isUpload) {
-        return this.select(this.config.selectors.uploadImage)?.src;
-      }
-
-      if (this.isIqdb) {
-        return this.searchUrl;
-      }
-
-      return (
-        this.select(this.config.selectors.originalLink)?.href ||
-        this.select(this.config.selectors.mainImage)?.src
+    isValidPostUrl: (url) => {
+      return /https:\/\/(danbooru\.donmai\.us\/posts|yande\.re\/post\/show|konachan\.com\/post\/show)\/\d+/.test(
+        url,
       );
-    }
+    },
 
-    getYandereKonachanImageUrl() {
-      if (this.isSimilar) {
-        return this.getCurrentSearchUrl();
+    extractPostIdFromUrl: (url) => {
+      const match = url.match(/\/(?:posts|show)\/(\d+)/);
+      return match ? match[1] : null;
+    },
+  };
+
+  // State management
+  const createAppState = () => {
+    const site = utils.detectSite();
+    const { pathname, search } = window.location;
+
+    // Page-specific state configuration
+    const pageState = (() => {
+      if (site === "danbooru") {
+        const isUpload = pathname.startsWith("/uploads");
+        const isIqdb = pathname.startsWith("/iqdb_queries");
+        const urlParams = new URLSearchParams(search);
+
+        return {
+          isUpload,
+          isIqdb,
+          postId: isIqdb
+            ? urlParams.get("post_id") ||
+              document.querySelector("#search_post_id")?.getAttribute("value")?.trim()
+            : document.querySelector('meta[name="post-id"]')?.getAttribute("content"),
+          searchUrl: isIqdb
+            ? urlParams.get("url") ||
+              document.querySelector("#search_url")?.getAttribute("value")?.trim()
+            : null,
+        };
+      } else {
+        const isSimilar = /\/post\/similar/.test(pathname);
+        const urlParams = new URLSearchParams(search);
+
+        return {
+          isSimilar,
+          postId: utils.extractPostIdFromPath(pathname),
+          searchUrl: isSimilar
+            ? decodeURIComponent(urlParams.get("url") || "") ||
+              document.querySelector("#url")?.getAttribute("value")?.trim()
+            : null,
+        };
       }
+    })();
 
-      return (
-        this.select(this.config.selectors.highresLink)?.href ||
-        this.select(this.config.selectors.mainImage)?.src
-      );
-    }
+    let state = {
+      site,
+      ...pageState,
+      mode: MODES.SIDE_BY_SIDE,
+      transforms: {
+        left: { flipH: false, flipV: false, rotation: 0 },
+        right: { flipH: false, flipV: false, rotation: 0 },
+      },
+      zoomState: { scale: 1, x: 0, y: 0 },
+      panzoomInstances: {},
+      eventCleanup: [],
+      originalImageUrl: null,
+    };
 
-    // UI setup
-    setupUI() {
-      this.addCompareLinks();
-      this.addMainMenuLink();
-    }
+    return {
+      get: () => state,
+      update: (key, value) => {
+        if (typeof key === "object") {
+          Object.assign(state, key);
+        } else {
+          state[key] = value;
+        }
+      },
+    };
+  };
 
-    addCompareLinks() {
-      const posts = this.getComparablePosts();
-      posts.forEach((post) => this.addCompareLinkToPost(post));
-    }
+  // Image URL resolution
+  const imageUrlResolver = {
+    getOriginalImageUrl: (state) => {
+      const { site, isUpload, isIqdb, isSimilar, searchUrl } = state.get();
 
-    getComparablePosts() {
-      const selector = this.getPostsSelector();
-      return this.selectAll(selector);
-    }
-
-    getPostsSelector() {
-      if (this.site === "danbooru") {
-        return this.isIqdb || this.isUpload
-          ? this.config.selectors.similarPosts
-          : this.config.selectors.relatedPosts;
+      if (site === "danbooru") {
+        if (isUpload) {
+          return document.querySelector(".media-asset-image")?.getAttribute("src");
+        }
+        if (isIqdb) {
+          return searchUrl;
+        }
+        return (
+          document.querySelector(".image-view-original-link")?.getAttribute("href") ||
+          document.querySelector("#image")?.getAttribute("src")
+        );
+      } else {
+        if (isSimilar) {
+          return searchUrl;
+        }
+        return document.querySelector("a#highres")?.getAttribute("href");
       }
+    },
 
-      return this.isSimilar ? this.config.selectors.similarPosts : "";
-    }
+    extractImageUrl: (data, site = "danbooru") => {
+      return site === "danbooru"
+        ? data.file_url || data.large_file_url
+        : data.file_url || data.jpeg_url;
+    },
+  };
 
-    addCompareLinkToPost(article) {
-      const postId = this.extractPostIdFromArticle(article);
-
-      if (!postId || postId === this.postId || article.querySelector(".compare-link")) {
+  // DOM manipulation module
+  const dom = {
+    addCompareLinks: (state) => {
+      const selector = dom.getPostsSelector(state.get());
+      if (!selector) {
         return;
       }
 
-      const link = this.createCompareLink(postId);
-      this.insertCompareLink(article, link);
-    }
+      document.querySelectorAll(selector).forEach((post) => {
+        const postId = dom.extractPostIdFromArticle(post);
+        if (postId && postId !== state.get().postId && !post.querySelector(".compare-link")) {
+          const link = dom.createCompareLink(postId, state);
+          dom.insertCompareLink(post, link);
+        }
+      });
+    },
 
-    extractPostIdFromArticle(article) {
-      // Try data-id first
+    getPostsSelector: ({ site }) => {
+      return site === "danbooru"
+        ? ".posts-container .post-preview, .iqdb-posts .post-preview"
+        : "#post-list-posts li";
+    },
+
+    extractPostIdFromArticle: (article) => {
       let postId = article.getAttribute("data-id");
-
-      // For Yandere/Konachan, try element ID
-      if (!postId && article.id?.startsWith("p")) {
-        postId = article.id.substring(1);
-      }
-
-      // Try extracting from thumb link
       if (!postId) {
         const thumbLink = article.querySelector("a.thumb");
-        const match = thumbLink?.href?.match(/\/(?:post\/show|posts)\/(\d+)/);
-        postId = match?.[1];
+        const match = thumbLink?.getAttribute("href")?.match(/\/(?:post\/show|posts)\/(\d+)/);
+        postId = match ? match[1] : null;
       }
-
       return postId;
-    }
+    },
 
-    createCompareLink(postId) {
-      const container = this.createElement("div", {
-        className: this.site === "danbooru" ? "text-xs text-center mt-1" : "",
+    createCompareLink: (postId, state) => {
+      const { site } = state.get();
+      const container = utils.createElement("div", {
+        className: site === "danbooru" ? "text-xs text-center mt-1" : "",
       });
 
-      if (this.site !== "danbooru") {
+      if (site !== "danbooru") {
         container.style.cssText = "text-align: center; margin-top: 10px;";
       }
 
-      const link = this.createElement("a", {
+      const link = utils.createElement("a", {
         className: "compare-link",
         textContent: "compare »",
       });
@@ -349,86 +255,88 @@
       link.href = "#";
       link.onclick = (e) => {
         e.preventDefault();
-        this.openComparator(postId);
+        comparatorUI.open(postId, state);
       };
 
       container.appendChild(link);
       return container;
-    }
+    },
 
-    insertCompareLink(article, link) {
+    insertCompareLink: (article, link) => {
       const scoreElement = article.querySelector(".post-preview-score");
-
       if (scoreElement) {
         article.insertBefore(link, scoreElement);
       } else {
         article.appendChild(link);
       }
-    }
+    },
 
-    addMainMenuLink() {
-      const mainMenu = this.select(this.config.selectors.mainMenu);
+    addMainMenuLink: (state) => {
+      const mainMenu =
+        document.querySelector("#main-menu > ul") || document.querySelector("#main-menu");
 
       if (!mainMenu || mainMenu.querySelector("#nav-compare")) {
         return;
       }
 
-      const menuItem = this.createElement("li", { id: "nav-compare" });
-      const link = this.createElement("a", {
-        textContent: "Compare",
-      });
+      const menuItem = utils.createElement("li", { id: "nav-compare" });
+      const link = utils.createElement("a", { textContent: "Compare" });
 
       link.href = "#";
       link.onclick = (e) => {
         e.preventDefault();
-        this.openComparator();
+        comparatorUI.open(null, state);
       };
 
       menuItem.appendChild(link);
       mainMenu.appendChild(menuItem);
-    }
+    },
+  };
 
-    // Related posts fetching
-    async getRelatedPosts() {
-      if (this.site === "danbooru") {
-        return this.getDanbooruRelatedPosts();
-      }
-      return this.getYandereKonachanRelatedPosts();
-    }
+  // Related posts retrieval
+  const relatedPosts = {
+    getRelatedPosts: async (state) => {
+      const { site } = state.get();
+      return site === "danbooru"
+        ? relatedPosts.getDanbooruRelatedPosts(state)
+        : relatedPosts.getYandereKonachanRelatedPosts(state);
+    },
 
-    getDanbooruRelatedPosts() {
-      if (this.isIqdb || this.isUpload) {
-        return this.getDanbooruSimilarPosts();
+    getDanbooruRelatedPosts: (state) => {
+      const { isIqdb, isUpload } = state.get();
+      if (isIqdb || isUpload) {
+        return relatedPosts.getDanbooruSimilarPosts(state);
       }
 
       const posts = [];
-      this.extractFromPreviews(posts);
-      this.extractFromNotices(posts);
+      relatedPosts.extractFromPreviews(posts, state);
+      relatedPosts.extractFromNotices(posts, state);
       return posts;
-    }
+    },
 
-    getDanbooruSimilarPosts() {
+    getDanbooruSimilarPosts: (state) => {
+      const { postId } = state.get();
       const posts = [];
-      const articles = this.selectAll(this.config.selectors.similarPosts);
+      const articles = document.querySelectorAll(".iqdb-posts .post-preview");
 
       articles.forEach((article) => {
-        const postId = article.getAttribute("data-id");
-        if (!postId || postId === this.postId) {
+        const articlePostId = article.getAttribute("data-id");
+        if (!articlePostId || articlePostId === postId) {
           return;
         }
 
-        const similarity = this.extractSimilarity(article);
+        const similarity = relatedPosts.extractSimilarity(article);
         posts.push({
-          id: postId,
+          id: articlePostId,
           relationshipType: "Similar",
           similarity,
         });
       });
 
       return posts;
-    }
+    },
 
-    extractSimilarity(article) {
+    extractSimilarity: (article) => {
       const similarityElement = article.querySelector(".iqdb-similarity-score");
       if (!similarityElement) {
         return null;
@@ -436,68 +344,66 @@
 
       const match = similarityElement.textContent.match(/(\d+)%\s*similar/);
       return match ? parseInt(match[1]) : null;
-    }
+    },
 
-    extractFromPreviews(posts) {
+    extractFromPreviews: (posts, state) => {
+      const { postId } = state.get();
       const previews = [
-        { selector: this.config.selectors.parentPreview, isParent: true },
-        { selector: this.config.selectors.childrenPreview, isParent: false },
+        { selector: "#has-parent-relationship-preview", isParent: true },
+        { selector: "#has-children-relationship-preview", isParent: false },
       ];
 
       previews.forEach(({ selector, isParent }) => {
-        const preview = this.select(selector);
+        const preview = document.querySelector(selector);
         if (!preview) {
           return;
         }
 
-        const articles = preview.querySelectorAll("article.post-preview");
+        const articles = preview.querySelectorAll(".post-preview");
         articles.forEach((article) => {
-          const postData = this.extractPostData(article);
-          if (this.isValidPostData(postData, posts)) {
-            postData.relationshipType = this.getRelationshipType(article, isParent);
-            posts.push(postData);
-          }
+          relatedPosts.processArticle(article, posts, postId, isParent);
         });
       });
-    }
+    },
 
-    extractPostData(article) {
-      const postId = article.getAttribute("data-id");
+    processArticle: (article, posts, postId, isParent) => {
+      const articlePostId = article.getAttribute("data-id");
       const imgElement = article.querySelector(".post-preview-image");
 
-      return postId && imgElement ? { id: postId } : null;
-    }
+      if (
+        !articlePostId ||
+        !imgElement ||
+        articlePostId === postId ||
+        posts.some((post) => post.id === articlePostId)
+      ) {
+        return;
+      }
 
-    isValidPostData(postData, existingPosts) {
-      return (
-        postData &&
-        postData.id !== this.postId &&
-        !existingPosts.some((post) => post.id === postData.id)
-      );
-    }
+      const relationshipType = relatedPosts.getRelationshipType(article, isParent);
+      posts.push({ id: articlePostId, relationshipType });
+    },
 
-    getRelationshipType(article, isParentPreview) {
+    getRelationshipType: (article, isParentPreview) => {
       if (!isParentPreview) {
         return "Child";
       }
 
       const parentId = document.body.getAttribute("data-post-parent-id");
       const articleId = article.getAttribute("data-id");
-
       return articleId === parentId ? "Parent" : "Sibling";
-    }
+    },
 
-    extractFromNotices(posts) {
-      const notice = this.select(".post-notice-parent, .post-notice-child");
+    extractFromNotices: (posts) => {
+      const notice = document.querySelector(".post-notice-parent, .post-notice-child");
       if (!notice) {
         return;
       }
 
-      const links = notice.querySelectorAll('a[href*="parent:"], a[href*="child:"]');
+      const links = notice.querySelectorAll("a[href*='parent:'], a[href*='child:']");
       links.forEach((link) => {
         const href = link.getAttribute("href");
         const postIdMatch = href.match(/[?&]tags=[^&]*[:%](\d+)/);
-        const postId = postIdMatch?.[1];
+        const postId = postIdMatch ? postIdMatch[1] : null;
 
         if (postId && !posts.some((post) => post.id === postId)) {
           posts.push({
@@ -506,81 +412,92 @@
           });
         }
       });
-    }
+    },
 
-    async getYandereKonachanRelatedPosts() {
-      if (this.isSimilar) {
-        return this.getYandereKonachanSimilarPosts();
+    getYandereKonachanRelatedPosts: async (state) => {
+      const { isSimilar } = state.get();
+      if (isSimilar) {
+        return relatedPosts.getYandereKonachanSimilarPosts();
       }
 
       const posts = [];
-
       try {
-        if (this.postId) {
-          await this.fetchParentSiblings(posts);
-          await this.fetchChildren(posts);
+        const { postId } = state.get();
+        if (postId) {
+          await relatedPosts.fetchParentSiblings(posts, state);
+          await relatedPosts.fetchChildren(posts, state);
         }
       } catch (error) {
         console.warn("Failed to fetch related posts:", error);
       }
 
-      return this.sortPostsByRelationship(posts);
-    }
+      return relatedPosts.sortPostsByRelationship(posts);
+    },
 
-    getYandereKonachanSimilarPosts() {
-      const articles = this.selectAll(this.config.selectors.similarPosts);
+    getYandereKonachanSimilarPosts: () => {
+      const articles = document.querySelectorAll("#post-list-posts li");
       const posts = [];
 
       articles.forEach((article) => {
-        const postId = this.extractPostIdFromArticle(article);
+        const postId = dom.extractPostIdFromArticle(article);
         if (postId) {
+          const sourceImg = article.querySelector(".similar-text img[alt]");
+          const sourceHost = sourceImg?.alt;
+
           posts.push({
             id: postId,
             relationshipType: "Similar",
+            sourceHost: sourceHost,
           });
         }
       });
 
       return posts;
-    }
+    },
 
-    async fetchParentSiblings(posts) {
-      const response = await this.fetchPostData(`id:${this.postId}`);
+    fetchParentSiblings: async (posts, state) => {
+      const { postId } = state.get();
+      const response = await api.fetchPostData(`id:${postId}`, state);
       if (!response?.length) {
         return;
       }
 
-      const currentPost = response.find((p) => p.id.toString() === this.postId);
+      const currentPost = response.find((p) => p.id.toString() === postId);
       if (!currentPost?.parent_id) {
         return;
       }
 
-      const siblings = await this.fetchPostData(`parent:${currentPost.parent_id}`);
+      const endpoint = `/post.json?tags=parent:${currentPost.parent_id}`;
+      const siblings = await fetch(`https://${document.location.hostname}${endpoint}`).then((res) =>
+        res.json(),
+      );
+
       if (siblings) {
         siblings.forEach((post) => {
           const relationshipType = post.id === currentPost.parent_id ? "Parent" : "Sibling";
-          this.addPostToList(post, posts, relationshipType);
+          relatedPosts.addPostToList(post, posts, relationshipType, postId);
         });
       }
-    }
+    },
 
-    async fetchChildren(posts) {
-      const children = await this.fetchPostData(`parent:${this.postId}`);
+    fetchChildren: async (posts, state) => {
+      const { postId } = state.get();
+      const children = await api.fetchPostData(`parent:${postId}`, state);
       if (children) {
-        children.forEach((post) => this.addPostToList(post, posts, "Child"));
+        children.forEach((post) => relatedPosts.addPostToList(post, posts, "Child", postId));
       }
-    }
+    },
 
-    addPostToList(post, posts, relationshipType) {
-      if (post.id.toString() !== this.postId) {
+    addPostToList: (post, posts, relationshipType, currentPostId) => {
+      if (post.id.toString() !== currentPostId) {
         posts.push({
           id: post.id.toString(),
           relationshipType,
         });
       }
-    }
+    },
 
-    sortPostsByRelationship(posts) {
+    sortPostsByRelationship: (posts) => {
       return posts.sort((a, b) => {
         const priorityA = RELATIONSHIP_PRIORITY[a.relationshipType] || 5;
         const priorityB = RELATIONSHIP_PRIORITY[b.relationshipType] || 5;
@@ -591,488 +508,653 @@
 
         return parseInt(a.id) - parseInt(b.id);
       });
-    }
+    },
+  };
 
-    async fetchPostData(query) {
+  // API calls module
+  const api = {
+    fetchPostData: async (query, state, sourceHost = null) => {
       try {
-        const endpoint =
-          this.site === "danbooru" ? `/posts/${query}.json` : this.config.apiEndpoint(query);
+        const { site } = state.get();
+        let endpoint, targetHost;
 
-        const response = await fetch(endpoint);
-        if (!response.ok) {
-          return null;
+        if (sourceHost && sourceHost !== document.location.hostname) {
+          const sourceSite = utils.detectSiteFromHostname(sourceHost);
+          targetHost = sourceHost;
+          endpoint =
+            sourceSite === "danbooru" ? `/posts/${query}.json` : `/post.json?tags=${query}`;
+        } else {
+          targetHost = document.location.hostname;
+          endpoint = site === "danbooru" ? `/posts/${query}.json` : `/post.json?tags=${query}`;
         }
 
-        const data = await response.json();
-        if (this.site === "danbooru") {
-          return data;
-        }
+        const data = await fetch(`https://${targetHost}${endpoint}`).then((res) => res.json());
         return Array.isArray(data) ? data : [data];
       } catch (error) {
         console.warn("Failed to fetch post data:", error);
         return null;
       }
-    }
+    },
 
-    // Comparator interface
-    openComparator(postId) {
-      this.createInterface().then(() => {
-        if (postId) {
-          setTimeout(() => this.loadImage(postId), 100);
+    fetchSinglePost: async (postId, state, sourceHost = null) => {
+      const { site } = state.get();
+      const targetHost = sourceHost || document.location.hostname;
+      const sourceSite = sourceHost ? utils.detectSiteFromHostname(sourceHost) : site;
+
+      const endpoint =
+        sourceSite === "danbooru" ? `/posts/${postId}.json` : `/post.json?tags=id:${postId}`;
+      const data = await fetch(`https://${targetHost}${endpoint}`).then((res) => res.json());
+      return Array.isArray(data) ? data[0] : data;
+    },
+  };
+
+  // HTML generation
+  const htmlGenerator = {
+    generateInterfaceHTML: (state) => {
+      const { originalImageUrl } = state.get();
+      const currentLabel = htmlGenerator.getCurrentLabel(state);
+      const leftImageSrc = originalImageUrl || "";
+
+      return `
+    <div id="comparison-header">
+      ${htmlGenerator.getHeaderHTML(currentLabel)}
+      ${htmlGenerator.getModeControlsHTML()}
+    </div>
+    ${htmlGenerator.getComparisonContentHTML(leftImageSrc, state)}
+  `;
+    },
+
+    getHeaderHTML: (currentLabel) => {
+      return `
+    <div class="header-section header-row primary-controls">
+      <span>Current: ${currentLabel}</span>
+      <input id="second-image-input" type="text" placeholder="Enter ID or URL" />
+      <button id="load-comparison" class="control-btn">Load</button>
+      <span class="mode-label">Mode:</span>
+      <select id="comparison-mode">
+        <option value="side-by-side">Side by Side</option>
+        <option value="slider">Slider</option>
+        <option value="fade">Fade</option>
+        <option value="difference">Difference</option>
+      </select>
+      <div id="post-info-display"></div>
+      <div class="right-controls">
+        <button id="swap-images" class="control-btn">Swap</button>
+        <button id="reset-zoom" class="control-btn">Reset Zoom</button>
+        <button id="close-comparison" class="control-btn">✕</button>
+      </div>
+    </div>
+  `;
+    },
+
+    getModeControlsHTML: () => {
+      return `
+    <div id="all-controls-row" class="header-section mode-control-section">
+      ${htmlGenerator.getTransformControlsHTML()}
+      ${htmlGenerator.getFilterControlsHTML()}
+      ${htmlGenerator.getFadeControlsHTML()}
+      ${htmlGenerator.getDifferenceControlsHTML()}
+    </div>
+  `;
+    },
+
+    getTransformControlsHTML: () => {
+      return `
+    <div id="transform-controls">
+      <button id="flip-h-left" class="control-btn" title="Flip Left Horizontally">↔️ L</button>
+      <button id="flip-v-left" class="control-btn" title="Flip Left Vertically">↕️ L</button>
+      <button id="rotate-left" class="control-btn" title="Rotate Left">🔄 L</button>
+      <button id="flip-h-right" class="control-btn" title="Flip Right Horizontally">↔️ R</button>
+      <button id="flip-v-right" class="control-btn" title="Flip Right Vertically">↕️ R</button>
+      <button id="rotate-right" class="control-btn" title="Rotate Right">🔄 R</button>
+      <button id="reset-transform" class="control-btn" title="Reset Transforms">Reset</button>
+    </div>
+  `;
+    },
+
+    getFilterControlsHTML: () => {
+      return `
+    <div id="filter-controls">
+      <label>Brightness: <input type="range" id="brightness-slider" min="0" max="100" value="1"></label>
+      <span id="brightness-value">1</span>
+      <label>Saturate: <input type="range" id="saturate-slider" min="0" max="100" value="1"></label>
+      <span id="saturate-value">1</span>
+      <button id="reset-filters" class="control-btn">Reset Filters</button>
+    </div>
+  `;
+    },
+
+    getFadeControlsHTML: () => {
+      return `
+    <div id="fade-controls">
+      <label>Opacity: <input type="range" id="opacity-slider" min="0" max="100" value="50"></label>
+      <span id="opacity-value">50%</span>
+    </div>
+  `;
+    },
+
+    getDifferenceControlsHTML: () => {
+      return `
+    <div id="difference-controls">
+      <label>Background:
+        <select id="difference-background">
+          <option value="black">Black</option>
+          <option value="grey">Grey</option>
+          <option value="white">White</option>
+        </select>
+      </label>
+      <button id="invert-difference" class="control-btn">Invert</button>
+    </div>
+  `;
+    },
+
+    getComparisonContentHTML: (leftImageSrc, state) => {
+      const leftImageId = htmlGenerator.getCurrentImageId(state);
+
+      return `
+    <div id="comparison-content">
+      <div class="comparison-side" id="left-side">
+        <div class="sync-pan" id="left-pan">
+          <img id="left-image" src="${leftImageSrc}" data-id="${leftImageId}" alt="Left Image" />
+        </div>
+      </div>
+      <div id="comparison-divider"></div>
+      <div class="comparison-side" id="right-side">
+        <div class="sync-pan" id="right-pan">
+          <img id="right-image" alt="Right Image" />
+        </div>
+      </div>
+      <div id="comparison-overlay-container">
+        <div class="sync-pan" id="overlay-pan"></div>
+      </div>
+    </div>
+  `;
+    },
+
+    getCurrentLabel: (state) => {
+      const { site, isIqdb, isUpload, isSimilar, postId } = state.get();
+
+      if (site === "danbooru") {
+        if (isIqdb) {
+          return postId ? `Post #${postId}` : "IQDB";
         }
-      });
-    }
-
-    async createInterface() {
-      const container = this.createElement("div", {
-        id: "image-comparison-container",
-        innerHTML: this.getInterfaceHTML(),
-      });
-
-      container.setAttribute("tabindex", "0");
-      container.style.outline = "none";
-      document.body.appendChild(container);
-
-      await this.setupInterface();
-    }
-
-    async setupInterface() {
-      await this.createPostSelector();
-      this.bindEvents();
-      this.initPanZoom();
-      this.restoreMode();
-
-      if (this.shouldLoadSearchImage()) {
-        await this.loadSearchImage();
-      }
-
-      this.updateMode();
-    }
-
-    shouldLoadSearchImage() {
-      return this.isIqdb && this.postId && !this.originalImageUrl;
-    }
-
-    getInterfaceHTML() {
-      const currentLabel = this.getCurrentLabel();
-      const leftImageSrc = this.originalImageUrl || "";
-
-      return `
-        <div id="comparison-header">
-          ${this.getHeaderHTML(currentLabel)}
-          ${this.getModeControlsHTML()}
-        </div>
-        ${this.getComparisonContentHTML(leftImageSrc)}
-      `;
-    }
-
-    getHeaderHTML(currentLabel) {
-      return `
-        <div class="header-section header-row primary-controls">
-          <span>Current: ${currentLabel}</span>
-          <input id="second-image-input" type="text" placeholder="Enter ID or URL" />
-          <button id="load-comparison" class="control-btn">Load</button>
-          <span class="mode-label">Mode:</span>
-          <select id="comparison-mode">
-            <option value="side-by-side">Side by Side</option>
-            <option value="slider">Slider</option>
-            <option value="fade">Fade</option>
-            <option value="difference">Difference</option>
-          </select>
-          <div id="post-info-display"></div>
-          <div class="right-controls">
-            <button id="swap-images" class="control-btn">Swap</button>
-            <button id="reset-zoom" class="control-btn">Reset Zoom</button>
-            <button id="close-comparison" class="control-btn">✕</button>
-          </div>
-        </div>
-      `;
-    }
-
-    getModeControlsHTML() {
-      return `
-        <div id="all-controls-row" class="header-section mode-control-section">
-          ${this.getTransformControlsHTML()}
-          ${this.getFilterControlsHTML()}
-          ${this.getFadeControlsHTML()}
-          ${this.getDifferenceControlsHTML()}
-        </div>
-      `;
-    }
-
-    getTransformControlsHTML() {
-      return `
-        <div id="transform-controls">
-          <button id="flip-h-left" class="control-btn" title="Flip Left Horizontally">↔️ L</button>
-          <button id="flip-v-left" class="control-btn" title="Flip Left Vertically">↕️ L</button>
-          <button id="rotate-left" class="control-btn" title="Rotate Left">🔄 L</button>
-          <button id="flip-h-right" class="control-btn" title="Flip Right Horizontally">↔️ R</button>
-          <button id="flip-v-right" class="control-btn" title="Flip Right Vertically">↕️ R</button>
-          <button id="rotate-right" class="control-btn" title="Rotate Right">🔄 R</button>
-          <button id="reset-transform" class="control-btn" title="Reset Transforms">Reset</button>
-        </div>
-      `;
-    }
-
-    getFilterControlsHTML() {
-      return `
-        <div id="filter-controls">
-          <label>Brightness: <input type="range" id="brightness-slider" min="0" max="100" value="1"></label>
-          <span id="brightness-value">1</span>
-          <label>Saturate: <input type="range" id="saturate-slider" min="0" max="100" value="1"></label>
-          <span id="saturate-value">1</span>
-          <button id="reset-filters" class="control-btn">Reset Filters</button>
-        </div>
-      `;
-    }
-
-    getFadeControlsHTML() {
-      return `
-        <div id="fade-controls">
-          <label>Opacity: <input type="range" id="opacity-slider" min="0" max="100" value="50"></label>
-          <span id="opacity-value">50%</span>
-        </div>
-      `;
-    }
-
-    getDifferenceControlsHTML() {
-      return `
-        <div id="difference-controls">
-          <label>Background:
-            <select id="difference-background">
-              <option value="black">Black</option>
-              <option value="white">White</option>
-              <option value="grey">Grey</option>
-            </select>
-          </label>
-          <button id="invert-difference" class="control-btn">Invert</button>
-        </div>
-      `;
-    }
-
-    getComparisonContentHTML(leftImageSrc = "") {
-      const leftImageId = this.getCurrentImageId();
-
-      return `
-        <div id="comparison-content">
-          <div class="comparison-side" id="left-side">
-            <div class="sync-pan" id="left-pan">
-              <img id="left-image" src="${leftImageSrc}" data-id="${leftImageId}" alt="Left Image" />
-            </div>
-          </div>
-          <div id="comparison-divider"></div>
-          <div class="comparison-side" id="right-side">
-            <div class="sync-pan" id="right-pan">
-              <img id="right-image" alt="Right Image" />
-            </div>
-          </div>
-          <div id="comparison-overlay-container">
-            <div class="sync-pan" id="overlay-pan"></div>
-          </div>
-        </div>
-      `;
-    }
-
-    getCurrentLabel() {
-      if (this.site === "danbooru") {
-        if (this.isIqdb) {
-          return this.postId ? `Post #${this.postId}` : "IQDB";
-        }
-        if (this.isUpload) {
+        if (isUpload) {
           return "Upload";
         }
-        return this.postId ? `Post #${this.postId}` : "Custom";
+        return postId ? `Post #${postId}` : "Custom";
       }
 
-      if (this.isSimilar) {
-        return "Similar";
+      if (isSimilar) {
+        return postId ? `Post #${postId}` : "Similar";
       }
-      return this.postId ? `Post #${this.postId}` : "Custom";
-    }
+      return postId ? `Post #${postId}` : "Custom";
+    },
 
-    getCurrentImageId() {
-      if (this.site === "danbooru") {
-        if (this.isIqdb) {
-          return this.postId || "iqdb";
+    getCurrentImageId: (state) => {
+      const { site, isIqdb, isUpload, isSimilar, postId } = state.get();
+
+      if (site === "danbooru") {
+        if (isIqdb) {
+          return postId || "iqdb";
         }
-        if (this.isUpload) {
+        if (isUpload) {
           return "upload";
         }
-      } else if (this.isSimilar) {
+      } else if (isSimilar) {
         return "similar";
       }
 
-      return this.postId || "unknown";
-    }
+      return postId || "unknown";
+    },
+  };
 
-    // Post selector creation
-    async createPostSelector() {
-      const posts = await this.getRelatedPosts();
-      if (posts.length === 0) {
-        return;
-      }
+  // Event handling module
+  const events = {
+    bind: (state) => {
+      const cleanup = [];
 
-      const input = this.select("#second-image-input");
-      const selector = this.buildPostSelector(posts);
-      input.parentElement.insertBefore(selector, input);
-    }
-
-    buildPostSelector(posts) {
-      const container = this.createElement("div", { className: "post-selector" });
-      const label = this.createElement("span", {
-        textContent: this.getSelectorLabel(),
-      });
-      const select = this.createElement("select");
-
-      this.populateSelector(select, posts);
-      this.bindSelectorEvents(select);
-
-      container.append(label, select);
-      return container;
-    }
-
-    getSelectorLabel() {
-      return this.isIqdb || this.isSimilar || this.isUpload ? "Similar: " : "Related: ";
-    }
-
-    populateSelector(select, posts) {
-      select.appendChild(new Option("-- Select post --", ""));
-
-      const currentRightImageId = this.getCurrentRightImageId();
-
-      posts.forEach((post) => {
-        const text = this.formatPostOptionText(post);
-        const option = new Option(text, post.id);
-        select.appendChild(option);
-      });
-
-      if (currentRightImageId && this.isPostInList(currentRightImageId, posts)) {
-        select.value = currentRightImageId;
-      }
-    }
-
-    formatPostOptionText(post) {
-      let text = `#${post.id}`;
-
-      if (post.similarity) {
-        text += ` (${post.similarity}%)`;
-      } else if (post.relationshipType && post.relationshipType !== "Similar") {
-        text += ` (${post.relationshipType})`;
-      }
-
-      return text;
-    }
-
-    bindSelectorEvents(select) {
-      select.onchange = () => {
-        const selectedId = select.value;
-        if (selectedId) {
-          this.select("#second-image-input").value = selectedId;
-          this.handleLoadImage();
-        }
-      };
-    }
-
-    getCurrentRightImageId() {
-      return this.select("#right-image")?.getAttribute("data-id");
-    }
-
-    isPostInList(postId, posts) {
-      return posts.some((post) => post.id === postId);
-    }
-
-    // Event binding
-    bindEvents() {
-      setTimeout(() => {
-        this.bindControlEvents();
-        this.bindTransformEvents();
-        this.bindInputEvents();
-        this.bindModeEvents();
-        this.bindKeyboardEvents();
-      }, 0);
-    }
-
-    bindControlEvents() {
-      const controls = [
-        ["close-comparison", () => this.closeInterface()],
-        ["load-comparison", () => this.handleLoadImage()],
-        ["swap-images", () => this.swapImages()],
-        ["comparison-mode", () => this.onModeChange(), "change"],
+      // Main control events
+      const controlEvents = [
+        ["close-comparison", () => comparatorUI.close(state)],
+        ["load-comparison", () => imageLoader.handleLoadImage(state)],
+        ["swap-images", () => imageActions.swapImages(state)],
+        ["comparison-mode", () => modes.onModeChange(state), "change"],
+        ["reset-zoom", () => zoom.reset(state)],
       ];
 
-      controls.forEach(([id, handler, event = "click"]) => {
-        this.addEventHandler(id, event, handler);
-      });
-    }
-
-    bindTransformEvents() {
-      const transforms = [
-        ["flip-h-left", () => this.toggleTransform("left", "flipH")],
-        ["flip-v-left", () => this.toggleTransform("left", "flipV")],
-        ["rotate-left", () => this.rotateImage("left")],
-        ["flip-h-right", () => this.toggleTransform("right", "flipH")],
-        ["flip-v-right", () => this.toggleTransform("right", "flipV")],
-        ["rotate-right", () => this.rotateImage("right")],
-        ["reset-transform", () => this.resetTransforms()],
-      ];
-
-      transforms.forEach(([id, handler]) => {
-        this.addEventHandler(id, "click", handler);
-      });
-    }
-
-    bindInputEvents() {
-      this.addEventHandler("second-image-input", "keypress", (e) => {
-        if (e.key === "Enter") {
-          this.handleLoadImage();
+      controlEvents.forEach(([id, handler, event = "click"]) => {
+        const element = document.querySelector(`#${id}`);
+        if (element) {
+          element.addEventListener(event, handler);
+          cleanup.push(() => element.removeEventListener(event, handler));
         }
       });
-    }
 
-    bindModeEvents() {
-      // Opacity slider
-      const opacitySlider = this.select("#opacity-slider");
+      // Transform control events
+      const transformEvents = [
+        ["flip-h-left", () => transforms.toggle("left", "flipH", state)],
+        ["flip-v-left", () => transforms.toggle("left", "flipV", state)],
+        ["rotate-left", () => transforms.rotate("left", state)],
+        ["flip-h-right", () => transforms.toggle("right", "flipH", state)],
+        ["flip-v-right", () => transforms.toggle("right", "flipV", state)],
+        ["rotate-right", () => transforms.rotate("right", state)],
+        ["reset-transform", () => transforms.reset(state)],
+      ];
+
+      transformEvents.forEach(([id, handler]) => {
+        const element = document.querySelector(`#${id}`);
+        if (element) {
+          element.addEventListener("click", handler);
+          cleanup.push(() => element.removeEventListener("click", handler));
+        }
+      });
+
+      // Input events
+      const input = document.querySelector("#second-image-input");
+      if (input) {
+        const keyHandler = (e) => e.key === "Enter" && imageLoader.handleLoadImage(state);
+        input.addEventListener("keypress", keyHandler);
+        cleanup.push(() => input.removeEventListener("keypress", keyHandler));
+      }
+
+      // Mode control events
+      events.bindModeEvents(cleanup);
+
+      // Keyboard events - ESC to close
+      const escHandler = (e) => e.key === "Escape" && comparatorUI.close(state);
+      document.addEventListener("keydown", escHandler, true);
+      cleanup.push(() => document.removeEventListener("keydown", escHandler, true));
+
+      state.update("eventCleanup", cleanup);
+    },
+
+    bindModeEvents: (cleanup) => {
+      // Opacity slider for fade mode
+      const opacitySlider = document.querySelector("#opacity-slider");
       if (opacitySlider) {
-        opacitySlider.oninput = () => this.updateOpacity();
+        const handler = () => effects.updateOpacity();
+        opacitySlider.addEventListener("input", handler);
+        cleanup.push(() => opacitySlider.removeEventListener("input", handler));
       }
 
       // Filter controls
-      const brightnessSlider = this.select("#brightness-slider");
-      const saturateSlider = this.select("#saturate-slider");
+      const brightnessSlider = document.querySelector("#brightness-slider");
+      const saturateSlider = document.querySelector("#saturate-slider");
 
       if (brightnessSlider) {
-        brightnessSlider.oninput = () => this.updateFilters();
+        const handler = () => effects.updateFilters();
+        brightnessSlider.addEventListener("input", handler);
+        cleanup.push(() => brightnessSlider.removeEventListener("input", handler));
       }
+
       if (saturateSlider) {
-        saturateSlider.oninput = () => this.updateFilters();
+        const handler = () => effects.updateFilters();
+        saturateSlider.addEventListener("input", handler);
+        cleanup.push(() => saturateSlider.removeEventListener("input", handler));
       }
 
-      // Other mode controls
-      this.addEventHandler("difference-background", "change", () =>
-        this.updateDifferenceBackground(),
-      );
-      this.addEventHandler("invert-difference", "click", () => this.toggleDifferenceInvert());
-      this.addEventHandler("reset-filters", "click", () => this.resetFilters());
-    }
+      // Difference mode controls
+      const differenceBackground = document.querySelector("#difference-background");
+      if (differenceBackground) {
+        const handler = () => effects.updateDifferenceBackground();
+        differenceBackground.addEventListener("change", handler);
+        cleanup.push(() => differenceBackground.removeEventListener("change", handler));
+      }
 
-    bindKeyboardEvents() {
-      this.escKeyHandler = (e) => {
-        if (e.key === "Escape") {
-          this.closeInterface();
-        }
-      };
+      const invertDifference = document.querySelector("#invert-difference");
+      if (invertDifference) {
+        const handler = () => effects.toggleDifferenceInvert();
+        invertDifference.addEventListener("click", handler);
+        cleanup.push(() => invertDifference.removeEventListener("click", handler));
+      }
 
-      document.addEventListener("keydown", this.escKeyHandler, true);
-      this.eventCleanup.push(() => {
-        document.removeEventListener("keydown", this.escKeyHandler, true);
-      });
-    }
+      const resetFilters = document.querySelector("#reset-filters");
+      if (resetFilters) {
+        const handler = () => effects.resetFilters();
+        resetFilters.addEventListener("click", handler);
+        cleanup.push(() => resetFilters.removeEventListener("click", handler));
+      }
+    },
+  };
 
-    addEventHandler(elementId, event, handler) {
-      const element = this.select(`#${elementId}`);
-      if (!element) {
-        console.warn(`Element with id "${elementId}" not found`);
+  // Image loading module
+  const imageLoader = {
+    handleLoadImage: (state) => {
+      const input = document.querySelector("#second-image-input");
+      if (!input) {
         return;
       }
 
-      element.addEventListener(event, handler);
-      this.eventCleanup.push(() => element.removeEventListener(event, handler));
-    }
+      const inputValue = input.value.trim();
+      if (!inputValue) {
+        alert("Please enter a valid post ID or URL");
+        return;
+      }
+      imageLoader.loadImage(inputValue, state);
+    },
 
-    // Mode management
-    restoreMode() {
-      const savedMode = this.getSavedMode();
-      this.mode = savedMode;
-      const modeSelect = this.select("#comparison-mode");
+    loadImage: (input, state) => {
+      imageLoader.clearRightImage();
+
+      if (/^\d+$/.test(input)) {
+        imageLoader.loadPostById(input, state);
+      } else if (utils.isValidPostUrl(input)) {
+        const postId = utils.extractPostIdFromUrl(input);
+        if (postId) {
+          imageLoader.loadPostById(postId, state);
+        } else {
+          alert("Could not extract post ID from URL");
+        }
+      } else {
+        imageLoader.loadDirectUrl(input, state);
+      }
+    },
+
+    loadPostById: async (postId, state) => {
+      try {
+        const posts = await relatedPosts.getRelatedPosts(state);
+        const postData = posts.find((p) => p.id === postId);
+
+        let data;
+        if (postData?.sourceHost && postData.sourceHost !== document.location.hostname) {
+          data = await api.fetchSinglePost(postId, state, postData.sourceHost);
+        } else {
+          data = await api.fetchSinglePost(postId, state);
+        }
+
+        const rightImage = document.querySelector("#right-image");
+        if (!rightImage) {
+          return;
+        }
+
+        const sourceSite = utils.detectSiteFromHostname(postData?.sourceHost) || state.get().site;
+        const imageUrl = imageUrlResolver.extractImageUrl(data, sourceSite);
+        rightImage.src = imageUrl;
+        rightImage.setAttribute("data-id", postId);
+
+        imageLoader.displayLoadedImage(imageUrl, postId, state);
+      } catch (error) {
+        alert(`Failed to load post: ${error.message}`);
+      }
+    },
+
+    loadDirectUrl: (url, state) => {
+      try {
+        new URL(url); // Validate URL
+
+        const rightImage = document.querySelector("#right-image");
+        if (!rightImage) {
+          return;
+        }
+
+        rightImage.onerror = () => {
+          alert(`Failed to load image: ${url}`);
+          rightImage.onerror = null;
+          imageLoader.clearRightImage();
+        };
+
+        rightImage.onload = () => {
+          rightImage.setAttribute("data-id", "custom");
+          imageLoader.displayLoadedImage(url, "custom", state);
+          rightImage.onload = null;
+        };
+
+        rightImage.src = url;
+      } catch {
+        alert("Invalid URL format");
+      }
+    },
+
+    displayLoadedImage: (imageUrl, postId, state) => {
+      const overlayImage = document.querySelector("#overlay-image");
+      if (overlayImage) {
+        overlayImage.src = imageUrl;
+        overlayImage.style.display = "block";
+      }
+
+      ui.updateUI(postId);
+      zoom.reset(state);
+      modes.update(state);
+    },
+
+    clearRightImage: () => {
+      const rightImage = document.querySelector("#right-image");
+      const overlayImage = document.querySelector("#overlay-image");
+
+      if (rightImage) {
+        rightImage.src = "";
+        rightImage.removeAttribute("data-id");
+      }
+
+      if (overlayImage) {
+        overlayImage.src = "";
+        overlayImage.style.display = "none";
+      }
+
+      ui.updatePostInfo();
+    },
+
+    loadSearchImage: async (state) => {
+      try {
+        const leftImage = document.querySelector("#left-image");
+        if (!leftImage) {
+          return;
+        }
+
+        const { postId, isSimilar, searchUrl } = state.get();
+
+        if (postId) {
+          const data = await api.fetchSinglePost(postId, state);
+          leftImage.src = imageUrlResolver.extractImageUrl(data);
+          leftImage.setAttribute("data-id", postId);
+        } else if (isSimilar && searchUrl) {
+          leftImage.src = searchUrl;
+          leftImage.setAttribute("data-id", "similar");
+        }
+
+        ui.updatePostInfo();
+      } catch (error) {
+        console.warn(`Failed to load search image: ${error.message}`);
+      }
+    },
+  };
+
+  // Image operations module
+  const imageActions = {
+    swapImages: (state) => {
+      const leftImg = document.querySelector("#left-image");
+      const rightImg = document.querySelector("#right-image");
+
+      if (!leftImg || !rightImg) {
+        return;
+      }
+
+      // Swap sources and IDs
+      [leftImg.src, rightImg.src] = [rightImg.src, leftImg.src];
+
+      const leftId = leftImg.getAttribute("data-id");
+      const rightId = rightImg.getAttribute("data-id");
+      leftImg.setAttribute("data-id", rightId);
+      rightImg.setAttribute("data-id", leftId);
+
+      // Swap transforms
+      const currentState = state.get();
+      const newTransforms = {
+        left: currentState.transforms.right,
+        right: currentState.transforms.left,
+      };
+
+      state.update("transforms", newTransforms);
+      ui.updatePostInfo();
+
+      // Update display based on current mode
+      if (currentState.mode !== MODES.SIDE_BY_SIDE) {
+        modes.update(state);
+      } else {
+        transforms.apply(state);
+      }
+    },
+  };
+
+  // Transform controls module
+  const transforms = {
+    toggle: (side, type, state) => {
+      const currentState = state.get();
+      const newTransforms = { ...currentState.transforms };
+      newTransforms[side] = { ...newTransforms[side] };
+      newTransforms[side][type] = !newTransforms[side][type];
+      state.update("transforms", newTransforms);
+      transforms.apply(state);
+    },
+
+    rotate: (side, state) => {
+      const currentState = state.get();
+      const newTransforms = { ...currentState.transforms };
+      newTransforms[side] = { ...newTransforms[side] };
+      newTransforms[side].rotation = (newTransforms[side].rotation + 90) % 360;
+      state.update("transforms", newTransforms);
+      transforms.apply(state);
+    },
+
+    reset: (state) => {
+      const newTransforms = {
+        left: { flipH: false, flipV: false, rotation: 0 },
+        right: { flipH: false, flipV: false, rotation: 0 },
+      };
+      state.update("transforms", newTransforms);
+      transforms.apply(state);
+    },
+
+    apply: (state) => {
+      const { transforms: currentTransforms } = state.get();
+      const imageMap = {
+        left: ["left-image", "overlay-left-image", "slider-left-image"],
+        right: ["right-image", "overlay-image", "slider-right-image"],
+      };
+
+      // Clear all transform classes
+      Object.values(imageMap)
+        .flat()
+        .forEach((id) => {
+          const img = document.querySelector(`#${id}`);
+          if (img) {
+            img.classList.remove("flip-h", "flip-v", "rotate-90", "rotate-180", "rotate-270");
+          }
+        });
+
+      // Apply transforms
+      Object.entries(imageMap).forEach(([side, imageIds]) => {
+        imageIds.forEach((id) => {
+          const img = document.querySelector(`#${id}`);
+          if (img) {
+            transforms.applyToElement(img, currentTransforms[side]);
+          }
+        });
+      });
+    },
+
+    applyToElement: (element, transformState) => {
+      if (transformState.flipH) {
+        element.classList.add("flip-h");
+      }
+      if (transformState.flipV) {
+        element.classList.add("flip-v");
+      }
+
+      const rotationClasses = {
+        90: "rotate-90",
+        180: "rotate-180",
+        270: "rotate-270",
+      };
+
+      const rotationClass = rotationClasses[transformState.rotation];
+      if (rotationClass) {
+        element.classList.add(rotationClass);
+      }
+    },
+  };
+
+  // Mode management module
+  const modes = {
+    restoreMode: (state) => {
+      const savedMode = modes.getSavedMode();
+      state.update("mode", savedMode);
+      const modeSelect = document.querySelector("#comparison-mode");
       if (modeSelect) {
         modeSelect.value = savedMode;
       }
-    }
+    },
 
-    getSavedMode() {
+    getSavedMode: () => {
       try {
         const saved = localStorage.getItem(STORAGE_KEY);
-        return Object.values(COMPARISON_MODES).includes(saved)
-          ? saved
-          : COMPARISON_MODES.SIDE_BY_SIDE;
+        return Object.values(MODES).includes(saved) ? saved : MODES.SIDE_BY_SIDE;
       } catch {
-        return COMPARISON_MODES.SIDE_BY_SIDE;
+        return MODES.SIDE_BY_SIDE;
       }
-    }
+    },
 
-    saveMode() {
+    saveMode: () => {
       try {
-        const modeSelect = this.select("#comparison-mode");
+        const modeSelect = document.querySelector("#comparison-mode");
         if (modeSelect) {
           localStorage.setItem(STORAGE_KEY, modeSelect.value);
         }
       } catch (e) {
         console.warn("Failed to save mode:", e);
       }
-    }
+    },
 
-    onModeChange() {
-      this.updateMode();
-      this.saveMode();
-    }
+    onModeChange: (state) => {
+      modes.update(state);
+      modes.saveMode();
+    },
 
-    updateMode() {
-      this.saveZoomState();
-      this.cleanupModeElements();
-      this.cleanupWheelListeners();
+    update: (state) => {
+      zoom.saveZoomState(state);
+      modes.cleanupModeElements(state);
+      modes.cleanupWheelListeners();
 
-      const modeSelect = this.select("#comparison-mode");
+      const modeSelect = document.querySelector("#comparison-mode");
       if (!modeSelect) {
         return;
       }
 
       const newMode = modeSelect.value;
-      const previousMode = this.mode;
-      this.mode = newMode;
+      const previousMode = state.get().mode;
+      state.update("mode", newMode);
 
+      // Calculate zoom transition if switching between overlay and non-overlay modes
       if (
         previousMode !== newMode &&
-        this.isOverlayMode(previousMode) !== this.isOverlayMode(newMode)
+        modes.isOverlayMode(previousMode) !== modes.isOverlayMode(newMode)
       ) {
-        this.calculateZoomTransition(previousMode, newMode);
+        zoom.calculateZoomTransition(previousMode, newMode, state);
       }
 
-      this.resetDisplay();
-      this.setupModeSpecificUI();
+      modes.resetDisplay();
+      modes.setupModeSpecificUI(newMode, state);
 
-      setTimeout(() => this.applyTransforms(), 0);
-      this.focusContainer();
-    }
+      setTimeout(() => transforms.apply(state), 0);
+      setTimeout(() => {
+        const container = document.querySelector("#image-comparison-container");
+        if (container) {
+          container.focus();
+        }
+      }, 0);
+    },
 
-    setupModeSpecificUI() {
-      switch (this.mode) {
-        case COMPARISON_MODES.SLIDER:
-          this.setupSliderMode();
-          break;
-        case COMPARISON_MODES.FADE:
-          this.setupFadeMode();
-          break;
-        case COMPARISON_MODES.DIFFERENCE:
-          this.setupDifferenceMode();
-          break;
-        default:
-          setTimeout(() => this.restoreZoomState(), 100);
-          break;
-      }
-    }
-
-    // Mode setup methods
-    resetDisplay() {
+    resetDisplay: () => {
       // Reset main elements
       ["left-side", "right-side", "comparison-divider"].forEach((id) => {
-        const el = this.select(`#${id}`);
+        const el = document.querySelector(`#${id}`);
         if (el) {
           el.style.display = id === "comparison-divider" ? "block" : "flex";
         }
       });
 
       // Reset overlay container
-      const overlayContainer = this.select("#comparison-overlay-container");
+      const overlayContainer = document.querySelector("#comparison-overlay-container");
       if (overlayContainer) {
         overlayContainer.innerHTML = '<div class="sync-pan" id="overlay-pan"></div>';
         overlayContainer.style.display = "none";
@@ -1081,107 +1163,123 @@
       }
 
       // Reset overlay image
-      const overlayImage = this.select("#overlay-image");
+      const overlayImage = document.querySelector("#overlay-image");
       if (overlayImage) {
         overlayImage.style.clipPath = "";
         overlayImage.style.mixBlendMode = "";
         overlayImage.style.opacity = "";
       }
 
-      // Reset control visibility
+      // Reset control display
       ["fade-controls", "difference-controls"].forEach((id) => {
-        const el = this.select(`#${id}`);
+        const el = document.querySelector(`#${id}`);
         if (el) {
           el.style.display = "none";
         }
       });
 
-      const filterControls = this.select("#filter-controls");
+      const filterControls = document.querySelector("#filter-controls");
       if (filterControls) {
         filterControls.style.display = "flex";
       }
-    }
+    },
 
-    setupSliderMode() {
-      this.hideMainElements();
-      this.showOverlay();
-      this.createOverlayImages();
-      this.initOverlayPanZoom();
-      setTimeout(() => this.initSlider(), 0);
-    }
+    setupModeSpecificUI: (mode, state) => {
+      switch (mode) {
+        case MODES.SLIDER:
+          modes.setupSliderMode(state);
+          break;
+        case MODES.FADE:
+          modes.setupFadeMode(state);
+          break;
+        case MODES.DIFFERENCE:
+          modes.setupDifferenceMode(state);
+          break;
+        default:
+          setTimeout(() => zoom.restoreZoomState(state), 100);
+          break;
+      }
+    },
 
-    setupFadeMode() {
-      this.hideMainElements();
-      this.showOverlay();
-      this.createOverlayImages();
-      this.initOverlayPanZoom();
+    setupSliderMode: (state) => {
+      modes.hideMainElements();
+      modes.showOverlay();
+      modes.createOverlayImages();
+      zoom.initOverlayPanZoom(state);
+      setTimeout(() => slider.init(state), 0);
+    },
 
-      const overlayImage = this.select("#overlay-image");
+    setupFadeMode: (state) => {
+      modes.hideMainElements();
+      modes.showOverlay();
+      modes.createOverlayImages();
+      zoom.initOverlayPanZoom(state);
+
+      const overlayImage = document.querySelector("#overlay-image");
       if (overlayImage?.src?.trim()) {
         overlayImage.style.opacity = "0.5";
         overlayImage.style.display = "block";
       }
 
-      const fadeControls = this.select("#fade-controls");
+      const fadeControls = document.querySelector("#fade-controls");
       if (fadeControls) {
         fadeControls.style.display = "flex";
       }
-    }
+    },
 
-    setupDifferenceMode() {
-      this.hideMainElements();
-      this.showOverlay();
-      this.createOverlayImages();
-      this.initOverlayPanZoom();
+    setupDifferenceMode: (state) => {
+      modes.hideMainElements();
+      modes.showOverlay();
+      modes.createOverlayImages();
+      zoom.initOverlayPanZoom(state);
 
-      const overlayImage = this.select("#overlay-image");
+      const overlayImage = document.querySelector("#overlay-image");
       if (overlayImage?.src?.trim()) {
         overlayImage.style.mixBlendMode = "difference";
         overlayImage.style.opacity = "1";
         overlayImage.style.display = "block";
       }
 
-      const overlayContainer = this.select("#comparison-overlay-container");
+      const overlayContainer = document.querySelector("#comparison-overlay-container");
       if (overlayContainer) {
         overlayContainer.style.backgroundColor = FILTER_COLORS.black;
       }
 
-      const differenceControls = this.select("#difference-controls");
+      const differenceControls = document.querySelector("#difference-controls");
       if (differenceControls) {
         differenceControls.style.display = "flex";
       }
 
-      const backgroundSelect = this.select("#difference-background");
+      const backgroundSelect = document.querySelector("#difference-background");
       if (backgroundSelect) {
         backgroundSelect.value = "black";
       }
-    }
+    },
 
-    hideMainElements() {
+    hideMainElements: () => {
       ["left-side", "right-side", "comparison-divider"].forEach((id) => {
-        const el = this.select(`#${id}`);
+        const el = document.querySelector(`#${id}`);
         if (el) {
           el.style.display = "none";
         }
       });
-    }
+    },
 
-    showOverlay() {
-      const overlay = this.select("#comparison-overlay-container");
+    showOverlay: () => {
+      const overlay = document.querySelector("#comparison-overlay-container");
       if (overlay) {
         overlay.style.display = "block";
       }
-    }
+    },
 
-    // Overlay and slider functionality
-    createOverlayImages() {
-      const container = this.select("#overlay-pan");
+    createOverlayImages: () => {
+      const container = document.querySelector("#overlay-pan");
       if (!container) {
         return;
       }
 
-      const leftImage = this.select("#left-image");
-      const rightImage = this.select("#right-image");
+      const leftImage = document.querySelector("#left-image");
+      const rightImage = document.querySelector("#right-image");
 
       if (!leftImage || !rightImage) {
         return;
@@ -1199,39 +1297,69 @@
       // Create right image clone
       const rightClone = rightImage.src?.trim()
         ? rightImage.cloneNode(true)
-        : this.createElement("img");
+        : utils.createElement("img");
 
       rightClone.id = "overlay-image";
-      rightClone.style.cssText = `${overlayStyle} ${rightImage.src?.trim() ? "" : "display: none;"}`;
+      rightClone.style.cssText = `${overlayStyle} ${
+        rightImage.src?.trim() ? "" : "display: none;"
+      }`;
       container.appendChild(rightClone);
-    }
+    },
 
-    initSlider() {
-      const container = this.select("#comparison-overlay-container");
-      const rightImage = this.select("#overlay-image");
+    isOverlayMode: (mode) => {
+      return [MODES.SLIDER, MODES.FADE, MODES.DIFFERENCE].includes(mode);
+    },
+
+    cleanupModeElements: (state) => {
+      const currentState = state.get();
+      if (currentState.panzoomInstances.overlay) {
+        currentState.panzoomInstances.overlay.destroy();
+        currentState.panzoomInstances.overlay = null;
+        state.update("panzoomInstances", currentState.panzoomInstances);
+      }
+    },
+
+    cleanupWheelListeners: () => {
+      ["left-side", "right-side", "comparison-overlay-container"].forEach((id) => {
+        const element = document.querySelector(`#${id}`);
+        if (element && element._wheelListener) {
+          element.removeEventListener("wheel", element._wheelListener);
+          delete element._wheelListener;
+        }
+      });
+    },
+  };
+
+  // Slider mode module
+  const slider = {
+    init: (state) => {
+      const container = document.querySelector("#comparison-overlay-container");
+      const rightImage = document.querySelector("#overlay-image");
 
       if (!container || !rightImage?.src?.trim()) {
         return;
       }
 
-      let slider = this.select("#comparison-slider");
-      if (!slider) {
-        slider = this.createElement("div", { id: "comparison-slider" });
-        container.appendChild(slider);
+      let sliderElement = document.querySelector("#comparison-slider");
+      if (!sliderElement) {
+        sliderElement = utils.createElement("div", { id: "comparison-slider" });
+        container.appendChild(sliderElement);
       }
 
       const centerX = container.clientWidth / 2;
-      this.updateSlider(slider, rightImage, centerX, container);
-      this.bindSliderEvents(slider, rightImage, container);
-    }
+      slider.updateSlider(sliderElement, rightImage, centerX, container, state);
+      slider.bindEvents(sliderElement, rightImage, container, state);
+    },
 
-    updateSlider(slider, rightImage, containerX, container) {
+    updateSlider: (sliderElement, rightImage, containerX, container, state) => {
       const containerWidth = container.clientWidth;
-      containerX = Math.max(0, Math.min(containerX, containerWidth));
+      const newContainerX = Math.max(0, Math.min(containerX, containerWidth));
 
-      slider.style.left = `${containerX}px`;
+      sliderElement.style.left = `${newContainerX}px`;
 
-      const panzoomInstance = this.panzoomInstances.overlay;
+      const currentState = state.get();
+      const panzoomInstance = currentState.panzoomInstances.overlay;
+
       if (panzoomInstance) {
         const scale = panzoomInstance.getScale();
         const imageRect = rightImage.getBoundingClientRect();
@@ -1242,14 +1370,14 @@
       } else {
         rightImage.style.clipPath = `inset(0 0 0 ${containerX}px)`;
       }
-    }
+    },
 
-    bindSliderEvents(slider, rightImage, container) {
+    bindEvents: (sliderElement, rightImage, container, state) => {
       let isDragging = false;
 
       const updatePosition = (e) => {
         const containerX = e.clientX - container.getBoundingClientRect().left;
-        this.updateSlider(slider, rightImage, containerX, container);
+        slider.updateSlider(sliderElement, rightImage, containerX, container, state);
       };
 
       const handlers = {
@@ -1263,7 +1391,7 @@
           }
         },
         containerMouseDown: (e) => {
-          if (e.target !== slider) {
+          if (e.target !== sliderElement) {
             updatePosition(e);
             isDragging = true;
           }
@@ -1272,58 +1400,63 @@
           isDragging = false;
         },
         panzoomChange: () => {
-          const currentPosition = parseInt(slider.style.left) || container.clientWidth / 2;
-          this.updateSlider(slider, rightImage, currentPosition, container);
+          const currentPosition = parseInt(sliderElement.style.left) || container.clientWidth / 2;
+          slider.updateSlider(sliderElement, rightImage, currentPosition, container, state);
         },
       };
 
       // Bind events
-      slider.addEventListener("mousedown", handlers.mouseDown);
+      sliderElement.addEventListener("mousedown", handlers.mouseDown);
       container.addEventListener("mousemove", handlers.mouseMove);
       container.addEventListener("mousedown", handlers.containerMouseDown);
       document.addEventListener("mouseup", handlers.mouseUp);
 
       // Bind panzoom events
-      const overlayPan = this.select("#overlay-pan");
-      if (overlayPan && this.panzoomInstances.overlay) {
+      const overlayPan = document.querySelector("#overlay-pan");
+      const currentState = state.get();
+      if (overlayPan && currentState.panzoomInstances.overlay) {
         ["panzoomchange", "panzoomzoom", "panzoompan"].forEach((event) => {
           overlayPan.addEventListener(event, handlers.panzoomChange);
         });
       }
 
-      // Add to cleanup
-      this.eventCleanup.push(() => {
-        slider.removeEventListener("mousedown", handlers.mouseDown);
-        container.removeEventListener("mousemove", handlers.mouseMove);
-        container.removeEventListener("mousedown", handlers.containerMouseDown);
-        document.removeEventListener("mouseup", handlers.mouseUp);
+      // Add to cleanup list
+      const cleanup = state.get().eventCleanup;
+      cleanup.push(
+        () => sliderElement.removeEventListener("mousedown", handlers.mouseDown),
+        () => container.removeEventListener("mousemove", handlers.mouseMove),
+        () => container.removeEventListener("mousedown", handlers.containerMouseDown),
+        () => document.removeEventListener("mouseup", handlers.mouseUp),
+      );
 
-        if (overlayPan) {
-          ["panzoomchange", "panzoomzoom", "panzoompan"].forEach((event) => {
-            overlayPan.removeEventListener(event, handlers.panzoomChange);
-          });
-        }
-      });
-    }
+      if (overlayPan) {
+        ["panzoomchange", "panzoomzoom", "panzoompan"].forEach((event) => {
+          cleanup.push(() => overlayPan.removeEventListener(event, handlers.panzoomChange));
+        });
+      }
 
-    // Filter and effect controls
-    updateOpacity() {
-      const slider = this.select("#opacity-slider");
-      const overlayImage = this.select("#overlay-image");
-      const opacityValue = this.select("#opacity-value");
+      state.update("eventCleanup", cleanup);
+    },
+  };
+
+  // Effects control module
+  const effects = {
+    updateOpacity: () => {
+      const slider = document.querySelector("#opacity-slider");
+      const overlayImage = document.querySelector("#overlay-image");
+      const opacityValue = document.querySelector("#opacity-value");
 
       if (slider && overlayImage && opacityValue) {
-        const opacity = slider.value / 100;
-        overlayImage.style.opacity = opacity;
+        overlayImage.style.opacity = slider.value / 100;
         opacityValue.textContent = `${slider.value}%`;
       }
-    }
+    },
 
-    updateFilters() {
-      const brightnessSlider = this.select("#brightness-slider");
-      const saturateSlider = this.select("#saturate-slider");
-      const brightnessValue = this.select("#brightness-value");
-      const saturateValue = this.select("#saturate-value");
+    updateFilters: () => {
+      const brightnessSlider = document.querySelector("#brightness-slider");
+      const saturateSlider = document.querySelector("#saturate-slider");
+      const brightnessValue = document.querySelector("#brightness-value");
+      const saturateValue = document.querySelector("#saturate-value");
 
       if (!brightnessSlider || !saturateSlider || !brightnessValue || !saturateValue) {
         return;
@@ -1335,15 +1468,15 @@
       brightnessValue.textContent = brightness;
       saturateValue.textContent = saturate;
 
-      const overlayPan = this.select("#overlay-pan");
+      const overlayPan = document.querySelector("#overlay-pan");
       if (overlayPan) {
         overlayPan.style.filter = `brightness(${brightness}) saturate(${saturate})`;
       }
-    }
+    },
 
-    resetFilters() {
-      const brightnessSlider = this.select("#brightness-slider");
-      const saturateSlider = this.select("#saturate-slider");
+    resetFilters: () => {
+      const brightnessSlider = document.querySelector("#brightness-slider");
+      const saturateSlider = document.querySelector("#saturate-slider");
 
       if (brightnessSlider) {
         brightnessSlider.value = 1;
@@ -1352,22 +1485,22 @@
         saturateSlider.value = 1;
       }
 
-      this.updateFilters();
-    }
+      effects.updateFilters();
+    },
 
-    updateDifferenceBackground() {
-      const backgroundSelect = this.select("#difference-background");
-      const overlayContainer = this.select("#comparison-overlay-container");
+    updateDifferenceBackground: () => {
+      const backgroundSelect = document.querySelector("#difference-background");
+      const overlayContainer = document.querySelector("#comparison-overlay-container");
 
       if (backgroundSelect && overlayContainer) {
         const background = backgroundSelect.value;
         overlayContainer.style.backgroundColor = FILTER_COLORS[background] || FILTER_COLORS.black;
       }
-    }
+    },
 
-    toggleDifferenceInvert() {
-      const container = this.select("#comparison-overlay-container");
-      const button = this.select("#invert-difference");
+    toggleDifferenceInvert: () => {
+      const container = document.querySelector("#comparison-overlay-container");
+      const button = document.querySelector("#invert-difference");
 
       if (!container || !button) {
         return;
@@ -1380,338 +1513,50 @@
         container.classList.add("difference-inverted");
         button.textContent = "Normal";
       }
-    }
+    },
+  };
 
-    // Image loading and management
-    handleLoadImage() {
-      const input = this.select("#second-image-input");
-      if (!input) {
-        return;
-      }
-
-      const inputValue = input.value.trim();
-      if (!inputValue) {
-        this.showError("Please enter a valid post ID or URL");
-        return;
-      }
-      this.loadImage(inputValue);
-    }
-
-    loadImage(input) {
-      this.clearRightImage();
-
-      if (/^\d+$/.test(input)) {
-        this.loadPostById(input);
-      } else if (this.isValidPostUrl(input)) {
-        const postId = this.extractPostIdFromUrl(input);
-        if (postId) {
-          this.loadPostById(postId);
-        } else {
-          this.showError("Could not extract post ID from URL");
-        }
-      } else {
-        this.loadDirectUrl(input);
-      }
-    }
-
-    async loadPostById(postId) {
-      try {
-        const data = await this.fetchSinglePost(postId);
-        const rightImage = this.select("#right-image");
-
-        if (!rightImage) {
-          return;
-        }
-
-        const imageUrl = this.extractImageUrl(data);
-        rightImage.src = imageUrl;
-        rightImage.setAttribute("data-id", postId);
-
-        this.displayLoadedImage(imageUrl, postId);
-      } catch (error) {
-        this.showError(`Failed to load post: ${error.message}`);
-      }
-    }
-
-    async fetchSinglePost(postId) {
-      const endpoint =
-        this.site === "danbooru"
-          ? `/posts/${postId}.json`
-          : this.config.apiEndpoint(`id:${postId}`);
-
-      const response = await fetch(endpoint);
-      if (!response.ok) {
-        throw new Error("Post not found");
-      }
-
-      const data = await response.json();
-      if (this.site === "danbooru") {
-        return data;
-      }
-      return data.length > 0 ? data[0] : null;
-    }
-
-    extractImageUrl(data) {
-      return this.site === "danbooru" ? data.file_url || data.large_file_url : data.file_url;
-    }
-
-    loadDirectUrl(url) {
-      try {
-        new URL(url); // Validate URL
-
-        const rightImage = this.select("#right-image");
-        if (!rightImage) {
-          return;
-        }
-
-        rightImage.onerror = () => {
-          this.showError(`Failed to load image: ${url}`);
-          rightImage.onerror = null;
-          this.clearRightImage();
-        };
-
-        rightImage.onload = () => {
-          rightImage.setAttribute("data-id", "custom");
-          this.displayLoadedImage(url, "custom");
-          rightImage.onload = null;
-        };
-
-        rightImage.src = url;
-      } catch {
-        this.showError("Invalid URL format");
-      }
-    }
-
-    displayLoadedImage(imageUrl, postId) {
-      const overlayImage = this.select("#overlay-image");
-      if (overlayImage) {
-        overlayImage.src = imageUrl;
-        overlayImage.style.display = "block";
-      }
-
-      this.updateUI(postId);
-      this.resetZoom();
-      this.updateMode();
-    }
-
-    clearRightImage() {
-      const rightImage = this.select("#right-image");
-      const overlayImage = this.select("#overlay-image");
-
-      if (rightImage) {
-        rightImage.src = "";
-        rightImage.removeAttribute("data-id");
-      }
-
-      if (overlayImage) {
-        overlayImage.src = "";
-        overlayImage.style.display = "none";
-      }
-
-      this.updatePostInfo();
-      this.transforms.right = { flipH: false, flipV: false, rotation: 0 };
-      this.applyTransforms();
-    }
-
-    async loadSearchImage() {
-      try {
-        const leftImage = this.select("#left-image");
-        if (!leftImage) {
-          return;
-        }
-
-        if (this.site === "danbooru" && this.isIqdb && this.postId) {
-          const data = await this.fetchSinglePost(this.postId);
-          leftImage.src = this.extractImageUrl(data);
-          leftImage.setAttribute("data-id", this.postId);
-        } else if (this.isSimilar) {
-          const searchUrl = this.getCurrentSearchUrl();
-          if (searchUrl) {
-            leftImage.src = searchUrl;
-            leftImage.setAttribute("data-id", "similar");
-          }
-        }
-
-        this.updatePostInfo();
-      } catch (error) {
-        console.warn(`Failed to load search image: ${error.message}`);
-      }
-    }
-
-    // Image transformation
-    toggleTransform(side, type) {
-      this.transforms[side][type] = !this.transforms[side][type];
-      this.applyTransforms();
-    }
-
-    rotateImage(side) {
-      this.transforms[side].rotation = (this.transforms[side].rotation + 90) % 360;
-      this.applyTransforms();
-    }
-
-    resetTransforms() {
-      this.transforms.left = { flipH: false, flipV: false, rotation: 0 };
-      this.transforms.right = { flipH: false, flipV: false, rotation: 0 };
-      this.applyTransforms();
-    }
-
-    applyTransforms() {
-      const imageMap = {
-        left: ["left-image", "overlay-left-image", "slider-left-image"],
-        right: ["right-image", "overlay-image", "slider-right-image"],
-      };
-
-      // Clear all transform classes
-      Object.values(imageMap)
-        .flat()
-        .forEach((id) => {
-          const img = this.select(`#${id}`);
-          if (img) {
-            img.classList.remove("flip-h", "flip-v", "rotate-90", "rotate-180", "rotate-270");
-          }
-        });
-
-      // Apply transforms
-      Object.entries(imageMap).forEach(([side, imageIds]) => {
-        imageIds.forEach((id) => {
-          const img = this.select(`#${id}`);
-          if (img) {
-            this.applyTransformToElement(img, this.transforms[side]);
-          }
-        });
-      });
-    }
-
-    applyTransformToElement(element, state) {
-      if (state.flipH) {
-        element.classList.add("flip-h");
-      }
-      if (state.flipV) {
-        element.classList.add("flip-v");
-      }
-
-      const rotationClasses = {
-        90: "rotate-90",
-        180: "rotate-180",
-        270: "rotate-270",
-      };
-
-      const rotationClass = rotationClasses[state.rotation];
-      if (rotationClass) {
-        element.classList.add(rotationClass);
-      }
-    }
-
-    // Image swapping
-    swapImages() {
-      const leftImg = this.select("#left-image");
-      const rightImg = this.select("#right-image");
-
-      if (!leftImg || !rightImg) {
-        return;
-      }
-
-      // Swap sources and IDs
-      [leftImg.src, rightImg.src] = [rightImg.src, leftImg.src];
-
-      const leftId = leftImg.getAttribute("data-id");
-      const rightId = rightImg.getAttribute("data-id");
-      leftImg.setAttribute("data-id", rightId);
-      rightImg.setAttribute("data-id", leftId);
-
-      // Swap transforms
-      [this.transforms.left, this.transforms.right] = [this.transforms.right, this.transforms.left];
-
-      this.updatePostInfo();
-
-      // Update display based on current mode
-      if (this.mode !== COMPARISON_MODES.SIDE_BY_SIDE) {
-        this.updateMode();
-      } else {
-        this.applyTransforms();
-      }
-    }
-
-    // UI updates
-    updateUI(postId) {
-      this.updatePostInfo();
-
-      const input = this.select("#second-image-input");
-      if (input) {
-        input.value = postId === "custom" ? "" : postId;
-      }
-
-      const selector = this.select(".post-selector select");
-      if (selector && postId !== "custom") {
-        selector.value = postId;
-      }
-    }
-
-    updatePostInfo() {
-      const leftImg = this.select("#left-image");
-      const rightImg = this.select("#right-image");
-      const infoDisplay = this.select("#post-info-display");
-
-      if (!leftImg || !rightImg || !infoDisplay) {
-        return;
-      }
-
-      const leftId = leftImg.getAttribute("data-id");
-      const rightId = rightImg.getAttribute("data-id");
-
-      let display = "";
-      if (leftId && rightId) {
-        const leftLabel = this.getImageLabel(leftId);
-        const rightLabel = rightId === "custom" ? "Custom" : `#${rightId}`;
-        display = `Compare: ${leftLabel} vs ${rightLabel}`;
-      }
-
-      infoDisplay.textContent = display;
-    }
-
-    getImageLabel(imageId) {
-      const labels = {
-        iqdb: "IQDB",
-        upload: "Upload",
-        similar: "Similar",
-      };
-
-      return labels[imageId] || `#${imageId}`;
-    }
-
-    // Pan and zoom functionality
-    initPanZoom() {
-      const leftPan = this.select("#left-pan");
-      const rightPan = this.select("#right-pan");
+  // Zoom control module
+  const zoom = {
+    init: (state) => {
+      const leftPan = document.querySelector("#left-pan");
+      const rightPan = document.querySelector("#right-pan");
 
       if (!leftPan || !rightPan) {
         return;
       }
 
       // Destroy existing instances
-      if (this.panzoomInstances.left) {
-        this.panzoomInstances.left.destroy();
+      const currentState = state.get();
+      if (currentState.panzoomInstances.left) {
+        currentState.panzoomInstances.left.destroy();
       }
-      if (this.panzoomInstances.right) {
-        this.panzoomInstances.right.destroy();
+      if (currentState.panzoomInstances.right) {
+        currentState.panzoomInstances.right.destroy();
       }
 
       // Create new instances
       const options = { maxScale: Infinity };
-      this.panzoomInstances.left = Panzoom(leftPan, options);
-      this.panzoomInstances.right = Panzoom(rightPan, options);
+      const newInstances = {
+        ...currentState.panzoomInstances,
+        left: Panzoom(leftPan, options),
+        right: Panzoom(rightPan, options),
+      };
 
-      setTimeout(() => this.restoreZoomState(), 0);
+      state.update("panzoomInstances", newInstances);
 
-      this.syncPanZoom();
-      this.bindPanZoomEvents();
-    }
+      setTimeout(() => zoom.restoreZoomState(state), 0);
 
-    syncPanZoom() {
-      const leftPan = this.select("#left-pan");
-      const rightPan = this.select("#right-pan");
-      const leftPanzoom = this.panzoomInstances.left;
-      const rightPanzoom = this.panzoomInstances.right;
+      zoom.syncPanZoom(state);
+      zoom.bindEvents(state);
+    },
+
+    syncPanZoom: (state) => {
+      const leftPan = document.querySelector("#left-pan");
+      const rightPan = document.querySelector("#right-pan");
+      const currentState = state.get();
+      const leftPanzoom = currentState.panzoomInstances.left;
+      const rightPanzoom = currentState.panzoomInstances.right;
 
       if (!leftPan || !rightPan || !leftPanzoom || !rightPanzoom) {
         return;
@@ -1737,119 +1582,148 @@
       leftPan.addEventListener("panzoomchange", leftHandler);
       rightPan.addEventListener("panzoomchange", rightHandler);
 
-      this.eventCleanup.push(() => {
-        leftPan.removeEventListener("panzoomchange", leftHandler);
-        rightPan.removeEventListener("panzoomchange", rightHandler);
-      });
-    }
+      const cleanup = state.get().eventCleanup;
+      cleanup.push(
+        () => leftPan.removeEventListener("panzoomchange", leftHandler),
+        () => rightPan.removeEventListener("panzoomchange", rightHandler),
+      );
+      state.update("eventCleanup", cleanup);
+    },
 
-    bindPanZoomEvents() {
-      const leftSide = this.select("#left-side");
-      const rightSide = this.select("#right-side");
+    bindEvents: (state) => {
+      const leftSide = document.querySelector("#left-side");
+      const rightSide = document.querySelector("#right-side");
 
       if (!leftSide || !rightSide) {
         return;
       }
 
+      const currentState = state.get();
       const createWheelHandler = (panzoom) => (event) => {
         event.preventDefault();
         panzoom.zoomWithWheel(event);
       };
 
-      const leftWheelHandler = createWheelHandler(this.panzoomInstances.left);
-      const rightWheelHandler = createWheelHandler(this.panzoomInstances.right);
+      const leftWheelHandler = createWheelHandler(currentState.panzoomInstances.left);
+      const rightWheelHandler = createWheelHandler(currentState.panzoomInstances.right);
 
       leftSide.addEventListener("wheel", leftWheelHandler);
       rightSide.addEventListener("wheel", rightWheelHandler);
 
-      this.eventCleanup.push(() => {
-        leftSide.removeEventListener("wheel", leftWheelHandler);
-        rightSide.removeEventListener("wheel", rightWheelHandler);
-      });
+      const cleanup = state.get().eventCleanup;
+      cleanup.push(
+        () => leftSide.removeEventListener("wheel", leftWheelHandler),
+        () => rightSide.removeEventListener("wheel", rightWheelHandler),
+      );
+      state.update("eventCleanup", cleanup);
+    },
 
-      this.addEventHandler("reset-zoom", "click", () => this.resetZoom());
-    }
-
-    initOverlayPanZoom() {
-      const overlayPan = this.select("#overlay-pan");
-      const overlayContainer = this.select("#comparison-overlay-container");
+    initOverlayPanZoom: (state) => {
+      const overlayPan = document.querySelector("#overlay-pan");
+      const overlayContainer = document.querySelector("#comparison-overlay-container");
 
       if (!overlayPan || !overlayContainer) {
         return;
       }
 
-      this.panzoomInstances.overlay = Panzoom(overlayPan, { maxScale: Infinity });
+      const currentState = state.get();
+      const newInstances = {
+        ...currentState.panzoomInstances,
+        overlay: Panzoom(overlayPan, { maxScale: Infinity }),
+      };
 
-      if (this.zoomState) {
-        this.panzoomInstances.overlay.zoom(this.zoomState.scale, { animate: false, silent: true });
-        this.panzoomInstances.overlay.pan(this.zoomState.x, this.zoomState.y, {
+      state.update("panzoomInstances", newInstances);
+
+      const { zoomState } = currentState;
+      if (zoomState) {
+        newInstances.overlay.zoom(zoomState.scale, {
+          animate: false,
+          silent: true,
+        });
+        newInstances.overlay.pan(zoomState.x, zoomState.y, {
           animate: false,
           silent: true,
         });
       }
 
-      this.cleanWheelListenersFromElement(overlayContainer);
+      // Clean up old wheel listeners
+      if (overlayContainer._wheelListener) {
+        overlayContainer.removeEventListener("wheel", overlayContainer._wheelListener);
+        delete overlayContainer._wheelListener;
+      }
 
       const wheelHandler = (event) => {
         event.preventDefault();
-        this.panzoomInstances.overlay.zoomWithWheel(event);
+        newInstances.overlay.zoomWithWheel(event);
       };
 
       overlayContainer._wheelListener = wheelHandler;
       overlayContainer.addEventListener("wheel", wheelHandler);
-    }
+    },
 
-    resetZoom() {
-      Object.values(this.panzoomInstances).forEach((instance) => {
+    reset: (state) => {
+      const currentState = state.get();
+      Object.values(currentState.panzoomInstances).forEach((instance) => {
         if (instance) {
           instance.reset();
         }
       });
-    }
+    },
 
-    // Zoom state management
-    saveZoomState() {
-      const activeInstance = this.getActivePanzoomInstance();
+    saveZoomState: (state) => {
+      const currentState = state.get();
+      const activeInstance = zoom.getActivePanzoomInstance(currentState);
       if (activeInstance) {
         const pan = activeInstance.getPan();
-        this.zoomState = {
+        const newZoomState = {
           scale: activeInstance.getScale(),
           x: pan.x,
           y: pan.y,
-          mode: this.mode || this.select("#comparison-mode")?.value,
+          mode: currentState.mode,
         };
+        state.update("zoomState", newZoomState);
       }
-    }
+    },
 
-    restoreZoomState() {
-      Object.values(this.panzoomInstances).forEach((instance) => {
+    restoreZoomState: (state) => {
+      const currentState = state.get();
+      Object.values(currentState.panzoomInstances).forEach((instance) => {
         if (instance) {
-          instance.zoom(this.zoomState.scale, { animate: false, silent: true });
-          instance.pan(this.zoomState.x, this.zoomState.y, { animate: false, silent: true });
+          instance.zoom(currentState.zoomState.scale, {
+            animate: false,
+            silent: true,
+          });
+          instance.pan(currentState.zoomState.x, currentState.zoomState.y, {
+            animate: false,
+            silent: true,
+          });
         }
       });
-    }
+    },
 
-    getActivePanzoomInstance() {
+    getActivePanzoomInstance: (currentState) => {
       return (
-        this.panzoomInstances.overlay || this.panzoomInstances.left || this.panzoomInstances.right
+        currentState.panzoomInstances.overlay ||
+        currentState.panzoomInstances.left ||
+        currentState.panzoomInstances.right
       );
-    }
+    },
 
-    calculateZoomTransition(fromMode, toMode) {
-      if (!this.zoomState) {
+    calculateZoomTransition: (fromMode, toMode, state) => {
+      const currentState = state.get();
+      if (!currentState.zoomState) {
         return;
       }
 
-      const isFromOverlay = this.isOverlayMode(fromMode);
-      const isToOverlay = this.isOverlayMode(toMode);
+      const isFromOverlay = modes.isOverlayMode(fromMode);
+      const isToOverlay = modes.isOverlayMode(toMode);
 
       if (isFromOverlay === isToOverlay) {
         return;
       }
 
-      const referenceImg = this.select("#left-image");
-      const comparisonContent = this.select("#comparison-content");
+      const referenceImg = document.querySelector("#left-image");
+      const comparisonContent = document.querySelector("#comparison-content");
 
       if (!referenceImg || !comparisonContent || !referenceImg.naturalWidth) {
         return;
@@ -1859,12 +1733,12 @@
       const contentHeight = comparisonContent.clientHeight;
       const sideWidth = (contentWidth - DIVIDER_WIDTH) / 2;
 
-      const sideBySideHeight = this.calculateImageDisplayHeight(
+      const sideBySideHeight = zoom.calculateImageDisplayHeight(
         referenceImg,
         sideWidth,
         contentHeight,
       );
-      const overlayHeight = this.calculateImageDisplayHeight(
+      const overlayHeight = zoom.calculateImageDisplayHeight(
         referenceImg,
         contentWidth,
         contentHeight,
@@ -1879,12 +1753,16 @@
       }
 
       if (heightRatio !== 1) {
-        this.zoomState.scale = Math.max(0.1, this.zoomState.scale * heightRatio);
-        this.zoomState.y *= heightRatio;
+        const newZoomState = {
+          ...currentState.zoomState,
+          scale: Math.max(0.1, currentState.zoomState.scale * heightRatio),
+          y: currentState.zoomState.y * heightRatio,
+        };
+        state.update("zoomState", newZoomState);
       }
-    }
+    },
 
-    calculateImageDisplayHeight(img, containerWidth, containerHeight) {
+    calculateImageDisplayHeight: (img, containerWidth, containerHeight) => {
       if (!img?.naturalWidth || !img?.naturalHeight) {
         return containerHeight;
       }
@@ -1893,103 +1771,233 @@
       const containerAspect = containerWidth / containerHeight;
 
       return imageAspect > containerAspect ? containerWidth / imageAspect : containerHeight;
-    }
+    },
+  };
 
-    isOverlayMode(mode) {
-      return [COMPARISON_MODES.SLIDER, COMPARISON_MODES.FADE, COMPARISON_MODES.DIFFERENCE].includes(
-        mode,
-      );
-    }
+  // UI update module
+  const ui = {
+    updateUI: (postId) => {
+      ui.updatePostInfo();
 
-    // Cleanup and utilities
-    cleanupModeElements() {
-      if (this.panzoomInstances.overlay) {
-        this.panzoomInstances.overlay.destroy();
-        this.panzoomInstances.overlay = null;
+      const input = document.querySelector("#second-image-input");
+      if (input) {
+        input.value = postId === "custom" ? "" : postId;
       }
-    }
 
-    cleanupWheelListeners() {
-      ["left-side", "right-side", "comparison-overlay-container"].forEach((id) => {
-        const element = this.select(`#${id}`);
-        this.cleanWheelListenersFromElement(element);
-      });
-    }
+      const selector = document.querySelector(".post-selector select");
+      if (selector && postId !== "custom") {
+        selector.value = postId;
+      }
+    },
 
-    cleanWheelListenersFromElement(element) {
-      if (!element) {
+    updatePostInfo: () => {
+      const leftImg = document.querySelector("#left-image");
+      const rightImg = document.querySelector("#right-image");
+      const infoDisplay = document.querySelector("#post-info-display");
+
+      if (!leftImg || !rightImg || !infoDisplay) {
         return;
       }
 
-      if (element._wheelListener) {
-        element.removeEventListener("wheel", element._wheelListener);
-        delete element._wheelListener;
+      const leftId = leftImg.getAttribute("data-id");
+      const rightId = rightImg.getAttribute("data-id");
+
+      let display = "";
+      if (leftId && rightId) {
+        const leftLabel = ui.getImageLabel(leftId);
+        const rightLabel = rightId === "custom" ? "Custom" : `#${rightId}`;
+        display = `Compare: ${leftLabel} vs ${rightLabel}`;
       }
-    }
 
-    focusContainer() {
-      requestAnimationFrame(() => {
-        const container = this.select("#image-comparison-container");
-        if (container) {
-          container.focus();
-        }
+      infoDisplay.textContent = display;
+    },
+
+    getImageLabel: (imageId) => {
+      const labels = {
+        iqdb: "IQDB",
+        upload: "Upload",
+        similar: "Similar",
+      };
+      return labels[imageId] || `#${imageId}`;
+    },
+  };
+
+  // Post selector module
+  const postSelector = {
+    create: async (state) => {
+      const posts = await relatedPosts.getRelatedPosts(state);
+      if (posts.length === 0) {
+        return;
+      }
+
+      const input = document.querySelector("#second-image-input");
+      const selector = postSelector.build(posts, state);
+      input.parentElement.insertBefore(selector, input);
+    },
+
+    build: (posts, state) => {
+      const container = utils.createElement("div", {
+        className: "post-selector",
       });
-    }
+      const label = utils.createElement("span", {
+        textContent: postSelector.getSelectorLabel(state),
+      });
+      const select = utils.createElement("select");
 
-    // Validation utilities
-    isValidPostUrl(url) {
-      return /https:\/\/(danbooru\.donmai\.us\/posts|yande\.re\/post\/show|konachan\.com\/post\/show)\/\d+/.test(
-        url,
-      );
-    }
+      postSelector.populate(select, posts);
+      postSelector.bindEvents(select, state);
 
-    extractPostIdFromUrl(url) {
-      const match = url.match(/\/(?:posts|show)\/(\d+)/);
-      return match ? match[1] : null;
-    }
+      container.append(label, select);
+      return container;
+    },
 
-    showError(message) {
-      // Simple error display - could be enhanced with better UI
-      alert(message);
-    }
+    getSelectorLabel: (state) => {
+      const { isIqdb, isSimilar, isUpload } = state.get();
+      return isIqdb || isSimilar || isUpload ? "Similar: " : "Related: ";
+    },
 
-    // Observer for dynamic content
-    observeChanges() {
-      const observer = new MutationObserver(() => this.addCompareLinks());
-      observer.observe(document.body, { childList: true, subtree: true });
-    }
+    populate: (select, posts) => {
+      select.appendChild(new Option("-- Select post --", ""));
 
-    // Cleanup and interface closing
-    cleanupEvents() {
-      this.eventCleanup.forEach((cleanup) => cleanup());
-      this.eventCleanup = [];
-    }
+      const currentRightImageId = postSelector.getCurrentRightImageId();
 
-    destroyPanZoom() {
-      Object.values(this.panzoomInstances).forEach((instance) => {
+      posts.forEach((post) => {
+        const text = postSelector.formatPostOptionText(post);
+        const option = new Option(text, post.id);
+        select.appendChild(option);
+      });
+
+      if (currentRightImageId && postSelector.isPostInList(currentRightImageId, posts)) {
+        select.value = currentRightImageId;
+      }
+    },
+
+    formatPostOptionText: (post) => {
+      let text = `#${post.id}`;
+
+      if (post.similarity) {
+        text += ` (${post.similarity}%)`;
+      } else if (post.relationshipType && post.relationshipType !== "Similar") {
+        text += ` (${post.relationshipType})`;
+      }
+
+      if (post.sourceHost) {
+        const sourceSite = utils.detectSiteFromHostname(post.sourceHost);
+        if (sourceSite) {
+          text += ` [${sourceSite}]`;
+        }
+      }
+
+      return text;
+    },
+
+    bindEvents: (select, state) => {
+      select.onchange = () => {
+        const selectedId = select.value;
+        if (selectedId) {
+          document.querySelector("#second-image-input").value = selectedId;
+          imageLoader.handleLoadImage(state);
+        }
+      };
+    },
+
+    getCurrentRightImageId: () => {
+      return document.querySelector("#right-image")?.getAttribute("data-id");
+    },
+
+    isPostInList: (postId, posts) => {
+      return posts.some((post) => post.id === postId);
+    },
+  };
+
+  // Main interface module
+  const comparatorUI = {
+    open: async (postId, state) => {
+      const container = utils.createElement("div", {
+        id: "image-comparison-container",
+        innerHTML: htmlGenerator.generateInterfaceHTML(state),
+      });
+
+      container.setAttribute("tabindex", "0");
+      container.style.outline = "none";
+      document.body.appendChild(container);
+
+      await comparatorUI.setup(state);
+
+      if (postId) {
+        setTimeout(() => imageLoader.loadImage(postId, state), 100);
+      }
+    },
+
+    setup: async (state) => {
+      await postSelector.create(state);
+      events.bind(state);
+      zoom.init(state);
+      modes.restoreMode(state);
+
+      const { isIqdb, isSimilar, postId, originalImageUrl } = state.get();
+      if ((isIqdb && postId && !originalImageUrl) || (isSimilar && postId)) {
+        await imageLoader.loadSearchImage(state);
+      }
+
+      modes.update(state);
+    },
+
+    close: (state) => {
+      transforms.reset(state);
+      comparatorUI.destroyPanZoom(state);
+      comparatorUI.cleanupEvents(state);
+
+      const container = document.querySelector("#image-comparison-container");
+      if (container) {
+        document.body.removeChild(container);
+      }
+    },
+
+    cleanupEvents: (state) => {
+      const cleanup = state.get().eventCleanup;
+      cleanup.forEach((fn) => fn());
+      state.update("eventCleanup", []);
+    },
+
+    destroyPanZoom: (state) => {
+      const currentState = state.get();
+      Object.values(currentState.panzoomInstances).forEach((instance) => {
         if (instance) {
           instance.destroy();
         }
       });
-      this.panzoomInstances = {};
+      state.update("panzoomInstances", {});
+    },
+  };
+
+  // Main initialization function
+  const init = () => {
+    if (!utils.isValidPage()) {
+      return;
     }
 
-    closeInterface() {
-      this.resetTransforms();
-      this.destroyPanZoom();
-      this.cleanupEvents();
+    GM_addStyle(GM_getResourceText("STYLE"));
 
-      const container = this.select("#image-comparison-container");
-      if (container) {
-        document.body.removeChild(container);
-      }
-    }
-  }
+    const state = createAppState();
 
-  // Initialize when ready
+    // Set original image URL
+    const originalImageUrl = imageUrlResolver.getOriginalImageUrl(state);
+    state.update("originalImageUrl", originalImageUrl);
+
+    // Add compare links
+    dom.addCompareLinks(state);
+    dom.addMainMenuLink(state);
+
+    // Observe DOM changes for dynamic content
+    const observer = new MutationObserver(() => dom.addCompareLinks(state));
+    observer.observe(document.body, { childList: true, subtree: true });
+  };
+
+  // Startup
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => new BooruImageComparator());
+    document.addEventListener("DOMContentLoaded", init);
   } else {
-    new BooruImageComparator();
+    init();
   }
 })();

@@ -79,7 +79,7 @@ javascript: void (async () => {
           throw new Error("Unable to retrieve username from Fanbox URL.");
         }
       } else {
-        userName = location.hostname.split(".")[0];
+        userName = host.split(".")[0];
       }
       const response = await fetch(`https://api.fanbox.cc/creator.get?creatorId=${userName}`);
       const data = await response.json();
@@ -170,8 +170,8 @@ javascript: void (async () => {
         const username = document.querySelector("meta[name='misskey:user-username']")?.content;
         if (username) {
           const userId = document.querySelector("meta[name='misskey:user-id']").content;
-          profileUrl = `https://misskey.io/@${username}`;
-          secondaryUrl = `https://misskey.io/users/${userId}`;
+          profileUrl = `https://${host}/@${username}`;
+          secondaryUrl = `https://${host}/users/${userId}`;
         } else {
           alert(`Unsupported site: ${host}`);
           return;

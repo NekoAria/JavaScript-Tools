@@ -1,190 +1,383 @@
-// original: https://gist.github.com/TypeA2/dc1bb0ba549369dd079f15e44e5623eb
+// Original: https://gist.github.com/TypeA2/dc1bb0ba549369dd079f15e44e5623eb
 javascript: void (async () => {
-  let profileUrl;
-  let secondaryUrl;
-  const { host } = location;
-  try {
-    if (["twitter.com", "x.com"].includes(host)) {
-      const scriptTag = document.querySelector("script[type='application/ld+json']");
-      if (scriptTag) {
-        const { mainEntity } = JSON.parse(scriptTag.innerText);
-        if (mainEntity) {
-          profileUrl = `https://twitter.com/${mainEntity.additionalName}`;
-          secondaryUrl = `https://twitter.com/intent/user?user_id=${mainEntity.identifier}`;
-        }
-      } else {
-        alert("Please open the profile page.");
-        return;
+  const createProfileResult = (primaryUrl, secondaryUrl) => ({ primaryUrl, secondaryUrl });
+
+  const utils = {
+    safeJsonParse(text) {
+      try {
+        return JSON.parse(text);
+      } catch {
+        return null;
       }
-    } else if (host === "www.pixiv.net") {
-      if (location.pathname.includes("users")) {
-        profileUrl = location.toString().replace("en/", "");
-      } else {
-        const userLink = document.querySelector("a[href*='/users/']");
-        profileUrl = `https://${host}/users/${userLink.dataset.gtmValue}`;
+    },
+
+    async safeFetch(url) {
+      try {
+        const response = await fetch(url);
+        return response.ok ? response : null;
+      } catch {
+        return null;
       }
-      secondaryUrl = await fetch(profileUrl.replace("en/", "").replace("users", "stacc/id")).then(
-        (res) => res.url,
+    },
+
+    getMetaContent(name, property = "name") {
+      return document.querySelector(`meta[${property}='${name}']`)?.content;
+    },
+
+    showError(message) {
+      alert(`Error: ${message}`);
+    },
+
+    userNotFoundError(platform) {
+      return `Unable to retrieve user information from ${platform}`;
+    },
+  };
+
+  const handleBluesky = async () => {
+    const profileMatch = /\/profile\/([^/]+)/.exec(location.pathname);
+
+    if (!profileMatch?.[1]) {
+      throw new Error(utils.userNotFoundError("Bluesky"));
+    }
+
+    const identifier = profileMatch[1];
+    let primaryUrl = `https://bsky.app/profile/${identifier}`;
+    let secondaryUrl;
+
+    if (identifier.startsWith("did:")) {
+      // Handle DID format identifier
+      const profileResponse = await utils.safeFetch(
+        `https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${identifier}`,
       );
-    } else if (host === "bsky.app") {
-      const profileRegex = /\/profile\/([^/]+)/;
-      const match = location.pathname.match(profileRegex);
-      if (match && match[1]) {
-        const identifier = match[1];
-        profileUrl = `https://bsky.app/profile/${identifier}`;
-        if (identifier.startsWith("did:")) {
-          secondaryUrl = profileUrl;
-          profileUrl = `https://bsky.app/profile/${await fetch(
-            `https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${identifier}`,
-          )
-            .then((res) => res.json())
-            .then((json) => json.handle)}`;
-        } else {
-          secondaryUrl = `https://bsky.app/profile/${await fetch(
-            `https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=${identifier}`,
-          )
-            .then((res) => res.json())
-            .then((json) => json.did)}`;
-        }
-      } else {
-        throw new Error("Unable to retrieve user information from Bluesky URL.");
+
+      if (profileResponse) {
+        const profileData = await profileResponse.json();
+        primaryUrl = `https://bsky.app/profile/${profileData.handle}`;
       }
-    } else if (host === "www.youtube.com") {
-      if (location.pathname.includes("/watch")) {
-        alert("Please open the channel page.");
-        return;
-      }
-      let channelHandle = null;
-      const channelIdSpan = document.querySelector(
-        "span.yt-content-metadata-view-model-wiz__metadata-text",
-      );
-      if (channelIdSpan?.textContent.trim().startsWith("@")) {
-        channelHandle = channelIdSpan.textContent;
-      }
-      const canonicalLink = document.querySelector("link[rel='canonical']");
-      if (channelHandle) {
-        profileUrl = `https://www.youtube.com/${channelHandle}`;
-        secondaryUrl = canonicalLink.href;
-      } else {
-        alert("Please reload the channel page.");
-        return;
-      }
-    } else if (host.includes("fanbox.cc")) {
-      let userName;
-      if (host === "www.fanbox.cc") {
-        const match = location.pathname.match(/^\/@([a-zA-Z0-9_-]+)$/);
-        if (match && match[1]) {
-          userName = match[1];
-        } else {
-          throw new Error("Unable to retrieve username from Fanbox URL.");
-        }
-      } else {
-        userName = host.split(".")[0];
-      }
-      const response = await fetch(`https://api.fanbox.cc/creator.get?creatorId=${userName}`);
-      const data = await response.json();
-      if (data?.body?.user) {
-        profileUrl = location.href;
-        secondaryUrl = `https://www.pixiv.net/fanbox/creator/${data.body.user.userId}`;
-      } else {
-        throw new Error("Unable to retrieve user information from Fanbox API.");
-      }
-    } else if (host.includes("gumroad.com")) {
-      document.querySelectorAll(".js-react-on-rails-component").forEach((element) => {
-        const userData = JSON.parse(element.textContent).creator_profile;
-        if (userData) {
-          profileUrl = `https://${userData.subdomain}`;
-          secondaryUrl = `https://${userData.external_id}.gumroad.com`;
-        }
-      });
-    } else if (host.includes("patreon.com")) {
-      const scriptTag = document.querySelector("script#__NEXT_DATA__");
-      if (scriptTag) {
-        const data = JSON.parse(scriptTag.textContent);
-        let userId =
-          data?.props?.pageProps?.bootstrapEnvelope?.commonBootstrap?.campaign?.data?.relationships
-            ?.creator?.data?.id ||
-          data?.props?.pageProps?.bootstrapEnvelope?.pageBootstrap?.campaign?.data?.relationships
-            ?.creator?.data?.id ||
-          data?.props?.pageProps?.bootstrapEnvelope?.pageBootstrap?.pageUser?.data?.id;
-        if (userId) {
-          profileUrl = location.href
-            .replace("http://", "https://")
-            .replace(":443", "")
-            .replace("/c/", "")
-            .replace("/home", "")
-            .replace(/\/$/, "");
-          secondaryUrl = `https://www.patreon.com/user?u=${userId}`;
-          if (profileUrl.includes("patreon.com") && !profileUrl.includes("www.patreon.com")) {
-            profileUrl = profileUrl.replace("patreon.com", "www.patreon.com");
-          }
-        } else {
-          throw new Error("Unable to extract user ID from Patreon page");
-        }
-      } else {
-        throw new Error("The necessary data on the Patreon page cannot be found");
-      }
-    } else if (host === "fantia.jp") {
-      const creatorProfileLink = document.querySelector(".fanclub-header a");
-      if (creatorProfileLink) {
-        const creatorPath = creatorProfileLink.getAttribute("href");
-        profileUrl = `https://fantia.jp${creatorPath}`;
-        const creatorNickname = document.querySelector("#nickname");
-        if (creatorNickname?.getAttribute("value")) {
-          secondaryUrl = `https://fantia.jp/${creatorNickname.getAttribute("value")}`;
-        } else {
-          secondaryUrl = profileUrl;
-        }
-      } else {
-        throw new Error("Unable to find creator information on Fantia page");
-      }
-    } else if (host.includes("lofter.com")) {
-      profileUrl = window.hostUrl;
-      const blogId = document.querySelector('input[name="blogId"]')?.value;
-      if (blogId) {
-        secondaryUrl = `https://www.lofter.com/mentionredirect.do?blogId=${blogId}`;
-      } else {
-        throw new Error("Unable to find blog ID on Lofter page");
-      }
+      secondaryUrl = `https://bsky.app/profile/${identifier}`;
     } else {
-      const ogUrl = document.querySelector("meta[property='og:url']")?.content;
-      const url = ogUrl ? new URL(ogUrl) : null;
-      const host = url ? url.host : null;
-      if (host === "xfolio.jp") {
-        const creatorInfo = document.querySelector("div.creatorInfo");
-        if (creatorInfo) {
-          profileUrl = creatorInfo.dataset.creatorPortfolioTopUrl;
-          secondaryUrl = creatorInfo.dataset.creatorUrl;
-        } else if (url.pathname.startsWith("/users/")) {
-          const profileLink = document.querySelector("div.userProfile__btn a");
-          const url = new URL(profileLink.href);
-          if (url.host === "xfolio.jp") {
-            const path = url.pathname.split("/").slice(-2).join("/");
-            profileUrl = `https://xfolio.jp/${path}`;
-          } else {
-            profileUrl = url.origin;
-          }
-          secondaryUrl = ogUrl;
-        }
+      // Handle `handle` format identifier
+      const didResponse = await utils.safeFetch(
+        `https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=${identifier}`,
+      );
+
+      if (didResponse) {
+        const didData = await didResponse.json();
+        secondaryUrl = `https://bsky.app/profile/${didData.did}`;
       } else {
-        const username = document.querySelector("meta[name='misskey:user-username']")?.content;
-        if (username) {
-          const userId = document.querySelector("meta[name='misskey:user-id']").content;
-          profileUrl = `https://${host}/@${username}`;
-          secondaryUrl = `https://${host}/users/${userId}`;
-        } else {
-          alert(`Unsupported site: ${host}`);
-          return;
-        }
+        secondaryUrl = primaryUrl;
       }
     }
-  } catch (error) {
-    alert(`Error: ${error.message}`);
-    return;
-  }
-  if (navigator.userAgent.toLowerCase().includes("firefox")) {
-    alert(`${profileUrl}\n${secondaryUrl}`);
-  } else {
-    prompt(`${host} URLs`, `${profileUrl}\n${secondaryUrl}`);
-  }
+
+    return createProfileResult(primaryUrl, secondaryUrl);
+  };
+
+  const handleFantia = async () => {
+    const creatorProfileLink = document.querySelector(".fanclub-header a");
+
+    if (!creatorProfileLink) {
+      throw new Error(utils.userNotFoundError("Fantia"));
+    }
+
+    const creatorPath = creatorProfileLink.getAttribute("href");
+    const primaryUrl = `https://fantia.jp${creatorPath}`;
+
+    const creatorNickname = document.querySelector("#nickname");
+    const nicknameValue = creatorNickname?.getAttribute("value");
+    const secondaryUrl = nicknameValue ? `https://fantia.jp/${nicknameValue}` : primaryUrl;
+
+    return createProfileResult(primaryUrl, secondaryUrl);
+  };
+
+  const handleGumroad = async () => {
+    const reactComponents = document.querySelectorAll(".js-react-on-rails-component");
+
+    for (const element of reactComponents) {
+      const componentData = utils.safeJsonParse(element.textContent);
+      const creatorProfile = componentData?.creator_profile;
+
+      if (creatorProfile) {
+        const primaryUrl = `https://${creatorProfile.subdomain}`;
+        const secondaryUrl = `https://${creatorProfile.external_id}.gumroad.com`;
+        return createProfileResult(primaryUrl, secondaryUrl);
+      }
+    }
+
+    throw new Error(utils.userNotFoundError("Gumroad"));
+  };
+
+  const handleLofter = async () => {
+    const controlFrame = document.querySelector("#control_frame");
+    if (!controlFrame) {
+      throw new Error(utils.userNotFoundError("Lofter"));
+    }
+
+    const primaryUrl = controlFrame.baseURI.replace(/\/$/, "");
+    const url = new URL(controlFrame.src);
+    const blogId = url.searchParams.get("blogId");
+
+    if (!blogId) {
+      throw new Error(utils.userNotFoundError("Lofter"));
+    }
+
+    const secondaryUrl = `https://www.lofter.com/mentionredirect.do?blogId=${blogId}`;
+
+    return createProfileResult(primaryUrl, secondaryUrl);
+  };
+
+  const handlePatreon = async () => {
+    const nextDataScript = document.querySelector("script#__NEXT_DATA__");
+
+    if (!nextDataScript) {
+      throw new Error("The necessary data on the Patreon page cannot be found");
+    }
+
+    const pageData = utils.safeJsonParse(nextDataScript.textContent);
+    const bootstrap = pageData?.props?.pageProps?.bootstrapEnvelope;
+
+    // Try to get user ID from multiple possible paths
+    const userId =
+      bootstrap?.commonBootstrap?.campaign?.data?.relationships?.creator?.data?.id ||
+      bootstrap?.pageBootstrap?.campaign?.data?.relationships?.creator?.data?.id ||
+      bootstrap?.pageBootstrap?.pageUser?.data?.id;
+
+    if (!userId) {
+      throw new Error(utils.userNotFoundError("Patreon"));
+    }
+
+    let primaryUrl = location.href
+      .replace("http://", "https://")
+      .replace(":443", "")
+      .replace("/c/", "")
+      .replace("/home", "")
+      .replace(/\/$/, "");
+
+    let url = new URL(primaryUrl);
+    if (url.hostname === "patreon.com") {
+      url.hostname = "www.patreon.com";
+    }
+    url.searchParams.delete("__cf_chl_tk");
+
+    primaryUrl = url.toString();
+    const secondaryUrl = `https://www.patreon.com/user?u=${userId}`;
+
+    return createProfileResult(primaryUrl, secondaryUrl);
+  };
+
+  const handleTwitter = async () => {
+    const scriptTag = document.querySelector("script[type='application/ld+json']");
+
+    if (!scriptTag) {
+      throw new Error("Please open the profile page");
+    }
+
+    const structuredData = utils.safeJsonParse(scriptTag.innerText);
+    const userEntity = structuredData?.mainEntity;
+
+    if (!userEntity) {
+      throw new Error(utils.userNotFoundError("Twitter"));
+    }
+
+    const primaryUrl = `https://twitter.com/${userEntity.additionalName}`;
+    const secondaryUrl = `https://twitter.com/intent/user?user_id=${userEntity.identifier}`;
+
+    return createProfileResult(primaryUrl, secondaryUrl);
+  };
+
+  const handleFanbox = async () => {
+    const { host } = location;
+    let userName;
+
+    if (host === "www.fanbox.cc") {
+      const usernameMatch = /^\/@([a-zA-Z0-9_-]+)$/.exec(location.pathname);
+      if (!usernameMatch?.[1]) {
+        throw new Error(utils.userNotFoundError("Fanbox"));
+      }
+      userName = usernameMatch[1];
+    } else {
+      userName = host.split(".")[0];
+    }
+
+    const apiResponse = await utils.safeFetch(
+      `https://api.fanbox.cc/creator.get?creatorId=${userName}`,
+    );
+
+    if (!apiResponse) {
+      throw new Error(utils.userNotFoundError("Fanbox"));
+    }
+
+    const apiData = await apiResponse.json();
+    if (!apiData?.body?.user) {
+      throw new Error("Invalid user data returned from API");
+    }
+
+    const primaryUrl = location.href;
+    const secondaryUrl = `https://www.pixiv.net/fanbox/creator/${apiData.body.user.userId}`;
+
+    return createProfileResult(primaryUrl, secondaryUrl);
+  };
+
+  const handlePixiv = async () => {
+    let primaryUrl;
+
+    if (location.pathname.includes("users")) {
+      primaryUrl = location.toString().replace("en/", "");
+    } else {
+      const userLink = document.querySelector("a[href*='/users/']");
+      const userId = userLink?.dataset.gtmValue;
+
+      if (!userId) {
+        throw new Error(utils.userNotFoundError("Pixiv"));
+      }
+      primaryUrl = `https://www.pixiv.net/users/${userId}`;
+    }
+
+    const staccUrl = primaryUrl.replace("en/", "").replace("users", "stacc/id");
+    const secondaryResponse = await utils.safeFetch(staccUrl);
+    const secondaryUrl = secondaryResponse?.url || primaryUrl;
+
+    return createProfileResult(primaryUrl, secondaryUrl);
+  };
+
+  const handleYouTube = async () => {
+    if (location.pathname.includes("/watch")) {
+      throw new Error("Please open the channel page");
+    }
+
+    const channelHandleSpan = document.querySelector(
+      "span.yt-content-metadata-view-model-wiz__metadata-text",
+    );
+
+    const channelHandle = channelHandleSpan?.textContent?.trim();
+    if (!channelHandle?.startsWith("@")) {
+      throw new Error("Please reload the channel page");
+    }
+
+    const canonicalUrl = document.querySelector("link[rel='canonical']")?.href;
+    const primaryUrl = `https://www.youtube.com/${channelHandle}`;
+    const secondaryUrl = canonicalUrl || primaryUrl;
+
+    return createProfileResult(primaryUrl, secondaryUrl);
+  };
+
+  const handleXfolio = (pageUrl, ogUrl) => {
+    const creatorInfo = document.querySelector("div.creatorInfo");
+
+    if (creatorInfo) {
+      const primaryUrl = creatorInfo.dataset.creatorPortfolioTopUrl;
+      const secondaryUrl = creatorInfo.dataset.creatorUrl;
+      return createProfileResult(primaryUrl, secondaryUrl);
+    }
+
+    if (pageUrl.pathname.startsWith("/users/")) {
+      const profileLink = document.querySelector("div.userProfile__btn a");
+      const profileUrl = new URL(profileLink.href);
+
+      let primaryUrl;
+      if (profileUrl.host === "xfolio.jp") {
+        const pathSegments = profileUrl.pathname.split("/").slice(-2).join("/");
+        primaryUrl = `https://xfolio.jp/${pathSegments}`;
+      } else {
+        primaryUrl = profileUrl.origin;
+      }
+
+      return createProfileResult(primaryUrl, ogUrl);
+    }
+
+    throw new Error(utils.userNotFoundError("Xfolio"));
+  };
+
+  const handleMisskey = (host, username) => {
+    const userId = utils.getMetaContent("misskey:user-id");
+
+    if (!userId) {
+      throw new Error(utils.userNotFoundError("Misskey"));
+    }
+
+    const primaryUrl = `https://${host}/@${username}`;
+    const secondaryUrl = `https://${host}/users/${userId}`;
+
+    return createProfileResult(primaryUrl, secondaryUrl);
+  };
+
+  // Generic handler for other platforms
+  const handleOtherPlatforms = async (host) => {
+    const ogUrl = utils.getMetaContent("og:url", "property");
+
+    if (!ogUrl) {
+      throw new Error(`Unsupported site: ${host}`);
+    }
+
+    const pageUrl = new URL(ogUrl);
+
+    if (pageUrl.host === "xfolio.jp") {
+      return handleXfolio(pageUrl, ogUrl);
+    }
+
+    // Handle Misskey instances
+    const misskeyUsername = utils.getMetaContent("misskey:user-username");
+    if (misskeyUsername) {
+      return handleMisskey(host, misskeyUsername);
+    }
+
+    throw new Error(`Unsupported site: ${host}`);
+  };
+
+  const displayResult = (result, host) => {
+    const output = `${result.primaryUrl}\n${result.secondaryUrl}`;
+
+    if (navigator.userAgent.toLowerCase().includes("firefox")) {
+      alert(output);
+    } else {
+      prompt(`${host} URLs`, output);
+    }
+  };
+
+  // Platform handler mapping
+  const PLATFORM_HANDLERS = {
+    "bsky.app": handleBluesky,
+    "fantia.jp": handleFantia,
+    "gumroad.com": handleGumroad,
+    "lofter.com": handleLofter,
+    "patreon.com": handlePatreon,
+    "twitter.com": handleTwitter,
+    "www.fanbox.cc": handleFanbox,
+    "www.pixiv.net": handlePixiv,
+    "www.youtube.com": handleYouTube,
+    "x.com": handleTwitter,
+  };
+
+  // Main execution function
+  const main = async () => {
+    const { host } = location;
+
+    try {
+      let result;
+
+      // Check for subdomain-based platforms
+      if (host.includes("fanbox.cc")) {
+        result = await handleFanbox();
+      } else if (host.includes("gumroad.com")) {
+        result = await handleGumroad();
+      } else if (host.includes("patreon.com")) {
+        result = await handlePatreon();
+      } else if (host.includes("lofter.com")) {
+        result = await handleLofter();
+      }
+      // Use exact match platform handlers
+      else if (PLATFORM_HANDLERS[host]) {
+        result = await PLATFORM_HANDLERS[host]();
+      }
+      // Handle other platforms
+      else {
+        result = await handleOtherPlatforms(host);
+      }
+
+      displayResult(result, host);
+    } catch (error) {
+      utils.showError(error.message);
+    }
+  };
+
+  await main();
 })();

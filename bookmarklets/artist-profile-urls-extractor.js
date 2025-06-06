@@ -106,6 +106,27 @@ javascript: void (async () => {
     throw new Error(utils.userNotFoundError("Gumroad"));
   };
 
+  const handleInkbunny = async () => {
+    const statsLink = document
+      .querySelector('a[href^="gallerystats_process.php?user_id="]')
+      ?.getAttribute("href");
+
+    if (statsLink) {
+      const galleryLink = document.querySelector('a[href^="/gallery/"]').getAttribute("href");
+      if (!galleryLink) {
+        throw new Error(utils.userNotFoundError("Inkbunny"));
+      }
+
+      const galleryParts = galleryLink.split("/");
+      const statsParts = statsLink.split("=");
+      const primaryUrl = `https://inkbunny.net/${galleryParts[2]}`;
+      const secondaryUrl = `https://inkbunny.net/user.php?user_id=${statsParts[1]}`;
+      return createProfileResult(primaryUrl, secondaryUrl);
+    }
+
+    throw new Error(utils.userNotFoundError("Inkbunny"));
+  };
+
   const handleLofter = async () => {
     const controlFrame = document.querySelector("#control_frame");
     if (!controlFrame) {
@@ -338,6 +359,7 @@ javascript: void (async () => {
     "bsky.app": handleBluesky,
     "fantia.jp": handleFantia,
     "gumroad.com": handleGumroad,
+    "inkbunny.net": handleInkbunny,
     "lofter.com": handleLofter,
     "patreon.com": handlePatreon,
     "twitter.com": handleTwitter,

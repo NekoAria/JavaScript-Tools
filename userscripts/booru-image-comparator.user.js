@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Universal Booru Image Comparator
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      1.1.0
+// @version      1.1.1
 // @description  Compare images on Danbooru / Yande.re / Konachan with multiple modes and transformations
 // @author       Neko_Aria
 // @match        https://danbooru.donmai.us/posts/*
@@ -22,7 +22,7 @@
 (function () {
   "use strict";
 
-  // Constants
+  // Configuration constants
   const DIVIDER_WIDTH = 4;
   const STORAGE_KEY = "universal_comparator_mode";
 
@@ -47,7 +47,7 @@
     Child: 3,
   };
 
-  // Utility functions
+  // Utility functions for DOM manipulation and validation
   const utils = {
     createElement: (tag, options = {}) => {
       const element = document.createElement(tag);
@@ -108,12 +108,62 @@
     },
   };
 
-  // State management
+  // Reactive state management with observer pattern
+  const createReactiveState = (initialState) => {
+    let state = { ...initialState };
+    const listeners = new Set();
+
+    return {
+      get: () => ({ ...state }),
+      update: (key, value) => {
+        const oldState = { ...state };
+
+        if (typeof key === "object") {
+          state = { ...state, ...key };
+        } else {
+          state = { ...state, [key]: value };
+        }
+
+        if (JSON.stringify(oldState) !== JSON.stringify(state)) {
+          listeners.forEach((listener) => listener(state, oldState));
+        }
+      },
+      subscribe: (listener) => {
+        if (typeof listener !== "function") {
+          throw new Error("Listener must be a function");
+        }
+        listeners.add(listener);
+        return () => listeners.delete(listener);
+      },
+    };
+  };
+
+  // Updates slider when transforms or zoom state changes
+  const sliderUpdater = {
+    updateIfNeeded: (state) => {
+      const { mode } = state.get();
+
+      if (mode !== MODES.SLIDER) {
+        return;
+      }
+
+      const sliderElement = document.querySelector("#comparison-slider");
+      const rightImage = document.querySelector("#overlay-image");
+      const container = document.querySelector("#comparison-overlay-container");
+
+      if (sliderElement && rightImage && container) {
+        const currentPosition = parseInt(sliderElement.style.left) || container.clientWidth / 2;
+        slider.updateSlider(sliderElement, rightImage, currentPosition, container, state);
+      }
+    },
+  };
+
+  // Initialize application state based on current page and site
   const createAppState = () => {
     const site = utils.detectSite();
     const { pathname, search } = window.location;
 
-    // Page-specific state configuration
+    // Determine page-specific configuration
     const pageState = (() => {
       if (site === "danbooru") {
         const isUpload = pathname.startsWith("/uploads");
@@ -147,7 +197,7 @@
       }
     })();
 
-    let state = {
+    const reactiveState = createReactiveState({
       site,
       ...pageState,
       mode: MODES.SIDE_BY_SIDE,
@@ -159,21 +209,25 @@
       panzoomInstances: {},
       eventCleanup: [],
       originalImageUrl: null,
-    };
+    });
 
-    return {
-      get: () => state,
-      update: (key, value) => {
-        if (typeof key === "object") {
-          Object.assign(state, key);
-        } else {
-          state[key] = value;
-        }
-      },
-    };
+    // Auto-update slider when relevant state changes
+    reactiveState.subscribe((newState, oldState) => {
+      const needsSliderUpdate =
+        newState.mode === MODES.SLIDER &&
+        (JSON.stringify(newState.transforms) !== JSON.stringify(oldState.transforms) ||
+          (newState.mode !== oldState.mode && newState.mode === MODES.SLIDER) ||
+          JSON.stringify(newState.zoomState) !== JSON.stringify(oldState.zoomState));
+
+      if (needsSliderUpdate) {
+        setTimeout(() => sliderUpdater.updateIfNeeded(reactiveState), 0);
+      }
+    });
+
+    return reactiveState;
   };
 
-  // Image URL resolution
+  // Handle image URL resolution for different sites and contexts
   const imageUrlResolver = {
     getOriginalImageUrl: (state) => {
       const { site, isUpload, isIqdb, isSimilar, searchUrl } = state.get();
@@ -204,7 +258,7 @@
     },
   };
 
-  // DOM manipulation module
+  // DOM manipulation for adding compare links and navigation elements
   const dom = {
     addCompareLinks: (state) => {
       const selector = dom.getPostsSelector(state.get());
@@ -293,7 +347,7 @@
     },
   };
 
-  // Related posts retrieval
+  // Retrieve related posts from different sources and contexts
   const relatedPosts = {
     getRelatedPosts: async (state) => {
       const { site } = state.get();
@@ -511,7 +565,7 @@
     },
   };
 
-  // API calls module
+  // API calls for fetching post data from different booru sites
   const api = {
     fetchPostData: async (query, state, sourceHost = null) => {
       try {
@@ -548,7 +602,7 @@
     },
   };
 
-  // HTML generation
+  // Generate HTML for the comparison interface
   const htmlGenerator = {
     generateInterfaceHTML: (state) => {
       const { originalImageUrl } = state.get();
@@ -708,12 +762,12 @@
     },
   };
 
-  // Event handling module
+  // Event binding and management for user interactions
   const events = {
     bind: (state) => {
       const cleanup = [];
 
-      // Main control events
+      // Primary control events
       const controlEvents = [
         ["close-comparison", () => comparatorUI.close(state)],
         ["load-comparison", () => imageLoader.handleLoadImage(state)],
@@ -749,7 +803,7 @@
         }
       });
 
-      // Input events
+      // Input enter key handler
       const input = document.querySelector("#second-image-input");
       if (input) {
         const keyHandler = (e) => e.key === "Enter" && imageLoader.handleLoadImage(state);
@@ -757,10 +811,9 @@
         cleanup.push(() => input.removeEventListener("keypress", keyHandler));
       }
 
-      // Mode control events
       events.bindModeEvents(cleanup);
 
-      // Keyboard events - ESC to close
+      // ESC key to close
       const escHandler = (e) => e.key === "Escape" && comparatorUI.close(state);
       document.addEventListener("keydown", escHandler, true);
       cleanup.push(() => document.removeEventListener("keydown", escHandler, true));
@@ -817,7 +870,7 @@
     },
   };
 
-  // Image loading module
+  // Image loading and URL handling
   const imageLoader = {
     handleLoadImage: (state) => {
       const input = document.querySelector("#second-image-input");
@@ -959,7 +1012,7 @@
     },
   };
 
-  // Image operations module
+  // Image operations like swapping
   const imageActions = {
     swapImages: (state) => {
       const leftImg = document.querySelector("#left-image");
@@ -996,7 +1049,7 @@
     },
   };
 
-  // Transform controls module
+  // Transform controls for flipping and rotating images
   const transforms = {
     toggle: (side, type, state) => {
       const currentState = state.get();
@@ -1074,7 +1127,7 @@
     },
   };
 
-  // Mode management module
+  // Comparison mode management and switching
   const modes = {
     restoreMode: (state) => {
       const savedMode = modes.getSavedMode();
@@ -1330,7 +1383,7 @@
     },
   };
 
-  // Slider mode module
+  // Slider mode implementation with interactive dragging
   const slider = {
     init: (state) => {
       const container = document.querySelector("#comparison-overlay-container");
@@ -1359,6 +1412,7 @@
 
       const currentState = state.get();
       const panzoomInstance = currentState.panzoomInstances.overlay;
+      const isRightFlippedH = currentState.transforms.right.flipH;
 
       if (panzoomInstance) {
         const scale = panzoomInstance.getScale();
@@ -1366,7 +1420,15 @@
         const containerRect = container.getBoundingClientRect();
         const relativeX = containerX - (imageRect.left - containerRect.left);
         const imageCoordX = relativeX / scale;
-        rightImage.style.clipPath = `inset(0 0 0 ${Math.max(0, imageCoordX)}px)`;
+        const clipValue = Math.max(0, imageCoordX);
+
+        if (isRightFlippedH) {
+          rightImage.style.clipPath = `inset(0 ${clipValue}px 0 0)`;
+        } else {
+          rightImage.style.clipPath = `inset(0 0 0 ${clipValue}px)`;
+        }
+      } else if (isRightFlippedH) {
+        rightImage.style.clipPath = `inset(0 ${containerX}px 0 0)`;
       } else {
         rightImage.style.clipPath = `inset(0 0 0 ${containerX}px)`;
       }
@@ -1439,7 +1501,7 @@
     },
   };
 
-  // Effects control module
+  // Visual effects controls for fade and difference modes
   const effects = {
     updateOpacity: () => {
       const slider = document.querySelector("#opacity-slider");
@@ -1516,7 +1578,7 @@
     },
   };
 
-  // Zoom control module
+  // Zoom and pan functionality with synchronized movement
   const zoom = {
     init: (state) => {
       const leftPan = document.querySelector("#left-pan");
@@ -1774,7 +1836,7 @@
     },
   };
 
-  // UI update module
+  // UI update helpers
   const ui = {
     updateUI: (postId) => {
       ui.updatePostInfo();
@@ -1822,7 +1884,7 @@
     },
   };
 
-  // Post selector module
+  // Post selector dropdown for related posts
   const postSelector = {
     create: async (state) => {
       const posts = await relatedPosts.getRelatedPosts(state);
@@ -1910,7 +1972,7 @@
     },
   };
 
-  // Main interface module
+  // Main comparator interface management
   const comparatorUI = {
     open: async (postId, state) => {
       const container = utils.createElement("div", {
@@ -1971,7 +2033,7 @@
     },
   };
 
-  // Main initialization function
+  // Initialize the application
   const init = () => {
     if (!utils.isValidPage()) {
       return;
@@ -1985,7 +2047,7 @@
     const originalImageUrl = imageUrlResolver.getOriginalImageUrl(state);
     state.update("originalImageUrl", originalImageUrl);
 
-    // Add compare links
+    // Add compare links and navigation
     dom.addCompareLinks(state);
     dom.addMainMenuLink(state);
 
@@ -1994,7 +2056,7 @@
     observer.observe(document.body, { childList: true, subtree: true });
   };
 
-  // Startup
+  // Start the application
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init);
   } else {

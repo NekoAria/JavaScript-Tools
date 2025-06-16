@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Universal Booru Image Comparator
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      1.1.1
+// @version      1.1.2
 // @description  Compare images on Danbooru / Yande.re / Konachan with multiple modes and transformations
 // @author       Neko_Aria
 // @match        https://danbooru.donmai.us/posts/*
@@ -333,14 +333,18 @@
         return;
       }
 
-      const menuItem = utils.createElement("li", { id: "nav-compare" });
-      const link = utils.createElement("a", { textContent: "Compare" });
+      const menuItem = utils.createElement("li");
+      const link = utils.createElement("a", { id: "nav-compare", textContent: "Compare" });
 
       link.href = "#";
       link.onclick = (e) => {
         e.preventDefault();
         comparatorUI.open(null, state);
       };
+
+      if (document.querySelector(".px-3")) {
+        link.className = "py-1.5 px-3";
+      }
 
       menuItem.appendChild(link);
       mainMenu.appendChild(menuItem);

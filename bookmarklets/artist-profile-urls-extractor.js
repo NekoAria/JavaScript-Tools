@@ -308,14 +308,14 @@ javascript: void (async () => {
     throw new Error(utils.userNotFoundError("Xfolio"));
   };
 
-  const handleMisskey = (host, username) => {
-    const userId = utils.getMetaContent("misskey:user-id");
+  const handleMisskey = (host, userId) => {
+    const ogUrl = utils.getMetaContent("og:url", "property");
 
-    if (!userId) {
+    if (!ogUrl) {
       throw new Error(utils.userNotFoundError("Misskey"));
     }
 
-    const primaryUrl = `https://${host}/@${username}`;
+    const primaryUrl = ogUrl;
     const secondaryUrl = `https://${host}/users/${userId}`;
 
     return createProfileResult(primaryUrl, secondaryUrl);
@@ -336,9 +336,9 @@ javascript: void (async () => {
     }
 
     // Handle Misskey instances
-    const misskeyUsername = utils.getMetaContent("misskey:user-username");
-    if (misskeyUsername) {
-      return handleMisskey(host, misskeyUsername);
+    const misskeyUserId = utils.getMetaContent("misskey:user-id");
+    if (misskeyUserId) {
+      return handleMisskey(host, misskeyUserId);
     }
 
     throw new Error(`Unsupported site: ${host}`);

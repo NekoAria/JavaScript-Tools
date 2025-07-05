@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Universal Booru Image Comparator
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      1.1.3
+// @version      1.1.4
 // @description  Compare images on Danbooru / Yande.re / Konachan with multiple modes and transformations
 // @author       Neko_Aria
 // @match        https://danbooru.donmai.us/posts/*
@@ -175,11 +175,11 @@
           isIqdb,
           postId: isIqdb
             ? urlParams.get("post_id") ||
-              document.querySelector("#search_post_id")?.getAttribute("value")?.trim()
+            document.querySelector("#search_post_id")?.getAttribute("value")?.trim()
             : document.querySelector('meta[name="post-id"]')?.getAttribute("content"),
           searchUrl: isIqdb
             ? urlParams.get("url") ||
-              document.querySelector("#search_url")?.getAttribute("value")?.trim()
+            document.querySelector("#search_url")?.getAttribute("value")?.trim()
             : null,
         };
       } else {
@@ -191,7 +191,7 @@
           postId: utils.extractPostIdFromPath(pathname),
           searchUrl: isSimilar
             ? decodeURIComponent(urlParams.get("url") || "") ||
-              document.querySelector("#url")?.getAttribute("value")?.trim()
+            document.querySelector("#url")?.getAttribute("value")?.trim()
             : null,
         };
       }
@@ -326,6 +326,8 @@
     },
 
     addMainMenuLink: (state) => {
+      const { site } = state.get();
+
       const mainMenu =
         document.querySelector("#main-menu > ul") || document.querySelector("#main-menu");
 
@@ -333,7 +335,6 @@
         return;
       }
 
-      const menuItem = utils.createElement("li");
       const link = utils.createElement("a", { id: "nav-compare", textContent: "Compare" });
 
       link.href = "#";
@@ -346,8 +347,13 @@
         link.className = "py-1.5 px-3";
       }
 
-      menuItem.appendChild(link);
-      mainMenu.appendChild(menuItem);
+      if (site === "danbooru") {
+        mainMenu.appendChild(link);
+      } else {
+        const menuItem = utils.createElement("li");
+        menuItem.appendChild(link);
+        mainMenu.appendChild(menuItem);
+      }
     },
   };
 
@@ -1357,9 +1363,8 @@
         : utils.createElement("img");
 
       rightClone.id = "overlay-image";
-      rightClone.style.cssText = `${overlayStyle} ${
-        rightImage.src?.trim() ? "" : "display: none;"
-      }`;
+      rightClone.style.cssText = `${overlayStyle} ${rightImage.src?.trim() ? "" : "display: none;"
+        }`;
       container.appendChild(rightClone);
     },
 

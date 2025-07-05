@@ -34,6 +34,12 @@
   padding: 8px;
 }
 
+#comparison-mode,
+#second-image-input,
+.post-selector > select {
+  color: rgba(0, 0, 0);
+}
+
 #comparison-overlay-container {
   display: none;
   position: absolute;

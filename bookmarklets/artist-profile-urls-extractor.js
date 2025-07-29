@@ -107,20 +107,14 @@ javascript: void (async () => {
   };
 
   const handleInkbunny = async () => {
-    const statsLink = document
-      .querySelector('a[href^="gallerystats_process.php?user_id="]')
+    const watchListLink = document
+      .querySelector('a[href^="watchlist_process.php"]')
       ?.getAttribute("href");
 
-    if (statsLink) {
-      const galleryLink = document.querySelector('a[href^="/gallery/"]').getAttribute("href");
-      if (!galleryLink) {
-        throw new Error(utils.userNotFoundError("Inkbunny"));
-      }
-
-      const galleryParts = galleryLink.split("/");
-      const statsParts = statsLink.split("=");
-      const primaryUrl = `https://inkbunny.net/${galleryParts[2]}`;
-      const secondaryUrl = `https://inkbunny.net/user.php?user_id=${statsParts[1]}`;
+    if (watchListLink?.includes("user_id=")) {
+      const primaryUrl = location.href;
+      const userId = watchListLink.split("user_id=")[1];
+      const secondaryUrl = `https://inkbunny.net/user.php?user_id=${userId}`;
       return createProfileResult(primaryUrl, secondaryUrl);
     }
 

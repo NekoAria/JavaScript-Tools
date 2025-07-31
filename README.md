@@ -16,6 +16,11 @@ A collection of useful JavaScript utilities including bookmarklets and userscrip
 - **File**: [booru-image-comparator.user.js](userscripts/booru-image-comparator.user.js)
 - **Function**: Compare images on Danbooru / Yande.re / Konachan with multiple modes and transformations
 
+### Danbooru Artist Tweaks
+
+- **File**: [danbooru-artist-tweaks.user.js](userscripts/danbooru-artist-tweaks.user.js)
+- **Function**: Add Create wiki link for artist pages without wiki page and copy artist name button
+
 ### DeviantArt Base36 Auto Converter
 
 - **File**: [deviantart-base36-auto-converter.user.js](userscripts/deviantart-base36-auto-converter.user.js)

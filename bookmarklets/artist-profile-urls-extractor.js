@@ -254,6 +254,25 @@ javascript: void (async () => {
     return createProfileResult(primaryUrl, secondaryUrl);
   };
 
+  const handleWeibo = async () => {
+    const nameElement = document.querySelector('[class^="ProfileHeader_name_"]');
+    const userName = nameElement?.textContent?.trim();
+
+    const followLink = document.querySelector('a[href*="/u/page/follow/"]');
+    const followHref = followLink?.getAttribute("href");
+    const userIdMatch = followHref ? /\/u\/page\/follow\/(\d+)/.exec(followHref) : null;
+    const userId = userIdMatch?.[1];
+
+    if (!userName || !userId) {
+      throw new Error(utils.userNotFoundError("Weibo"));
+    }
+
+    const primaryUrl = `https://www.weibo.com/n/${userName}`;
+    const secondaryUrl = `https://www.weibo.com/u/${userId}`;
+
+    return createProfileResult(primaryUrl, secondaryUrl);
+  };
+
   const handleYouTube = async () => {
     if (location.pathname.includes("/watch")) {
       throw new Error("Please open the channel page");
@@ -352,15 +371,32 @@ javascript: void (async () => {
   const PLATFORM_HANDLERS = {
     "bsky.app": handleBluesky,
     "fantia.jp": handleFantia,
-    "gumroad.com": handleGumroad,
     "inkbunny.net": handleInkbunny,
-    "lofter.com": handleLofter,
-    "patreon.com": handlePatreon,
-    "twitter.com": handleTwitter,
-    "www.fanbox.cc": handleFanbox,
+    "www.patreon.com": handlePatreon,
     "www.pixiv.net": handlePixiv,
     "www.youtube.com": handleYouTube,
     "x.com": handleTwitter,
+  };
+
+  const getHandlerForHost = (host) => {
+    if (PLATFORM_HANDLERS[host]) {
+      return PLATFORM_HANDLERS[host];
+    }
+
+    const subdomainChecks = [
+      ["fanbox.cc", handleFanbox],
+      ["gumroad.com", handleGumroad],
+      ["lofter.com", handleLofter],
+      ["weibo.com", handleWeibo],
+    ];
+
+    for (const [domain, handler] of subdomainChecks) {
+      if (host.includes(domain)) {
+        return handler;
+      }
+    }
+
+    return null;
   };
 
   // Main execution function
@@ -368,27 +404,8 @@ javascript: void (async () => {
     const { host } = location;
 
     try {
-      let result;
-
-      // Check for subdomain-based platforms
-      if (host.includes("fanbox.cc")) {
-        result = await handleFanbox();
-      } else if (host.includes("gumroad.com")) {
-        result = await handleGumroad();
-      } else if (host.includes("patreon.com")) {
-        result = await handlePatreon();
-      } else if (host.includes("lofter.com")) {
-        result = await handleLofter();
-      }
-      // Use exact match platform handlers
-      else if (PLATFORM_HANDLERS[host]) {
-        result = await PLATFORM_HANDLERS[host]();
-      }
-      // Handle other platforms
-      else {
-        result = await handleOtherPlatforms(host);
-      }
-
+      const handler = getHandlerForHost(host);
+      const result = handler ? await handler() : await handleOtherPlatforms(host);
       displayResult(result, host);
     } catch (error) {
       utils.showError(error.message);

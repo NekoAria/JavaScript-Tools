@@ -140,6 +140,64 @@ javascript: void (async () => {
     return createProfileResult(primaryUrl, secondaryUrl);
   };
 
+  const handleMihuashi = async () => {
+    const { pathname } = location;
+
+    // Extract username from DOM
+    const userNameElement = document.querySelector("h2.user-profile__name");
+    if (!userNameElement) {
+      throw new Error(utils.userNotFoundError("Mihuashi"));
+    }
+
+    // Get username by cloning the element and removing the span
+    const clonedElement = userNameElement.cloneNode(true);
+    const spanElement = clonedElement.querySelector("span");
+    if (spanElement) {
+      spanElement.remove();
+    }
+    const username = clonedElement.textContent.trim();
+
+    if (!username) {
+      throw new Error(utils.userNotFoundError("Mihuashi"));
+    }
+
+    let primaryUrl, secondaryUrl;
+
+    if (pathname.startsWith("/profiles/")) {
+      // Extract profile ID from URL
+      const profileIdMatch = /\/profiles\/(\d+)/.exec(pathname);
+      if (!profileIdMatch?.[1]) {
+        throw new Error(utils.userNotFoundError("Mihuashi"));
+      }
+
+      const profileId = profileIdMatch[1];
+      primaryUrl = `https://www.mihuashi.com/profiles/${profileId}`;
+      secondaryUrl = `https://www.mihuashi.com/users/${username}`;
+    } else if (pathname.startsWith("/users/")) {
+      // Get profile ID via API
+      const apiResponse = await utils.safeFetch(
+        `https://www.mihuashi.com/api/v1/users/${username}/?by=name`,
+      );
+
+      if (!apiResponse) {
+        throw new Error(utils.userNotFoundError("Mihuashi"));
+      }
+
+      const apiData = await apiResponse.json();
+      if (!apiData?.user?.id) {
+        throw new Error("Invalid user data returned from API");
+      }
+
+      const profileId = apiData.user.id;
+      primaryUrl = `https://www.mihuashi.com/profiles/${profileId}`;
+      secondaryUrl = `https://www.mihuashi.com/users/${username}`;
+    } else {
+      throw new Error(utils.userNotFoundError("Mihuashi"));
+    }
+
+    return createProfileResult(primaryUrl, secondaryUrl);
+  };
+
   const handlePatreon = async () => {
     const nextDataScript = document.querySelector("script#__NEXT_DATA__");
 
@@ -387,6 +445,7 @@ javascript: void (async () => {
       ["fanbox.cc", handleFanbox],
       ["gumroad.com", handleGumroad],
       ["lofter.com", handleLofter],
+      ["mihuashi.com", handleMihuashi],
       ["weibo.com", handleWeibo],
     ];
 

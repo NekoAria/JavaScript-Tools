@@ -1,16 +1,16 @@
 // ==UserScript==
 // @name         Universal Booru Image Comparator
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      1.1.4
+// @version      1.1.5
 // @description  Compare images on Danbooru / Yande.re / Konachan with multiple modes and transformations
 // @author       Neko_Aria
-// @match        https://danbooru.donmai.us/posts/*
-// @match        https://danbooru.donmai.us/uploads/*
-// @match        https://danbooru.donmai.us/iqdb_queries*
-// @match        https://yande.re/post/show/*
-// @match        https://yande.re/post/similar*
+// @match        *://*.donmai.us/iqdb_queries*
+// @match        *://*.donmai.us/posts/*
+// @match        *://*.donmai.us/uploads/*
 // @match        https://konachan.com/post/show/*
 // @match        https://konachan.com/post/similar*
+// @match        https://yande.re/post/show/*
+// @match        https://yande.re/post/similar*
 // @grant        GM_addStyle
 // @grant        GM_getResourceText
 // @resource     STYLE https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts/booru-image-comparator.css?t=202507051030
@@ -68,7 +68,7 @@
 
     isValidPage: () => {
       const { hostname, pathname } = window.location;
-      if (hostname === "danbooru.donmai.us") {
+      if (hostname.endsWith(".donmai.us")) {
         return (
           /\/posts\/\d+/.test(location.href) ||
           /\/uploads\/\d+/.test(location.href) ||
@@ -81,6 +81,10 @@
     detectSiteFromHostname: (hostname) => {
       const siteMap = {
         "danbooru.donmai.us": "danbooru",
+        "betabooru.donmai.us": "danbooru",
+        "safebooru.donmai.us": "danbooru",
+        "sonohara.donmai.us": "danbooru",
+        "hijiribe.donmai.us": "danbooru",
         "yande.re": "yandere",
         "konachan.com": "konachan",
       };
@@ -175,11 +179,11 @@
           isIqdb,
           postId: isIqdb
             ? urlParams.get("post_id") ||
-            document.querySelector("#search_post_id")?.getAttribute("value")?.trim()
+              document.querySelector("#search_post_id")?.getAttribute("value")?.trim()
             : document.querySelector('meta[name="post-id"]')?.getAttribute("content"),
           searchUrl: isIqdb
             ? urlParams.get("url") ||
-            document.querySelector("#search_url")?.getAttribute("value")?.trim()
+              document.querySelector("#search_url")?.getAttribute("value")?.trim()
             : null,
         };
       } else {
@@ -191,7 +195,7 @@
           postId: utils.extractPostIdFromPath(pathname),
           searchUrl: isSimilar
             ? decodeURIComponent(urlParams.get("url") || "") ||
-            document.querySelector("#url")?.getAttribute("value")?.trim()
+              document.querySelector("#url")?.getAttribute("value")?.trim()
             : null,
         };
       }
@@ -1363,8 +1367,9 @@
         : utils.createElement("img");
 
       rightClone.id = "overlay-image";
-      rightClone.style.cssText = `${overlayStyle} ${rightImage.src?.trim() ? "" : "display: none;"
-        }`;
+      rightClone.style.cssText = `${overlayStyle} ${
+        rightImage.src?.trim() ? "" : "display: none;"
+      }`;
       container.appendChild(rightClone);
     },
 

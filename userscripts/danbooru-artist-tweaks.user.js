@@ -1,10 +1,10 @@
 // ==UserScript==
 // @name         Danbooru Artist Tweaks
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      0.1.0
+// @version      0.1.1
 // @description  Add Create wiki link for artist pages without wiki page and copy artist name button
 // @author       Neko_Aria
-// @match        https://danbooru.donmai.us/artists/*
+// @match        *://*.donmai.us/artists/*
 // @grant        none
 // @downloadURL  https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts/danbooru-artist-tweaks.user.js
 // @updateURL    https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts/danbooru-artist-tweaks.user.js
@@ -55,9 +55,10 @@
 
   // Create Create wiki link element
   const createWikiLinkElement = (tagName) => {
+    const { hostname } = window.location;
     const link = document.createElement("a");
     link.id = "create-wiki-link";
-    link.href = `https://danbooru.donmai.us/wiki_pages/new?wiki_page[title]=${tagName}`;
+    link.href = `https://${hostname}/wiki_pages/new?wiki_page[title]=${tagName}`;
     link.textContent = "Create wiki";
     return link;
   };

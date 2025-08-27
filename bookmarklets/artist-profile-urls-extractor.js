@@ -199,20 +199,9 @@ javascript: void (async () => {
   };
 
   const handlePatreon = async () => {
-    const nextDataScript = document.querySelector("script#__NEXT_DATA__");
-
-    if (!nextDataScript) {
-      throw new Error("The necessary data on the Patreon page cannot be found");
-    }
-
-    const pageData = utils.safeJsonParse(nextDataScript.textContent);
-    const bootstrap = pageData?.props?.pageProps?.bootstrapEnvelope;
-
-    // Try to get user ID from multiple possible paths
-    const userId =
-      bootstrap?.commonBootstrap?.campaign?.data?.relationships?.creator?.data?.id ||
-      bootstrap?.pageBootstrap?.campaign?.data?.relationships?.creator?.data?.id ||
-      bootstrap?.pageBootstrap?.pageUser?.data?.id;
+    const userId = document.documentElement.outerHTML.match(
+      /https:\/\/www\.patreon\.com\/api\/user\/(\d+)/,
+    )?.[1];
 
     if (!userId) {
       throw new Error(utils.userNotFoundError("Patreon"));
@@ -222,7 +211,9 @@ javascript: void (async () => {
       .replace("http://", "https://")
       .replace(":443", "")
       .replace("/c/", "")
+      .replace("/cw/", "/")
       .replace("/home", "")
+      .replace("/profile/creators", "/user")
       .replace(/\/$/, "");
 
     let url = new URL(primaryUrl);

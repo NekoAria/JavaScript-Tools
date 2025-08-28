@@ -199,9 +199,24 @@ javascript: void (async () => {
   };
 
   const handlePatreon = async () => {
-    const userId = document.documentElement.outerHTML.match(
-      /https:\/\/www\.patreon\.com\/api\/user\/(\d+)/,
-    )?.[1];
+    let userId;
+
+    const nextDataScript = document.querySelector("script#__NEXT_DATA__");
+
+    if (nextDataScript) {
+      const pageData = utils.safeJsonParse(nextDataScript.textContent);
+      const bootstrap = pageData?.props?.pageProps?.bootstrapEnvelope;
+
+      // Try to get user ID from multiple possible paths
+      userId =
+        bootstrap?.commonBootstrap?.campaign?.data?.relationships?.creator?.data?.id ||
+        bootstrap?.pageBootstrap?.campaign?.data?.relationships?.creator?.data?.id ||
+        bootstrap?.pageBootstrap?.pageUser?.data?.id;
+    } else {
+      userId = document.documentElement.outerHTML.match(
+        /https:\/\/www\.patreon\.com\/api\/user\/(\d+)/,
+      )?.[1];
+    }
 
     if (!userId) {
       throw new Error(utils.userNotFoundError("Patreon"));

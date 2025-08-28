@@ -343,7 +343,7 @@ javascript: void (async () => {
     }
 
     const channelHandleSpan = document.querySelector(
-      "span.yt-content-metadata-view-model-wiz__metadata-text",
+      "span.yt-core-attributed-string--link-inherit-color",
     );
 
     const channelHandle = channelHandleSpan?.textContent?.trim();

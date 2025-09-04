@@ -342,10 +342,7 @@ javascript: void (async () => {
       throw new Error("Please open the channel page");
     }
 
-    const channelHandleSpan = document.querySelector(
-      "span.yt-core-attributed-string--link-inherit-color",
-    );
-
+    const channelHandleSpan = document.querySelector("yt-content-metadata-view-model span");
     const channelHandle = channelHandleSpan?.textContent?.trim();
     if (!channelHandle?.startsWith("@")) {
       throw new Error("Please reload the channel page");

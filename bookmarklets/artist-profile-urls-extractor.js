@@ -121,6 +121,18 @@ javascript: void (async () => {
     throw new Error(utils.userNotFoundError("Inkbunny"));
   };
 
+  const handleKoFi = async () => {
+    const pageLink = document.querySelector("a.ui-variable-logo")?.getAttribute("href");
+
+    if (pageLink) {
+      const primaryUrl = location.href;
+      const secondaryUrl = `https://ko-fi.com${pageLink}`;
+      return createProfileResult(primaryUrl, secondaryUrl);
+    }
+
+    throw new Error(utils.userNotFoundError("KoFi"));
+  };
+
   const handleLofter = async () => {
     const controlFrame = document.querySelector("#control_frame");
     if (!controlFrame) {
@@ -433,6 +445,7 @@ javascript: void (async () => {
     "bsky.app": handleBluesky,
     "fantia.jp": handleFantia,
     "inkbunny.net": handleInkbunny,
+    "ko-fi.com": handleKoFi,
     "www.patreon.com": handlePatreon,
     "www.pixiv.net": handlePixiv,
     "www.youtube.com": handleYouTube,

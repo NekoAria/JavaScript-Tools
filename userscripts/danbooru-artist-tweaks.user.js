@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Danbooru Artist Tweaks
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      0.1.1
-// @description  Add Create wiki link for artist pages without wiki page and copy artist name button
+// @version      0.2.0
+// @description  Add Create wiki link for artist pages without wiki page, copy artist name button, and replace wiki links with bulk update request links for tag aliases
 // @author       Neko_Aria
 // @match        *://*.donmai.us/artists/*
 // @grant        none
@@ -61,6 +61,21 @@
     link.href = `https://${hostname}/wiki_pages/new?wiki_page[title]=${tagName}`;
     link.textContent = "Create wiki";
     return link;
+  };
+
+  // Replace wiki links with bulk update request links for tag aliases
+  const replaceWikiLinksWithBulkUpdateRequests = () => {
+    const fineprintLinks = document.querySelectorAll("p.fineprint a");
+
+    fineprintLinks.forEach((link) => {
+      const href = link.getAttribute("href");
+      if (href && href.startsWith("/wiki_pages/") && href !== "/wiki_pages/help:tag_aliases") {
+        // Extract the tag name after /wiki_pages/
+        const tagName = href.replace("/wiki_pages/", "");
+        const newHref = `/bulk_update_requests?commit=Search&search[status]=approved&search[tags_include_any]=${tagName}`;
+        link.setAttribute("href", newHref);
+      }
+    });
   };
 
   // Add styles for the copy button
@@ -125,6 +140,7 @@
     addStyles();
     addCopyButton();
     addCreateWikiLink();
+    replaceWikiLinksWithBulkUpdateRequests();
   };
 
   // Execute after page loads

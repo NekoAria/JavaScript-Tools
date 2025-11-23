@@ -120,6 +120,13 @@
   width: 120px;
 }
 
+#opacity-value,
+#brightness-value,
+#saturate-value {
+  width: 3em;
+  text-align: center;
+}
+
 #transform-controls {
   display: flex;
   align-items: center;

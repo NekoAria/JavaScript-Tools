@@ -122,11 +122,11 @@ javascript: void (async () => {
   };
 
   const handleKoFi = async () => {
-    const pageLink = document.querySelector("a.ui-variable-logo")?.getAttribute("href");
+    const pageId = document.querySelector("[data-page-id]")?.getAttribute("data-page-id");
 
-    if (pageLink) {
+    if (pageId) {
       const primaryUrl = location.href;
-      const secondaryUrl = `https://ko-fi.com${pageLink}`;
+      const secondaryUrl = `https://ko-fi.com/${pageId}`;
       return createProfileResult(primaryUrl, secondaryUrl);
     }
 

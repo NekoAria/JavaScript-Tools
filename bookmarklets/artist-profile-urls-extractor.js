@@ -72,6 +72,21 @@ javascript: void (async () => {
     return createProfileResult(primaryUrl, secondaryUrl);
   };
 
+  const handleFacebook = async () => {
+    const androidUrl = utils.getMetaContent("al:android:url", "property");
+    const ogUrl = utils.getMetaContent("og:url", "property");
+
+    if (!ogUrl) {
+      throw new Error(utils.userNotFoundError("Facebook"));
+    }
+
+    const profileIdMatch = /\d+/.exec(androidUrl);
+    const primaryUrl = ogUrl;
+    const secondaryUrl = `https://www.facebook.com/profile.php?id=${profileIdMatch[0]}`;
+
+    return createProfileResult(primaryUrl, secondaryUrl);
+  };
+
   const handleFantia = async () => {
     const creatorProfileLink = document.querySelector(".fanclub-header a");
 
@@ -446,6 +461,7 @@ javascript: void (async () => {
     "fantia.jp": handleFantia,
     "inkbunny.net": handleInkbunny,
     "ko-fi.com": handleKoFi,
+    "www.facebook.com": handleFacebook,
     "www.patreon.com": handlePatreon,
     "www.pixiv.net": handlePixiv,
     "www.youtube.com": handleYouTube,

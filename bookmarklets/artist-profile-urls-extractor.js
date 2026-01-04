@@ -108,7 +108,12 @@ javascript: void (async () => {
     const reactComponents = document.querySelectorAll(".js-react-on-rails-component");
 
     for (const element of reactComponents) {
-      const componentData = utils.safeJsonParse(element.textContent);
+      const rawJson = element.textContent;
+      if (!rawJson.includes('"creator_profile"')) {
+        continue;
+      }
+
+      const componentData = utils.safeJsonParse(rawJson);
       const creatorProfile = componentData?.creator_profile;
 
       if (creatorProfile) {
@@ -226,20 +231,20 @@ javascript: void (async () => {
   };
 
   const handlePatreon = async () => {
+    const nextData = window.__NEXT_DATA__;
     let userId;
 
-    const nextDataScript = document.querySelector("script#__NEXT_DATA__");
-
-    if (nextDataScript) {
-      const pageData = utils.safeJsonParse(nextDataScript.textContent);
-      const bootstrap = pageData?.props?.pageProps?.bootstrapEnvelope;
+    if (nextData) {
+      const bootstrap = nextData?.props?.pageProps?.bootstrapEnvelope;
 
       // Try to get user ID from multiple possible paths
       userId =
         bootstrap?.commonBootstrap?.campaign?.data?.relationships?.creator?.data?.id ||
         bootstrap?.pageBootstrap?.campaign?.data?.relationships?.creator?.data?.id ||
         bootstrap?.pageBootstrap?.pageUser?.data?.id;
-    } else {
+    }
+
+    if (!userId) {
       userId = document.documentElement.outerHTML.match(
         /https:\/\/www\.patreon\.com\/api\/user\/(\d+)/,
       )?.[1];
@@ -249,22 +254,22 @@ javascript: void (async () => {
       throw new Error(utils.userNotFoundError("Patreon"));
     }
 
-    let primaryUrl = location.href
-      .replace("http://", "https://")
-      .replace(":443", "")
-      .replace("/c/", "")
-      .replace("/cw/", "/")
-      .replace("/home", "")
-      .replace("/profile/creators", "/user")
-      .replace(/\/$/, "");
+    const urlObj = new URL(location.href);
+    urlObj.protocol = "https:";
 
-    let url = new URL(primaryUrl);
-    if (url.hostname === "patreon.com") {
-      url.hostname = "www.patreon.com";
+    if (urlObj.hostname === "patreon.com") {
+      urlObj.hostname = "www.patreon.com";
     }
-    url.searchParams.delete("__cf_chl_tk");
 
-    primaryUrl = url.toString();
+    const cleanPath = urlObj.pathname
+      .replace(/\/$/, "")
+      .replace(/^\/c\//, "/")
+      .replace(/^\/cw\//, "/")
+      .replace(/\/home$/, "")
+      .replace(/\/profile\/creators/, "/user");
+    urlObj.pathname = cleanPath;
+
+    const primaryUrl = urlObj.toString();
     const secondaryUrl = `https://www.patreon.com/user?u=${userId}`;
 
     return createProfileResult(primaryUrl, secondaryUrl);
@@ -277,7 +282,7 @@ javascript: void (async () => {
       throw new Error("Please open the profile page");
     }
 
-    const structuredData = utils.safeJsonParse(scriptTag.innerText);
+    const structuredData = utils.safeJsonParse(scriptTag.textContent);
     const userEntity = structuredData?.mainEntity;
 
     if (!userEntity) {
@@ -365,21 +370,36 @@ javascript: void (async () => {
   };
 
   const handleYouTube = async () => {
-    if (location.pathname.includes("/watch")) {
+    const path = location.pathname;
+    if (path.startsWith("/watch") || path.startsWith("/playlist")) {
       throw new Error("Please open the channel page");
     }
 
-    const channelHandleSpan = document.querySelector("yt-content-metadata-view-model span");
-    const channelHandle = channelHandleSpan?.textContent?.trim();
-    if (!channelHandle?.startsWith("@")) {
-      throw new Error("Please reload the channel page");
+    const date = window.ytInitialData;
+    if (!date?.metadata) {
+      throw new Error("Metadata not found");
     }
 
-    const canonicalUrl = document.querySelector("link[rel='canonical']")?.href;
-    const primaryUrl = `https://www.youtube.com/${channelHandle}`;
-    const secondaryUrl = canonicalUrl || primaryUrl;
+    const metadataRenderer = date?.metadata?.channelMetadataRenderer;
+    if (!metadataRenderer) {
+      throw new Error("Channel metadata renderer not found");
+    }
 
-    return createProfileResult(primaryUrl, secondaryUrl);
+    let { vanityChannelUrl, channelUrl } = metadataRenderer;
+
+    if (vanityChannelUrl) {
+      const urlObj = new URL(vanityChannelUrl);
+      if (urlObj.protocol === "http:") {
+        urlObj.protocol = "https:";
+      }
+      vanityChannelUrl = decodeURI(urlObj.href);
+    }
+
+    if (!vanityChannelUrl || !channelUrl) {
+      throw new Error("Failed to extract channel URLs");
+    }
+
+    return createProfileResult(vanityChannelUrl, channelUrl);
   };
 
   const handleXfolio = (pageUrl, ogUrl) => {

@@ -351,7 +351,7 @@ javascript: void (async () => {
   };
 
   const handleWeibo = async () => {
-    const nameElement = document.querySelector('[class^="ProfileHeader_name_"]');
+    const nameElement = document.querySelector('[class^="_name_"]');
     const userName = nameElement?.textContent?.trim();
 
     const followLink = document.querySelector('a[href*="/u/page/follow/"]');

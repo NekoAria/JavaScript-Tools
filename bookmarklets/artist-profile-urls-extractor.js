@@ -105,25 +105,20 @@ javascript: void (async () => {
   };
 
   const handleGumroad = async () => {
-    const reactComponents = document.querySelectorAll(".js-react-on-rails-component");
-
-    for (const element of reactComponents) {
-      const rawJson = element.textContent;
-      if (!rawJson.includes('"creator_profile"')) {
-        continue;
-      }
-
-      const componentData = utils.safeJsonParse(rawJson);
-      const creatorProfile = componentData?.creator_profile;
-
-      if (creatorProfile) {
-        const primaryUrl = `https://${creatorProfile.subdomain}`;
-        const secondaryUrl = `https://${creatorProfile.external_id}.gumroad.com`;
-        return createProfileResult(primaryUrl, secondaryUrl);
-      }
+    const rawPageData = document.querySelector("#app")?.dataset.page;
+    if (!rawPageData) {
+      throw new Error(utils.userNotFoundError("Gumroad"));
     }
 
-    throw new Error(utils.userNotFoundError("Gumroad"));
+    const pageData = utils.safeJsonParse(rawPageData);
+    const creatorProfile = pageData?.props?.creator_profile;
+    if (!creatorProfile) {
+      throw new Error(utils.userNotFoundError("Gumroad"));
+    }
+
+    const primaryUrl = `https://${creatorProfile.subdomain}`;
+    const secondaryUrl = `https://${creatorProfile.external_id}.gumroad.com`;
+    return createProfileResult(primaryUrl, secondaryUrl);
   };
 
   const handleInkbunny = async () => {

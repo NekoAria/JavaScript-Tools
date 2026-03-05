@@ -284,8 +284,8 @@ javascript: void (async () => {
       throw new Error(utils.userNotFoundError("Twitter"));
     }
 
-    const primaryUrl = `https://twitter.com/${userEntity.additionalName}`;
-    const secondaryUrl = `https://twitter.com/intent/user?user_id=${userEntity.identifier}`;
+    const primaryUrl = `https://x.com/${userEntity.additionalName}`;
+    const secondaryUrl = `https://x.com/i/user/${userEntity.identifier}`;
 
     return createProfileResult(primaryUrl, secondaryUrl);
   };
@@ -341,6 +341,44 @@ javascript: void (async () => {
     const staccUrl = primaryUrl.replace("en/", "").replace("users", "stacc/id");
     const secondaryResponse = await utils.safeFetch(staccUrl);
     const secondaryUrl = secondaryResponse?.url || primaryUrl;
+
+    return createProfileResult(primaryUrl, secondaryUrl);
+  };
+
+  const handleTieba = async () => {
+    const pageContent = document.documentElement.outerHTML;
+    const userInfoMatch = pageContent.match(
+      /_.Module\.use\('ihome\/widget\/Userinfo',\s*(\{.*?\})\s*\);/,
+    );
+
+    let username = null;
+    let portrait = null;
+
+    const userInfo = userInfoMatch ? utils.safeJsonParse(userInfoMatch[1]) : null;
+    if (userInfo?.user) {
+      username = userInfo.user.homeUserName || userInfo.user.show_nickname;
+      portrait = userInfo.user.portrait?.split("?")[0];
+    }
+
+    if (!username) {
+      const pageDataMatch = pageContent.match(
+        /PageData\.current_page_uname\s*=\s*['"]([^'"]+)['"]/,
+      );
+      username = pageDataMatch?.[1] ?? null;
+    }
+
+    if (!username) {
+      throw new Error(utils.userNotFoundError("Tieba"));
+    }
+
+    const primaryUrl = `https://tieba.baidu.com/home/main?un=${username}`;
+
+    let secondaryUrl;
+    if (portrait) {
+      secondaryUrl = `https://tieba.baidu.com/home/main?id=${portrait}`;
+    } else {
+      secondaryUrl = primaryUrl;
+    }
 
     return createProfileResult(primaryUrl, secondaryUrl);
   };
@@ -476,6 +514,7 @@ javascript: void (async () => {
     "fantia.jp": handleFantia,
     "inkbunny.net": handleInkbunny,
     "ko-fi.com": handleKoFi,
+    "tieba.baidu.com": handleTieba,
     "www.facebook.com": handleFacebook,
     "www.patreon.com": handlePatreon,
     "www.pixiv.net": handlePixiv,

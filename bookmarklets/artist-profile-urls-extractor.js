@@ -489,6 +489,19 @@ javascript: void (async () => {
       return handleXfolio(pageUrl, ogUrl);
     }
 
+    // Check if the site is an xfolio instance by looking for stylesheets hosted on xfolio.jp
+    const stylesheets = document.querySelectorAll('link[rel="stylesheet"][href]');
+    const isXfolio = Array.from(stylesheets).some((link) => {
+      try {
+        return new URL(link.href).host === "xfolio.jp";
+      } catch {
+        return false;
+      }
+    });
+    if (isXfolio) {
+      return handleXfolio(pageUrl, ogUrl);
+    }
+
     // Handle Misskey instances
     const misskeyUserId = utils.getMetaContent("misskey:user-id");
     if (misskeyUserId) {

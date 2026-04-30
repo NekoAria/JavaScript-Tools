@@ -1,10 +1,11 @@
 // ==UserScript==
 // @name         Danbooru Artist Tweaks
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      0.3.0
-// @description  Add Create wiki link for artist pages without wiki page, copy artist name button, replace wiki links with bulk update request links for tag aliases, and show pending BURs
+// @version      0.4.0
+// @description  Add Create wiki link for artist pages without wiki page, copy artist name button, replace wiki links with bulk update request links for tag aliases, show pending BURs, and warn about unmigrated posts on artist rename
 // @author       Neko_Aria
 // @match        *://*.donmai.us/artists/*
+// @match        *://*.donmai.us/artist_versions*
 // @grant        none
 // @downloadURL  https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts/danbooru-artist-tweaks.user.js
 // @updateURL    https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts/danbooru-artist-tweaks.user.js
@@ -219,9 +220,101 @@
     parentElement.insertBefore(separator, editArtistLink);
   };
 
+  // Extract artist_id from URL search params
+  const getArtistIdFromURL = () => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("search[artist_id]");
+  };
+
+  // Check for unmigrated posts after artist rename
+  const checkUnmigratedPostsOnRename = async () => {
+    const artistId = getArtistIdFromURL();
+    if (!artistId) {
+      return;
+    }
+
+    // DOM pre-check: need at least 2 rows
+    const rows = document.querySelectorAll("#artist-versions-table tbody tr");
+    if (rows.length < 2) {
+      return;
+    }
+
+    // DOM pre-check: first row must be a rename
+    const nameColumn = rows[0].querySelector(".name-column");
+    if (!nameColumn || !nameColumn.querySelector("b")) {
+      return;
+    }
+
+    const { origin } = window.location;
+    const url = `${origin}/artist_versions.json?search[artist_id]=${artistId}`;
+
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const versions = await response.json();
+
+      // Old name is from the second version
+      const oldName = versions[1].name;
+
+      // Check if posts still tagged with old name (not yet migrated by BUR)
+      const postsUrl = `${origin}/posts.json?tags=${oldName}&limit=1`;
+      const postsResponse = await fetch(postsUrl);
+      if (!postsResponse.ok) {
+        throw new Error(`HTTP ${postsResponse.status}`);
+      }
+      const posts = await postsResponse.json();
+
+      const hasUnmigratedPosts = posts.some(
+        (post) => post.tag_string_artist && post.tag_string_artist.includes(oldName),
+      );
+
+      if (hasUnmigratedPosts) {
+        renderUnmigratedPostsWarning(oldName);
+      }
+    } catch (err) {
+      console.error("Failed to check unmigrated posts:", err);
+    }
+  };
+
+  // Render warning about unmigrated posts above Artist History heading
+  const renderUnmigratedPostsWarning = (oldName) => {
+    document.getElementById("unmigrated-posts-warning")?.remove();
+
+    const { origin } = window.location;
+
+    const section = document.createElement("div");
+    section.id = "unmigrated-posts-warning";
+    section.className = "notice notice-info flex text-center items-center justify-center gap-2";
+
+    const span = document.createElement("span");
+    span.appendChild(document.createTextNode("⚠️ There are posts still tagged with old name "));
+
+    const postLink = document.createElement("a");
+    postLink.href = `${origin}/posts?tags=${oldName}`;
+    postLink.textContent = oldName;
+
+    span.appendChild(postLink);
+    section.appendChild(span);
+
+    const h1 = document.querySelector("h1");
+    if (h1) {
+      h1.insertAdjacentElement("beforebegin", section);
+    }
+  };
+
   // Initialize the script
   const init = () => {
     addStyles();
+
+    // Artist versions page: only check for unmigrated posts
+    if (window.location.pathname.startsWith("/artist_versions")) {
+      checkUnmigratedPostsOnRename();
+      return;
+    }
+
+    // Artist page
     addCopyButton();
     addCreateWikiLink();
     replaceWikiLinksWithBulkUpdateRequests();

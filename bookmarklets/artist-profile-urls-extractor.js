@@ -14,13 +14,14 @@ javascript: void (async () => {
     async safeFetch(url) {
       try {
         const response = await fetch(url);
+
         return response.ok ? response : null;
       } catch {
         return null;
       }
     },
 
-    getMetaContent(name, property = "name") {
+    getMetaContent(name, property = 'name') {
       return document.querySelector(`meta[${property}='${name}']`)?.content;
     },
 
@@ -37,14 +38,14 @@ javascript: void (async () => {
     const profileMatch = /\/profile\/([^/]+)/.exec(location.pathname);
 
     if (!profileMatch?.[1]) {
-      throw new Error(utils.userNotFoundError("Bluesky"));
+      throw new Error(utils.userNotFoundError('Bluesky'));
     }
 
     const identifier = profileMatch[1];
     let primaryUrl = `https://bsky.app/profile/${identifier}`;
     let secondaryUrl;
 
-    if (identifier.startsWith("did:")) {
+    if (identifier.startsWith('did:')) {
       // Handle DID format identifier
       const profileResponse = await utils.safeFetch(
         `https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${identifier}`,
@@ -52,6 +53,7 @@ javascript: void (async () => {
 
       if (profileResponse) {
         const profileData = await profileResponse.json();
+
         primaryUrl = `https://bsky.app/profile/${profileData.handle}`;
       }
       secondaryUrl = `https://bsky.app/profile/${identifier}`;
@@ -63,6 +65,7 @@ javascript: void (async () => {
 
       if (didResponse) {
         const didData = await didResponse.json();
+
         secondaryUrl = `https://bsky.app/profile/${didData.did}`;
       } else {
         secondaryUrl = primaryUrl;
@@ -73,11 +76,11 @@ javascript: void (async () => {
   };
 
   const handleFacebook = async () => {
-    const androidUrl = utils.getMetaContent("al:android:url", "property");
-    const ogUrl = utils.getMetaContent("og:url", "property");
+    const androidUrl = utils.getMetaContent('al:android:url', 'property');
+    const ogUrl = utils.getMetaContent('og:url', 'property');
 
     if (!ogUrl) {
-      throw new Error(utils.userNotFoundError("Facebook"));
+      throw new Error(utils.userNotFoundError('Facebook'));
     }
 
     const profileIdMatch = /\d+/.exec(androidUrl);
@@ -88,78 +91,84 @@ javascript: void (async () => {
   };
 
   const handleFantia = async () => {
-    const creatorProfileLink = document.querySelector(".fanclub-header a");
+    const creatorProfileLink = document.querySelector('.fanclub-header a');
 
     if (!creatorProfileLink) {
-      throw new Error(utils.userNotFoundError("Fantia"));
+      throw new Error(utils.userNotFoundError('Fantia'));
     }
 
-    const creatorPath = creatorProfileLink.getAttribute("href");
+    const creatorPath = creatorProfileLink.getAttribute('href');
     const primaryUrl = `https://fantia.jp${creatorPath}`;
 
-    const creatorNickname = document.querySelector("#nickname");
-    const nicknameValue = creatorNickname?.getAttribute("value");
+    const creatorNickname = document.querySelector('#nickname');
+    const nicknameValue = creatorNickname?.getAttribute('value');
     const secondaryUrl = nicknameValue ? `https://fantia.jp/${nicknameValue}` : primaryUrl;
 
     return createProfileResult(primaryUrl, secondaryUrl);
   };
 
   const handleGumroad = async () => {
-    const rawPageData = document.querySelector("#app")?.dataset.page;
+    const rawPageData = document.querySelector('#app')?.dataset.page;
+
     if (!rawPageData) {
-      throw new Error(utils.userNotFoundError("Gumroad"));
+      throw new Error(utils.userNotFoundError('Gumroad'));
     }
 
     const pageData = utils.safeJsonParse(rawPageData);
     const creatorProfile = pageData?.props?.creator_profile;
+
     if (!creatorProfile) {
-      throw new Error(utils.userNotFoundError("Gumroad"));
+      throw new Error(utils.userNotFoundError('Gumroad'));
     }
 
     const primaryUrl = `https://${creatorProfile.subdomain}`;
     const secondaryUrl = `https://${creatorProfile.external_id}.gumroad.com`;
+
     return createProfileResult(primaryUrl, secondaryUrl);
   };
 
   const handleInkbunny = async () => {
     const watchListLink = document
       .querySelector('a[href^="watchlist_process.php"]')
-      ?.getAttribute("href");
+      ?.getAttribute('href');
 
-    if (watchListLink?.includes("user_id=")) {
+    if (watchListLink?.includes('user_id=')) {
       const primaryUrl = location.href;
-      const userId = watchListLink.split("user_id=")[1];
+      const userId = watchListLink.split('user_id=')[1];
       const secondaryUrl = `https://inkbunny.net/user.php?user_id=${userId}`;
+
       return createProfileResult(primaryUrl, secondaryUrl);
     }
 
-    throw new Error(utils.userNotFoundError("Inkbunny"));
+    throw new Error(utils.userNotFoundError('Inkbunny'));
   };
 
   const handleKoFi = async () => {
-    const pageId = document.querySelector("[data-page-id]")?.getAttribute("data-page-id");
+    const pageId = document.querySelector('[data-page-id]')?.dataset.pageId;
 
     if (pageId) {
       const primaryUrl = location.href;
       const secondaryUrl = `https://ko-fi.com/${pageId}`;
+
       return createProfileResult(primaryUrl, secondaryUrl);
     }
 
-    throw new Error(utils.userNotFoundError("KoFi"));
+    throw new Error(utils.userNotFoundError('KoFi'));
   };
 
   const handleLofter = async () => {
-    const controlFrame = document.querySelector("#control_frame");
+    const controlFrame = document.querySelector('#control_frame');
+
     if (!controlFrame) {
-      throw new Error(utils.userNotFoundError("Lofter"));
+      throw new Error(utils.userNotFoundError('Lofter'));
     }
 
-    const primaryUrl = controlFrame.baseURI.replace(/\/$/, "");
+    const primaryUrl = controlFrame.baseURI.replace(/\/$/, '');
     const url = new URL(controlFrame.src);
-    const blogId = url.searchParams.get("blogId");
+    const blogId = url.searchParams.get('blogId');
 
     if (!blogId) {
-      throw new Error(utils.userNotFoundError("Lofter"));
+      throw new Error(utils.userNotFoundError('Lofter'));
     }
 
     const secondaryUrl = `https://www.lofter.com/mentionredirect.do?blogId=${blogId}`;
@@ -171,62 +180,68 @@ javascript: void (async () => {
     const { pathname } = location;
 
     // Extract username from DOM
-    const userNameElement = document.querySelector("h2.user-profile__name");
+    const userNameElement = document.querySelector('h2.user-profile__name');
+
     if (!userNameElement) {
-      throw new Error(utils.userNotFoundError("Mihuashi"));
+      throw new Error(utils.userNotFoundError('Mihuashi'));
     }
 
     // Get username by cloning the element and removing the span
     const clonedElement = userNameElement.cloneNode(true);
-    const spanElement = clonedElement.querySelector("span");
+    const spanElement = clonedElement.querySelector('span');
+
     if (spanElement) {
       spanElement.remove();
     }
     const username = clonedElement.textContent.trim();
 
     if (!username) {
-      throw new Error(utils.userNotFoundError("Mihuashi"));
+      throw new Error(utils.userNotFoundError('Mihuashi'));
     }
 
     let primaryUrl, secondaryUrl;
 
-    if (pathname.startsWith("/profiles/")) {
+    if (pathname.startsWith('/profiles/')) {
       // Extract profile ID from URL
       const profileIdMatch = /\/profiles\/(\d+)/.exec(pathname);
+
       if (!profileIdMatch?.[1]) {
-        throw new Error(utils.userNotFoundError("Mihuashi"));
+        throw new Error(utils.userNotFoundError('Mihuashi'));
       }
 
       const profileId = profileIdMatch[1];
+
       primaryUrl = `https://www.mihuashi.com/profiles/${profileId}`;
       secondaryUrl = `https://www.mihuashi.com/users/${username}`;
-    } else if (pathname.startsWith("/users/")) {
+    } else if (pathname.startsWith('/users/')) {
       // Get profile ID via API
       const apiResponse = await utils.safeFetch(
         `https://www.mihuashi.com/api/v1/users/${username}/?by=name`,
       );
 
       if (!apiResponse) {
-        throw new Error(utils.userNotFoundError("Mihuashi"));
+        throw new Error(utils.userNotFoundError('Mihuashi'));
       }
 
       const apiData = await apiResponse.json();
+
       if (!apiData?.user?.id) {
-        throw new Error("Invalid user data returned from API");
+        throw new Error('Invalid user data returned from API');
       }
 
       const profileId = apiData.user.id;
+
       primaryUrl = `https://www.mihuashi.com/profiles/${profileId}`;
       secondaryUrl = `https://www.mihuashi.com/users/${username}`;
     } else {
-      throw new Error(utils.userNotFoundError("Mihuashi"));
+      throw new Error(utils.userNotFoundError('Mihuashi'));
     }
 
     return createProfileResult(primaryUrl, secondaryUrl);
   };
 
   const handlePatreon = async () => {
-    const nextData = window.__NEXT_DATA__;
+    const nextData = globalThis.__NEXT_DATA__;
     let userId;
 
     if (nextData) {
@@ -246,22 +261,24 @@ javascript: void (async () => {
     }
 
     if (!userId) {
-      throw new Error(utils.userNotFoundError("Patreon"));
+      throw new Error(utils.userNotFoundError('Patreon'));
     }
 
     const urlObj = new URL(location.href);
-    urlObj.protocol = "https:";
 
-    if (urlObj.hostname === "patreon.com") {
-      urlObj.hostname = "www.patreon.com";
+    urlObj.protocol = 'https:';
+
+    if (urlObj.hostname === 'patreon.com') {
+      urlObj.hostname = 'www.patreon.com';
     }
 
     const cleanPath = urlObj.pathname
-      .replace(/\/$/, "")
-      .replace(/^\/c\//, "/")
-      .replace(/^\/cw\//, "/")
-      .replace(/\/home$/, "")
-      .replace(/\/profile\/creators/, "/user");
+      .replace(/\/$/, '')
+      .replace(/^\/c\//, '/')
+      .replace(/^\/cw\//, '/')
+      .replace(/\/home$/, '')
+      .replace(/\/profile\/creators/, '/user');
+
     urlObj.pathname = cleanPath;
 
     const primaryUrl = urlObj.toString();
@@ -274,14 +291,14 @@ javascript: void (async () => {
     const scriptTag = document.querySelector("script[type='application/ld+json']");
 
     if (!scriptTag) {
-      throw new Error("Please open the profile page");
+      throw new Error('Please open the profile page');
     }
 
     const structuredData = utils.safeJsonParse(scriptTag.textContent);
     const userEntity = structuredData?.mainEntity;
 
     if (!userEntity) {
-      throw new Error(utils.userNotFoundError("Twitter"));
+      throw new Error(utils.userNotFoundError('Twitter'));
     }
 
     const primaryUrl = `https://x.com/${userEntity.additionalName}`;
@@ -294,14 +311,15 @@ javascript: void (async () => {
     const { host } = location;
     let userName;
 
-    if (host === "www.fanbox.cc") {
+    if (host === 'www.fanbox.cc') {
       const usernameMatch = /^\/@([a-zA-Z0-9_-]+)$/.exec(location.pathname);
+
       if (!usernameMatch?.[1]) {
-        throw new Error(utils.userNotFoundError("Fanbox"));
+        throw new Error(utils.userNotFoundError('Fanbox'));
       }
       userName = usernameMatch[1];
     } else {
-      userName = host.split(".")[0];
+      userName = host.split('.')[0];
     }
 
     const apiResponse = await utils.safeFetch(
@@ -309,12 +327,13 @@ javascript: void (async () => {
     );
 
     if (!apiResponse) {
-      throw new Error(utils.userNotFoundError("Fanbox"));
+      throw new Error(utils.userNotFoundError('Fanbox'));
     }
 
     const apiData = await apiResponse.json();
+
     if (!apiData?.body?.user) {
-      throw new Error("Invalid user data returned from API");
+      throw new Error('Invalid user data returned from API');
     }
 
     const primaryUrl = location.href;
@@ -326,19 +345,19 @@ javascript: void (async () => {
   const handlePixiv = async () => {
     let primaryUrl;
 
-    if (location.pathname.includes("users")) {
-      primaryUrl = location.toString().replace("en/", "");
+    if (location.pathname.includes('users')) {
+      primaryUrl = location.toString().replace('en/', '');
     } else {
       const userLink = document.querySelector("a[href*='/users/']");
       const userId = userLink?.dataset.gtmValue;
 
       if (!userId) {
-        throw new Error(utils.userNotFoundError("Pixiv"));
+        throw new Error(utils.userNotFoundError('Pixiv'));
       }
       primaryUrl = `https://www.pixiv.net/users/${userId}`;
     }
 
-    const staccUrl = primaryUrl.replace("en/", "").replace("users", "stacc/id");
+    const staccUrl = primaryUrl.replace('en/', '').replace('users', 'stacc/id');
     const secondaryResponse = await utils.safeFetch(staccUrl);
     const secondaryUrl = secondaryResponse?.url || primaryUrl;
 
@@ -355,30 +374,29 @@ javascript: void (async () => {
     let portrait = null;
 
     const userInfo = userInfoMatch ? utils.safeJsonParse(userInfoMatch[1]) : null;
+
     if (userInfo?.user) {
       username = userInfo.user.homeUserName || userInfo.user.show_nickname;
-      portrait = userInfo.user.portrait?.split("?")[0];
+      portrait = userInfo.user.portrait?.split('?')[0];
     }
 
     if (!username) {
       const pageDataMatch = pageContent.match(
         /PageData\.current_page_uname\s*=\s*['"]([^'"]+)['"]/,
       );
+
       username = pageDataMatch?.[1] ?? null;
     }
 
     if (!username) {
-      throw new Error(utils.userNotFoundError("Tieba"));
+      throw new Error(utils.userNotFoundError('Tieba'));
     }
 
     const primaryUrl = `https://tieba.baidu.com/home/main?un=${username}`;
 
     let secondaryUrl;
-    if (portrait) {
-      secondaryUrl = `https://tieba.baidu.com/home/main?id=${portrait}`;
-    } else {
-      secondaryUrl = primaryUrl;
-    }
+
+    secondaryUrl = portrait ? `https://tieba.baidu.com/home/main?id=${portrait}` : primaryUrl;
 
     return createProfileResult(primaryUrl, secondaryUrl);
   };
@@ -388,12 +406,12 @@ javascript: void (async () => {
     const userName = nameElement?.textContent?.trim();
 
     const followLink = document.querySelector('a[href*="/u/page/follow/"]');
-    const followHref = followLink?.getAttribute("href");
+    const followHref = followLink?.getAttribute('href');
     const userIdMatch = followHref ? /\/u\/page\/follow\/(\d+)/.exec(followHref) : null;
     const userId = userIdMatch?.[1];
 
     if (!userName || !userId) {
-      throw new Error(utils.userNotFoundError("Weibo"));
+      throw new Error(utils.userNotFoundError('Weibo'));
     }
 
     const primaryUrl = `https://www.weibo.com/n/${userName}`;
@@ -404,53 +422,60 @@ javascript: void (async () => {
 
   const handleYouTube = async () => {
     const path = location.pathname;
-    if (path.startsWith("/watch") || path.startsWith("/playlist")) {
-      throw new Error("Please open the channel page");
+
+    if (path.startsWith('/watch') || path.startsWith('/playlist')) {
+      throw new Error('Please open the channel page');
     }
 
-    const date = window.ytInitialData;
+    const date = globalThis.ytInitialData;
+
     if (!date?.metadata) {
-      throw new Error("Metadata not found");
+      throw new Error('Metadata not found');
     }
 
     const metadataRenderer = date?.metadata?.channelMetadataRenderer;
+
     if (!metadataRenderer) {
-      throw new Error("Channel metadata renderer not found");
+      throw new Error('Channel metadata renderer not found');
     }
 
     let { vanityChannelUrl, channelUrl } = metadataRenderer;
 
     if (vanityChannelUrl) {
       const urlObj = new URL(vanityChannelUrl);
-      if (urlObj.protocol === "http:") {
-        urlObj.protocol = "https:";
+
+      if (urlObj.protocol === 'http:') {
+        urlObj.protocol = 'https:';
       }
       vanityChannelUrl = decodeURI(urlObj.href);
     }
 
     if (!vanityChannelUrl || !channelUrl) {
-      throw new Error("Failed to extract channel URLs");
+      throw new Error('Failed to extract channel URLs');
     }
 
     return createProfileResult(vanityChannelUrl, channelUrl);
   };
 
   const handleXfolio = (pageUrl, ogUrl) => {
-    const creatorInfo = document.querySelector("div.creatorInfo");
+    const creatorInfo = document.querySelector('div.creatorInfo');
 
     if (creatorInfo) {
       const primaryUrl = creatorInfo.dataset.creatorPortfolioTopUrl;
       const secondaryUrl = creatorInfo.dataset.creatorUrl;
+
       return createProfileResult(primaryUrl, secondaryUrl);
     }
 
-    if (pageUrl.pathname.startsWith("/users/")) {
-      const profileLink = document.querySelector("div.userProfile__btn a");
+    if (pageUrl.pathname.startsWith('/users/')) {
+      const profileLink = document.querySelector('div.userProfile__btn a');
       const profileUrl = new URL(profileLink.href);
 
       let primaryUrl;
-      if (profileUrl.host === "xfolio.jp") {
-        const pathSegments = profileUrl.pathname.split("/").slice(-2).join("/");
+
+      if (profileUrl.host === 'xfolio.jp') {
+        const pathSegments = profileUrl.pathname.split('/').slice(-2).join('/');
+
         primaryUrl = `https://xfolio.jp/${pathSegments}`;
       } else {
         primaryUrl = profileUrl.origin;
@@ -459,14 +484,14 @@ javascript: void (async () => {
       return createProfileResult(primaryUrl, ogUrl);
     }
 
-    throw new Error(utils.userNotFoundError("Xfolio"));
+    throw new Error(utils.userNotFoundError('Xfolio'));
   };
 
   const handleMisskey = (host, userId) => {
-    const ogUrl = utils.getMetaContent("og:url", "property");
+    const ogUrl = utils.getMetaContent('og:url', 'property');
 
     if (!ogUrl) {
-      throw new Error(utils.userNotFoundError("Misskey"));
+      throw new Error(utils.userNotFoundError('Misskey'));
     }
 
     const primaryUrl = ogUrl;
@@ -477,7 +502,7 @@ javascript: void (async () => {
 
   // Generic handler for other platforms
   const handleOtherPlatforms = async (host) => {
-    const ogUrl = utils.getMetaContent("og:url", "property");
+    const ogUrl = utils.getMetaContent('og:url', 'property');
 
     if (!ogUrl) {
       throw new Error(`Unsupported site: ${host}`);
@@ -485,25 +510,27 @@ javascript: void (async () => {
 
     const pageUrl = new URL(ogUrl);
 
-    if (pageUrl.host === "xfolio.jp") {
+    if (pageUrl.host === 'xfolio.jp') {
       return handleXfolio(pageUrl, ogUrl);
     }
 
     // Check if the site is an xfolio instance by looking for stylesheets hosted on xfolio.jp
     const stylesheets = document.querySelectorAll('link[rel="stylesheet"][href]');
-    const isXfolio = Array.from(stylesheets).some((link) => {
+    const isXfolio = [...stylesheets].some((link) => {
       try {
-        return new URL(link.href).host === "xfolio.jp";
+        return new URL(link.href).host === 'xfolio.jp';
       } catch {
         return false;
       }
     });
+
     if (isXfolio) {
       return handleXfolio(pageUrl, ogUrl);
     }
 
     // Handle Misskey instances
-    const misskeyUserId = utils.getMetaContent("misskey:user-id");
+    const misskeyUserId = utils.getMetaContent('misskey:user-id');
+
     if (misskeyUserId) {
       return handleMisskey(host, misskeyUserId);
     }
@@ -514,7 +541,7 @@ javascript: void (async () => {
   const displayResult = (result, host) => {
     const output = `${result.primaryUrl}\n${result.secondaryUrl}`;
 
-    if (navigator.userAgent.toLowerCase().includes("firefox")) {
+    if (navigator.userAgent.toLowerCase().includes('firefox')) {
       alert(output);
     } else {
       prompt(`${host} URLs`, output);
@@ -523,16 +550,16 @@ javascript: void (async () => {
 
   // Platform handler mapping
   const PLATFORM_HANDLERS = {
-    "bsky.app": handleBluesky,
-    "fantia.jp": handleFantia,
-    "inkbunny.net": handleInkbunny,
-    "ko-fi.com": handleKoFi,
-    "tieba.baidu.com": handleTieba,
-    "www.facebook.com": handleFacebook,
-    "www.patreon.com": handlePatreon,
-    "www.pixiv.net": handlePixiv,
-    "www.youtube.com": handleYouTube,
-    "x.com": handleTwitter,
+    'bsky.app': handleBluesky,
+    'fantia.jp': handleFantia,
+    'inkbunny.net': handleInkbunny,
+    'ko-fi.com': handleKoFi,
+    'tieba.baidu.com': handleTieba,
+    'www.facebook.com': handleFacebook,
+    'www.patreon.com': handlePatreon,
+    'www.pixiv.net': handlePixiv,
+    'www.youtube.com': handleYouTube,
+    'x.com': handleTwitter,
   };
 
   const getHandlerForHost = (host) => {
@@ -541,11 +568,11 @@ javascript: void (async () => {
     }
 
     const subdomainChecks = [
-      ["fanbox.cc", handleFanbox],
-      ["gumroad.com", handleGumroad],
-      ["lofter.com", handleLofter],
-      ["mihuashi.com", handleMihuashi],
-      ["weibo.com", handleWeibo],
+      ['fanbox.cc', handleFanbox],
+      ['gumroad.com', handleGumroad],
+      ['lofter.com', handleLofter],
+      ['mihuashi.com', handleMihuashi],
+      ['weibo.com', handleWeibo],
     ];
 
     for (const [domain, handler] of subdomainChecks) {
@@ -564,6 +591,7 @@ javascript: void (async () => {
     try {
       const handler = getHandlerForHost(host);
       const result = handler ? await handler() : await handleOtherPlatforms(host);
+
       displayResult(result, host);
     } catch (error) {
       utils.showError(error.message);

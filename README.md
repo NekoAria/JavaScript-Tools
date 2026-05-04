@@ -19,7 +19,7 @@ A collection of useful JavaScript utilities including bookmarklets and userscrip
 ### Danbooru Artist Tweaks
 
 - **File**: [danbooru-artist-tweaks.user.js](userscripts/danbooru-artist-tweaks.user.js)
-- **Function**: Add Create wiki link for artist pages without wiki page, copy artist name button, replace wiki links with bulk update request links for tag aliases, show pending BURs, and warn about unmigrated posts on artist rename
+- **Function**: Add Create wiki link for artist pages without wiki page, copy artist name button, replace wiki links with bulk update request links for tag aliases, show pending BURs, highlight unrecognized external hostnames in artist versions, and warn about unmigrated posts on artist rename
 
 ### DeviantArt Base36 Auto Converter
 

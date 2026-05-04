@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         Danbooru Artist Tweaks
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      1.0.0
+// @version      1.0.1
 // @author       Neko_Aria
-// @description  Add Create wiki link for artist pages without wiki page, copy artist name button, replace wiki links with bulk update request links for tag aliases, show pending BURs, and warn about unmigrated posts on artist rename
+// @description  Add Create wiki link for artist pages without wiki page, copy artist name button, replace wiki links with bulk update request links for tag aliases, show pending BURs, highlight unrecognized external hostnames in artist versions, and warn about unmigrated posts on artist rename
 // @downloadURL  https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts/danbooru-artist-tweaks.user.js
 // @updateURL    https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts/danbooru-artist-tweaks.user.js
 // @match        *://*.donmai.us/artists/*
@@ -167,11 +167,64 @@
     const params = new URLSearchParams(globalThis.location.search);
     return params.get("search[artist_id]");
   };
-  const checkUnmigratedPostsOnRename = async () => {
-    const artistId = getArtistIdFromURL();
-    if (!artistId) {
+  const fetchArtistUnrecognizedHostnames = async (artistId) => {
+    const { origin } = globalThis.location;
+    const url = `${origin}/artists/${artistId}`;
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const html = await response.text();
+      const doc = new DOMParser().parseFromString(html, "text/html");
+      const hostnameSet = new Set();
+      for (const li of doc.querySelectorAll("li")) {
+        if (li.querySelector(".globe-icon")) {
+          for (const a of li.querySelectorAll("a[href]")) {
+            const href = a.getAttribute("href");
+            hostnameSet.add(new URL(href).hostname);
+          }
+        }
+      }
+      return hostnameSet;
+    } catch (error) {
+      console.error("Failed to fetch artist URLs:", error);
+      return new Set();
+    }
+  };
+  const prependGlobeIfUnrecognized = (element, hostnameSet, { inside = false } = {}) => {
+    const urlText = element.textContent.trim().replace(/^-/, "");
+    const { hostname } = new URL(urlText);
+    if (!hostnameSet.has(hostname)) {
       return;
     }
+    const markerText = "🌐 ";
+    const existingText = inside ? element.firstChild?.textContent : element.previousSibling?.textContent;
+    if (existingText === markerText) {
+      return;
+    }
+    const markerNode = document.createTextNode(markerText);
+    if (inside) {
+      element.prepend(markerNode);
+    } else {
+      element.before(markerNode);
+    }
+  };
+  const highlightUnrecognizedHostnamesInVersions = (hostnameSet) => {
+    if (hostnameSet.size === 0) {
+      return;
+    }
+    for (const li of document.querySelectorAll("#artist-versions-table .urls-column li")) {
+      if (li.classList.contains("changed")) {
+        for (const span of li.querySelectorAll("span.removed, span.added")) {
+          prependGlobeIfUnrecognized(span, hostnameSet);
+        }
+      } else {
+        prependGlobeIfUnrecognized(li, hostnameSet, { inside: true });
+      }
+    }
+  };
+  const checkUnmigratedPostsOnRename = async (artistId) => {
     const rows = document.querySelectorAll("#artist-versions-table tbody tr");
     if (rows.length < 2) {
       return;
@@ -226,7 +279,11 @@
   const init = () => {
     addStyles();
     if (globalThis.location.pathname.startsWith("/artist_versions")) {
-      checkUnmigratedPostsOnRename();
+      const artistId = getArtistIdFromURL();
+      if (artistId) {
+        fetchArtistUnrecognizedHostnames(artistId).then(highlightUnrecognizedHostnamesInVersions);
+        checkUnmigratedPostsOnRename(artistId);
+      }
       return;
     }
     addCopyButton();

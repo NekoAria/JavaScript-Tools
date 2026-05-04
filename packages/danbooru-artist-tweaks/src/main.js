@@ -230,14 +230,89 @@ const getArtistIdFromURL = () => {
   return params.get('search[artist_id]');
 };
 
-// Check for unmigrated posts after artist rename
-const checkUnmigratedPostsOnRename = async () => {
-  const artistId = getArtistIdFromURL();
+// Fetch unrecognized external hostnames (globe-icon) from the artist page
+const fetchArtistUnrecognizedHostnames = async (artistId) => {
+  const { origin } = globalThis.location;
+  const url = `${origin}/artists/${artistId}`;
 
-  if (!artistId) {
+  try {
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const html = await response.text();
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+
+    const hostnameSet = new Set();
+
+    for (const li of doc.querySelectorAll('li')) {
+      // globe-icon indicates an unrecognized external site
+      if (li.querySelector('.globe-icon')) {
+        for (const a of li.querySelectorAll('a[href]')) {
+          const href = a.getAttribute('href');
+
+          hostnameSet.add(new URL(href).hostname);
+        }
+      }
+    }
+
+    return hostnameSet;
+  } catch (error) {
+    console.error('Failed to fetch artist URLs:', error);
+
+    return new Set();
+  }
+};
+
+// Prepend 🌐 marker to an element if its text contains an unrecognized hostname
+const prependGlobeIfUnrecognized = (element, hostnameSet, { inside = false } = {}) => {
+  const urlText = element.textContent.trim().replace(/^-/, '');
+  const { hostname } = new URL(urlText);
+
+  if (!hostnameSet.has(hostname)) {
     return;
   }
 
+  const markerText = '🌐 ';
+  const existingText = inside
+    ? element.firstChild?.textContent
+    : element.previousSibling?.textContent;
+
+  if (existingText === markerText) {
+    return;
+  }
+
+  const markerNode = document.createTextNode(markerText);
+
+  if (inside) {
+    element.prepend(markerNode);
+  } else {
+    element.before(markerNode);
+  }
+};
+
+// Highlight hostnames in the versions table that match the unrecognized set
+const highlightUnrecognizedHostnamesInVersions = (hostnameSet) => {
+  if (hostnameSet.size === 0) {
+    return;
+  }
+
+  for (const li of document.querySelectorAll('#artist-versions-table .urls-column li')) {
+    if (li.classList.contains('changed')) {
+      // Insert 🌐 before each span individually
+      for (const span of li.querySelectorAll('span.removed, span.added')) {
+        prependGlobeIfUnrecognized(span, hostnameSet);
+      }
+    } else {
+      prependGlobeIfUnrecognized(li, hostnameSet, { inside: true });
+    }
+  }
+};
+
+// Check for unmigrated posts after artist rename
+const checkUnmigratedPostsOnRename = async (artistId) => {
   // DOM pre-check: need at least 2 rows
   const rows = document.querySelectorAll('#artist-versions-table tbody tr');
 
@@ -321,9 +396,14 @@ const renderUnmigratedPostsWarning = (oldName) => {
 const init = () => {
   addStyles();
 
-  // Artist versions page: only check for unmigrated posts
+  // Artist versions page
   if (globalThis.location.pathname.startsWith('/artist_versions')) {
-    checkUnmigratedPostsOnRename();
+    const artistId = getArtistIdFromURL();
+
+    if (artistId) {
+      fetchArtistUnrecognizedHostnames(artistId).then(highlightUnrecognizedHostnamesInVersions);
+      checkUnmigratedPostsOnRename(artistId);
+    }
 
     return;
   }

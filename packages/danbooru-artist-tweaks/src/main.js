@@ -320,10 +320,19 @@ const checkUnmigratedPostsOnRename = async (artistId) => {
     return;
   }
 
-  // DOM pre-check: first row must be a rename
-  const nameColumn = rows[0].querySelector('.name-column');
+  // Find the most recent rename row
+  let renameIndex = -1;
 
-  if (!nameColumn || !nameColumn.querySelector('b')) {
+  for (const [i, row] of rows.entries()) {
+    const nameColumn = row.querySelector('.name-column');
+
+    if (nameColumn?.querySelector('b')) {
+      renameIndex = i;
+      break;
+    }
+  }
+
+  if (renameIndex === -1) {
     return;
   }
 
@@ -338,8 +347,12 @@ const checkUnmigratedPostsOnRename = async (artistId) => {
     }
     const versions = await response.json();
 
-    // Old name is from the second version
-    const oldName = versions[1].name;
+    // Old name is from the version after the rename row
+    const oldName = versions[renameIndex + 1]?.name;
+
+    if (!oldName) {
+      return;
+    }
 
     // Check if posts still tagged with old name (not yet migrated by BUR)
     const postsUrl = `${origin}/posts.json?tags=${oldName}&limit=1`;

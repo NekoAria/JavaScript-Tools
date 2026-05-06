@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Danbooru Artist Tweaks
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      1.0.1
+// @version      1.0.2
 // @author       Neko_Aria
 // @description  Add Create wiki link for artist pages without wiki page, copy artist name button, replace wiki links with bulk update request links for tag aliases, show pending BURs, highlight unrecognized external hostnames in artist versions, and warn about unmigrated posts on artist rename
 // @downloadURL  https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts/danbooru-artist-tweaks.user.js
@@ -184,14 +184,19 @@ var getArtistTagName = () => {
 	var checkUnmigratedPostsOnRename = async (artistId) => {
 		const rows = document.querySelectorAll("#artist-versions-table tbody tr");
 		if (rows.length < 2) return;
-		const nameColumn = rows[0].querySelector(".name-column");
-		if (!nameColumn || !nameColumn.querySelector("b")) return;
+		let renameIndex = -1;
+		for (const [i, row] of rows.entries()) if (row.querySelector(".name-column")?.querySelector("b")) {
+			renameIndex = i;
+			break;
+		}
+		if (renameIndex === -1) return;
 		const { origin } = globalThis.location;
 		const url = `${origin}/artist_versions.json?search[artist_id]=${artistId}`;
 		try {
 			const response = await fetch(url);
 			if (!response.ok) throw new Error(`HTTP ${response.status}`);
-			const oldName = (await response.json())[1].name;
+			const oldName = (await response.json())[renameIndex + 1]?.name;
+			if (!oldName) return;
 			const postsUrl = `${origin}/posts.json?tags=${oldName}&limit=1`;
 			const postsResponse = await fetch(postsUrl);
 			if (!postsResponse.ok) throw new Error(`HTTP ${postsResponse.status}`);

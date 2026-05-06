@@ -21,8 +21,8 @@ export default defineConfig([
   unicorn.configs.recommended,
   eslintConfigPrettier,
 
-  // Disable type-checked rules for plain JS/MJS
-  { files: ['**/*.{js,mjs}'], ...tseslint.configs.disableTypeChecked },
+  // Disable type-checked rules for plain JS/MJS and build config TS files
+  { files: ['**/*.{js,mjs}', '**/vite.config.ts'], ...tseslint.configs.disableTypeChecked },
 
   // ━━ Node environment ━━━━━━━━━━━━━━━━━━━━
   {
@@ -36,7 +36,7 @@ export default defineConfig([
 
   // ━━ Build tooling (Node.js context) ━━━━━
   {
-    files: ['shared/**/*.js', 'scripts/**/*.mjs', '**/vite.config.js'],
+    files: ['shared/**/*.js', 'scripts/**/*.js', '**/vite.config.{js,ts}'],
     plugins: { n: nodePlugin },
     languageOptions: {
       globals: {
@@ -148,6 +148,7 @@ export default defineConfig([
   // ━━ TypeScript-specific rules ━━━━━━━━━━━━
   {
     files: ['**/*.ts'],
+    ignores: ['**/vite.config.ts'],
     languageOptions: {
       parserOptions: {
         projectService: true,
@@ -163,6 +164,7 @@ export default defineConfig([
           argsIgnorePattern: '^_.*?$',
         },
       ],
+      '@typescript-eslint/no-non-null-assertion': 'error',
       '@typescript-eslint/consistent-type-imports': [
         'error',
         {
@@ -184,7 +186,7 @@ export default defineConfig([
 
   // ━━ Scripts override (after shared rules) ━
   {
-    files: ['scripts/**/*.mjs'],
+    files: ['scripts/**/*.js'],
     rules: {
       'no-console': 'off',
     },

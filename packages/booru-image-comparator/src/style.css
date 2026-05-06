@@ -31,15 +31,15 @@
   --border: 1px solid var(--grey-7);
   --border-in: 1px solid var(--grey-6);
 
-  --z-header: 2;
-  --z-overlay: 3;
-  --z-slider: 4;
+  --z-header: 10001;
+  --z-overlay: 10002;
+  --z-slider: 10003;
 
   display: flex;
   flex-direction: column;
   position: fixed;
   inset: 0;
-  z-index: 1;
+  z-index: 10000;
   background: var(--grey-10);
   color: var(--grey-0);
   font:

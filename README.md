@@ -11,6 +11,8 @@ A collection of useful JavaScript utilities including bookmarklets and userscrip
 
 ## Userscripts
 
+> **Note**: The files in the `userscripts` directory are **built outputs**, not source code. The actual source code for each userscript is located in the `packages` directory.
+
 ### Universal Booru Image Comparator
 
 - **File**: [booru-image-comparator.user.js](userscripts/booru-image-comparator.user.js)

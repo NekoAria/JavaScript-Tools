@@ -1,0 +1,16 @@
+pre-commit:
+  parallel: true
+  commands:
+    lint-and-format-scripts:
+      glob: "*.{js,ts,mjs}"
+      stage_fixed: true
+      run: pnpm exec eslint --fix {staged_files} && pnpm exec prettier --write {staged_files}
+    format-misc:
+      glob: "*.{json,jsonc,css,md}"
+      stage_fixed: true
+      run: pnpm exec prettier --write {staged_files}
+
+pre-push:
+  commands:
+    build-artifacts:
+      run: pnpm build:bookmarklets && pnpm build:packages

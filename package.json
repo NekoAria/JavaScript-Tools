@@ -15,7 +15,7 @@
     "lint:fix": "eslint --fix",
     "knip": "knip",
     "knip:fix": "knip --fix",
-    "prepare": "simple-git-hooks"
+    "prepare": "lefthook install"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -30,23 +30,10 @@
     "eslint-plugin-unused-imports": "^4.4.1",
     "globals": "^17.6.0",
     "knip": "^6.12.0",
-    "lint-staged": "^17.0.2",
+    "lefthook": "^2.1.6",
     "prettier": "^3.8.3",
-    "simple-git-hooks": "^2.13.1",
     "typescript-eslint": "^8.59.2",
     "vite": "catalog:",
     "vite-plugin-monkey": "catalog:"
-  },
-  "lint-staged": {
-    "*.{js,mjs,ts}": [
-      "eslint --fix",
-      "prettier --write"
-    ],
-    "*.css": [
-      "prettier --write"
-    ]
-  },
-  "simple-git-hooks": {
-    "pre-commit": "pnpm build:bookmarklets && pnpm build:packages && pnpm exec lint-staged"
   }
 }

@@ -23,6 +23,11 @@ A collection of useful JavaScript utilities including bookmarklets and userscrip
 - **File**: [danbooru-artist-tweaks.user.js](userscripts/danbooru-artist-tweaks.user.js)
 - **Function**: Add Create wiki link for artist pages without wiki page, copy artist name button, replace wiki links with bulk update request links for tag aliases, show pending BURs, highlight unrecognized external hostnames in artist versions, and warn about unmigrated posts on artist rename
 
+### Danbooru Artist URL Diff Enhancer
+
+- **File**: [danbooru-artist-url-diff-enhancer.user.js](userscripts/danbooru-artist-url-diff-enhancer.user.js)
+- **Function**: Enhance artist version diff lists with smart URL matching and character-level diff highlighting
+
 ### DeviantArt Base36 Auto Converter
 
 - **File**: [deviantart-base36-auto-converter.user.js](userscripts/deviantart-base36-auto-converter.user.js)

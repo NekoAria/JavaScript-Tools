@@ -1,0 +1,134 @@
+/* Styles for the Danbooru artist URL diff enhancer. Supports light and dark themes via data attribute. */
+body {
+  --color-red-50: oklch(97.1% 0.013 17.38);
+  --color-red-100: oklch(93.6% 0.032 17.717);
+  --color-red-200: oklch(88.5% 0.062 18.334);
+  --color-red-300: oklch(80.8% 0.114 19.571);
+  --color-red-400: oklch(70.4% 0.191 22.216);
+  --color-red-500: oklch(63.7% 0.237 25.331);
+  --color-red-600: oklch(57.7% 0.245 27.325);
+  --color-red-700: oklch(50.5% 0.213 27.518);
+  --color-red-800: oklch(44.4% 0.177 26.899);
+  --color-red-900: oklch(39.6% 0.141 25.723);
+  --color-red-950: oklch(25.8% 0.092 26.042);
+
+  --color-amber-50: oklch(98.7% 0.022 95.277);
+  --color-amber-100: oklch(96.2% 0.059 95.617);
+  --color-amber-200: oklch(92.4% 0.12 95.746);
+  --color-amber-300: oklch(87.9% 0.169 91.605);
+  --color-amber-400: oklch(82.8% 0.189 84.429);
+  --color-amber-500: oklch(76.9% 0.188 70.08);
+  --color-amber-600: oklch(66.6% 0.179 58.318);
+  --color-amber-700: oklch(55.5% 0.163 48.998);
+  --color-amber-800: oklch(47.3% 0.137 46.201);
+  --color-amber-900: oklch(41.4% 0.112 45.904);
+  --color-amber-950: oklch(27.9% 0.077 45.635);
+
+  --color-green-50: oklch(98.2% 0.018 155.826);
+  --color-green-100: oklch(96.2% 0.044 156.743);
+  --color-green-200: oklch(92.5% 0.084 155.995);
+  --color-green-300: oklch(87.1% 0.15 154.449);
+  --color-green-400: oklch(79.2% 0.209 151.711);
+  --color-green-500: oklch(72.3% 0.219 149.579);
+  --color-green-600: oklch(62.7% 0.194 149.214);
+  --color-green-700: oklch(52.7% 0.154 150.069);
+  --color-green-800: oklch(44.8% 0.119 151.328);
+  --color-green-900: oklch(39.3% 0.095 152.535);
+  --color-green-950: oklch(26.6% 0.065 152.934);
+
+  --diff-bg-removed: var(--color-red-100);
+  --diff-border-removed: var(--color-red-500);
+  --diff-bg-added: var(--color-green-100);
+  --diff-border-added: var(--color-green-500);
+  --diff-bg-changed: var(--color-amber-100);
+  --diff-border-changed: var(--color-amber-500);
+  --diff-char-removed-bg: var(--color-red-500);
+  --diff-char-added-bg: var(--color-green-500);
+}
+
+/* Dark theme overrides */
+body[data-current-user-theme='dark'] {
+  --diff-bg-removed: var(--color-red-900);
+  --diff-border-removed: var(--color-red-700);
+  --diff-bg-added: var(--color-green-900);
+  --diff-border-added: var(--color-green-700);
+  --diff-bg-changed: var(--color-amber-900);
+  --diff-border-changed: var(--color-amber-700);
+  --diff-char-removed-bg: var(--color-red-700);
+  --diff-char-added-bg: var(--color-green-700);
+}
+
+td.urls-column .diff-list li {
+  color: unset;
+  padding: 5px;
+  margin: 2px 0;
+  border-left: 3px solid transparent;
+  word-break: break-all;
+  border-radius: 4px;
+}
+
+td.urls-column .diff-list li.removed {
+  background-color: var(--diff-bg-removed);
+  border-left-color: var(--diff-border-removed);
+}
+
+td.urls-column .diff-list li.added {
+  background-color: var(--diff-bg-added);
+  border-left-color: var(--diff-border-added);
+}
+
+td.urls-column .diff-list li.changed {
+  background-color: var(--diff-bg-changed);
+  border-left-color: var(--diff-border-changed);
+}
+
+.char-diff-container {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  line-height: 1.4;
+}
+
+.char-diff-removed,
+.char-diff-added {
+  word-break: break-all;
+  padding: 2px 0;
+}
+
+.char-diff-arrow {
+  color: unset;
+  font-weight: bold;
+  align-self: flex-start;
+  margin: 2px 0;
+}
+
+.char-common {
+  background-color: transparent;
+}
+
+.char-removed {
+  background-color: var(--diff-char-removed-bg);
+  color: white;
+  padding: 1px 2px;
+  border-radius: 2px;
+}
+
+.char-added {
+  background-color: var(--diff-char-added-bg);
+  color: white;
+  padding: 1px 2px;
+  border-radius: 2px;
+  font-weight: bold;
+}
+
+@media (min-width: 768px) {
+  .char-diff-container {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .char-diff-arrow {
+    margin: 0 5px;
+  }
+}

@@ -37,7 +37,7 @@ jobs:
         id: validate_lock
         run: |
           echo "Validating pnpm-lock.yaml file..."
-          if pnpm install --frozen-lockfile; then
+          if pnpm install --frozen-lockfile --ignore-scripts; then
             echo "lock_file_valid=true" >> $GITHUB_OUTPUT
             echo "✅ pnpm-lock.yaml validation passed"
           else

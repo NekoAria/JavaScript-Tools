@@ -13,8 +13,8 @@ catalogs:
       specifier: 8.0.11
       version: 8.0.11
     vite-plugin-monkey:
-      specifier: 8.0.2
-      version: 8.0.2
+      specifier: 8.0.5
+      version: 8.0.5
 
 importers:
 
@@ -70,7 +70,7 @@ importers:
         version: 8.0.11(esbuild@0.28.0)(jiti@2.7.0)(yaml@2.8.4)
       vite-plugin-monkey:
         specifier: 'catalog:'
-        version: 8.0.2(postcss@8.5.14)(vite@8.0.11(esbuild@0.28.0)(jiti@2.7.0)(yaml@2.8.4))
+        version: 8.0.5(postcss@8.5.14)(vite@8.0.11(esbuild@0.28.0)(jiti@2.7.0)(yaml@2.8.4))
 
   packages/booru-image-comparator:
     dependencies:
@@ -86,7 +86,7 @@ importers:
         version: 8.0.11(esbuild@0.28.0)(jiti@2.7.0)(yaml@2.8.4)
       vite-plugin-monkey:
         specifier: 'catalog:'
-        version: 8.0.2(postcss@8.5.14)(vite@8.0.11(esbuild@0.28.0)(jiti@2.7.0)(yaml@2.8.4))
+        version: 8.0.5(postcss@8.5.14)(vite@8.0.11(esbuild@0.28.0)(jiti@2.7.0)(yaml@2.8.4))
 
   packages/danbooru-artist-tweaks:
     devDependencies:
@@ -95,7 +95,7 @@ importers:
         version: 8.0.11(esbuild@0.28.0)(jiti@2.7.0)(yaml@2.8.4)
       vite-plugin-monkey:
         specifier: 'catalog:'
-        version: 8.0.2(postcss@8.5.14)(vite@8.0.11(esbuild@0.28.0)(jiti@2.7.0)(yaml@2.8.4))
+        version: 8.0.5(postcss@8.5.14)(vite@8.0.11(esbuild@0.28.0)(jiti@2.7.0)(yaml@2.8.4))
 
   packages/danbooru-artist-url-diff-enhancer:
     devDependencies:
@@ -107,7 +107,7 @@ importers:
         version: 8.0.11(esbuild@0.28.0)(jiti@2.7.0)(yaml@2.8.4)
       vite-plugin-monkey:
         specifier: 'catalog:'
-        version: 8.0.2(postcss@8.5.14)(vite@8.0.11(esbuild@0.28.0)(jiti@2.7.0)(yaml@2.8.4))
+        version: 8.0.5(postcss@8.5.14)(vite@8.0.11(esbuild@0.28.0)(jiti@2.7.0)(yaml@2.8.4))
 
   packages/deviantart-base36-auto-converter:
     devDependencies:
@@ -116,7 +116,7 @@ importers:
         version: 8.0.11(esbuild@0.28.0)(jiti@2.7.0)(yaml@2.8.4)
       vite-plugin-monkey:
         specifier: 'catalog:'
-        version: 8.0.2(postcss@8.5.14)(vite@8.0.11(esbuild@0.28.0)(jiti@2.7.0)(yaml@2.8.4))
+        version: 8.0.5(postcss@8.5.14)(vite@8.0.11(esbuild@0.28.0)(jiti@2.7.0)(yaml@2.8.4))
 
 packages:
 
@@ -1777,8 +1777,8 @@ packages:
   uri-js@4.4.1:
     resolution: {integrity: sha512-7rKUyy33Q1yc98pQ1DAmLtwX109F7TIfWlW1Ydo8Wl1ii1SeHieeh0HHfPeL2fMXK6z0s8ecKs9frCuLJvndBg==}
 
-  vite-plugin-monkey@8.0.2:
-    resolution: {integrity: sha512-K2jgAdOXy1dxuy/EriZleGjxDiCdB26PSli1K+/40l5LEFsMlJdMPSbEpLnyH0B5FYlZMhmyOQTHtdVLC5+cTA==}
+  vite-plugin-monkey@8.0.5:
+    resolution: {integrity: sha512-2ByJCxGEebg6ElEbBkor1RNXtk7PgbfRT1CGmTO13P4wtYPIcMat5c2uN6eMX6t1eB1URG23Ioh1ZM/bDUAmDw==}
     peerDependencies:
       vite: ^8.0.0
     peerDependenciesMeta:
@@ -3304,7 +3304,7 @@ snapshots:
     dependencies:
       punycode: 2.3.1
 
-  vite-plugin-monkey@8.0.2(postcss@8.5.14)(vite@8.0.11(esbuild@0.28.0)(jiti@2.7.0)(yaml@2.8.4)):
+  vite-plugin-monkey@8.0.5(postcss@8.5.14)(vite@8.0.11(esbuild@0.28.0)(jiti@2.7.0)(yaml@2.8.4)):
     dependencies:
       acorn-walk: 8.3.5
       cross-spawn: 7.0.6

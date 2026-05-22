@@ -1,0 +1,41 @@
+.artist-copy-btn,
+.other-names-toggle-btn {
+  background-color: var(--link-color);
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-size: var(--text-sm);
+}
+
+.artist-copy-btn:hover,
+.other-names-toggle-btn:hover {
+  background-color: var(--link-hover-color) !important;
+}
+
+.artist-copy-btn.copied {
+  background-color: var(--success-color);
+}
+
+#pending-bur-section .pending-bur {
+  color: var(--warning-color);
+}
+
+.other-names-wrapper {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.other-names-wrapper > #artist_other_names_string {
+  flex: 1;
+}
+
+.other-names-toggle-btn {
+  padding: 0 0.75rem;
+  flex-shrink: 0;
+  max-height: 2.25em;
+}
+
+form.simple_form div.input .hint {
+  padding-left: 0 !important;
+}

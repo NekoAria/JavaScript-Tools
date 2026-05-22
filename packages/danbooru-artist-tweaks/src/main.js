@@ -1,16 +1,15 @@
-// Extract artist tag name from page
+import cssText from './style.css?raw';
+
 const getArtistTagName = () => {
   const tagElement = document.querySelector('.tag-type-1.heading.text-xl');
 
   if (tagElement) {
-    // Get text content and replace spaces with underscores
     return tagElement.textContent.trim().replaceAll(/\s+/g, '_');
   }
 
   return null;
 };
 
-// Create copy button element
 const createCopyButton = (tagName) => {
   const button = document.createElement('button');
 
@@ -23,7 +22,7 @@ const createCopyButton = (tagName) => {
     try {
       await navigator.clipboard.writeText(tagName);
 
-      // Show "copied" feedback for 500ms
+      // Briefly confirm the clipboard write without changing layout.
       const originalText = button.textContent;
 
       button.textContent = 'copied!';
@@ -41,7 +40,6 @@ const createCopyButton = (tagName) => {
   return button;
 };
 
-// Create Create wiki link element
 const createWikiLinkElement = (tagName) => {
   const { hostname } = globalThis.location;
   const link = document.createElement('a');
@@ -53,7 +51,6 @@ const createWikiLinkElement = (tagName) => {
   return link;
 };
 
-// Replace wiki links with bulk update request links for tag aliases
 const replaceWikiLinksWithBulkUpdateRequests = () => {
   const fineprintLinks = document.querySelectorAll('p.fineprint a');
 
@@ -61,7 +58,7 @@ const replaceWikiLinksWithBulkUpdateRequests = () => {
     const href = link.getAttribute('href');
 
     if (href && href.startsWith('/wiki_pages/') && href !== '/wiki_pages/help:tag_aliases') {
-      // Extract the tag name after /wiki_pages/
+      // Keep the tag alias help page intact; other wiki links point to alias targets.
       const tagName = href.replace('/wiki_pages/', '');
       const newHref = `/bulk_update_requests?commit=search[status]=approved&search[tags_include_any]=${tagName}`;
 
@@ -70,7 +67,6 @@ const replaceWikiLinksWithBulkUpdateRequests = () => {
   }
 };
 
-// Fetch pending BURs for the given tag name
 const fetchPendingBURs = async (tagName) => {
   const { origin } = globalThis.location;
   const url = `${origin}/bulk_update_requests.json?search[status]=pending&search[tags_include_any]=${tagName}`;
@@ -90,9 +86,8 @@ const fetchPendingBURs = async (tagName) => {
   }
 };
 
-// Render pending BURs below existing fineprint paragraphs
 const renderPendingBURs = (burs) => {
-  // Remove any previously rendered pending BUR section to avoid duplicates
+  // Remove any previously rendered pending BUR section to avoid duplicates.
   document.querySelector('#pending-bur-section')?.remove();
 
   if (burs.length === 0) {
@@ -110,14 +105,12 @@ const renderPendingBURs = (burs) => {
 
     p.className = 'fineprint pending-bur';
 
-    // BUR detail link
     const burLink = document.createElement('a');
 
     burLink.className = 'wiki-link';
     burLink.href = `${origin}/bulk_update_requests/${bur.id}`;
     burLink.textContent = `BUR #${bur.id}`;
 
-    // Forum post link (if available)
     const forumLink = bur.forum_post_id
       ? (() => {
           const a = document.createElement('a');
@@ -130,7 +123,6 @@ const renderPendingBURs = (burs) => {
         })()
       : null;
 
-    // Build: ⏳ Pending BUR #N: <script> (forum topic #N)
     p.append(document.createTextNode('⏳ Pending '));
     p.append(burLink);
     p.append(document.createTextNode(`: ${bur.script}`));
@@ -143,7 +135,7 @@ const renderPendingBURs = (burs) => {
     section.append(p);
   }
 
-  // Insert after the last fineprint paragraph, or after the artist info block
+  // Insert after the last fineprint paragraph, or after the artist info block.
   const fineprintParagraphs = document.querySelectorAll('p.fineprint');
   const insertAfter =
     fineprintParagraphs.length > 0
@@ -153,45 +145,20 @@ const renderPendingBURs = (burs) => {
   insertAfter?.insertAdjacentElement('afterend', section);
 };
 
-// Fetch and display pending BURs
 const addPendingBURs = async (tagName) => {
   const burs = await fetchPendingBURs(tagName);
 
   renderPendingBURs(burs);
 };
 
-// Add styles for the copy button and pending BURs
 const addStyles = () => {
   const style = document.createElement('style');
 
-  style.textContent = `
-      .artist-copy-btn {
-        background-color: var(--link-color);
-        color: white;
-        border: none;
-        cursor: pointer;
-        transition: background-color 0.2s;
-        font-size: var(--text-sm);
-      }
-
-      .artist-copy-btn:hover {
-        background-color: var(--link-hover-color) !important;
-      }
-
-      .artist-copy-btn.copied {
-        background-color: var(--success-color) !important;
-      }
-
-      #pending-bur-section .pending-bur {
-        color: var(--warning-color);
-      }
-    `;
+  style.textContent = cssText;
   document.head.append(style);
 };
 
-// Add copy button to artist name section
 const addCopyButton = () => {
-  // Check if copy button already exists
   if (document.querySelector('.artist-copy-btn')) {
     return;
   }
@@ -203,9 +170,7 @@ const addCopyButton = () => {
   artistContainer.append(copyButton);
 };
 
-// Main function to add Create wiki link
 const addCreateWikiLink = () => {
-  // Check if Edit wiki link already exists
   const existingWikiLink = document.querySelector('#view-wiki-link');
 
   if (existingWikiLink) {
@@ -215,7 +180,6 @@ const addCreateWikiLink = () => {
   const editArtistLink = document.querySelector('#view-artist-link');
   const tagName = getArtistTagName();
 
-  // Create and insert Create wiki link
   const wikiLink = createWikiLinkElement(tagName);
   const separator = document.createTextNode(' | ');
 
@@ -223,14 +187,12 @@ const addCreateWikiLink = () => {
   editArtistLink.before(separator);
 };
 
-// Extract artist_id from URL search params
 const getArtistIdFromURL = () => {
   const params = new URLSearchParams(globalThis.location.search);
 
   return params.get('search[artist_id]');
 };
 
-// Fetch unrecognized external hostnames (globe-icon) from the artist page
 const fetchArtistUnrecognizedHostnames = async (artistId) => {
   const { origin } = globalThis.location;
   const url = `${origin}/artists/${artistId}`;
@@ -248,7 +210,7 @@ const fetchArtistUnrecognizedHostnames = async (artistId) => {
     const hostnameSet = new Set();
 
     for (const li of doc.querySelectorAll('li')) {
-      // globe-icon indicates an unrecognized external site
+      // The globe icon marks an unrecognized external site.
       if (li.querySelector('.globe-icon')) {
         for (const a of li.querySelectorAll('a[href]')) {
           const href = a.getAttribute('href');
@@ -266,7 +228,6 @@ const fetchArtistUnrecognizedHostnames = async (artistId) => {
   }
 };
 
-// Prepend 🌐 marker to an element if its text contains an unrecognized hostname
 const prependGlobeIfUnrecognized = (element, hostnameSet, { inside = false } = {}) => {
   const urlText = element.textContent.trim().replace(/^-/, '');
   const { hostname } = new URL(urlText);
@@ -293,7 +254,6 @@ const prependGlobeIfUnrecognized = (element, hostnameSet, { inside = false } = {
   }
 };
 
-// Highlight hostnames in the versions table that match the unrecognized set
 const highlightUnrecognizedHostnamesInVersions = (hostnameSet) => {
   if (hostnameSet.size === 0) {
     return;
@@ -301,7 +261,7 @@ const highlightUnrecognizedHostnamesInVersions = (hostnameSet) => {
 
   for (const li of document.querySelectorAll('#artist-versions-table .urls-column li')) {
     if (li.classList.contains('changed')) {
-      // Insert 🌐 before each span individually
+      // Changed rows wrap removed and added URLs in separate spans.
       for (const span of li.querySelectorAll('span.removed, span.added')) {
         prependGlobeIfUnrecognized(span, hostnameSet);
       }
@@ -311,21 +271,19 @@ const highlightUnrecognizedHostnamesInVersions = (hostnameSet) => {
   }
 };
 
-// Check for unmigrated posts after artist rename
 const checkUnmigratedPostsOnRename = async (artistId) => {
-  // DOM pre-check: need at least 2 rows
   const rows = document.querySelectorAll('#artist-versions-table tbody tr');
 
   if (rows.length < 2) {
     return;
   }
 
-  // Find the most recent rename row
   let renameIndex = -1;
 
   for (const [i, row] of rows.entries()) {
     const nameColumn = row.querySelector('.name-column');
 
+    // Danbooru marks renamed artist names with bold text in the name column.
     if (nameColumn?.querySelector('b')) {
       renameIndex = i;
       break;
@@ -347,14 +305,14 @@ const checkUnmigratedPostsOnRename = async (artistId) => {
     }
     const versions = await response.json();
 
-    // Old name is from the version after the rename row
+    // In the API response, the version after the rename row contains the old name.
     const oldName = versions[renameIndex + 1]?.name;
 
     if (!oldName) {
       return;
     }
 
-    // Check if posts still tagged with old name (not yet migrated by BUR)
+    // Check for posts that still have the old artist tag after a rename.
     const postsUrl = `${origin}/posts.json?tags=${oldName}&limit=1`;
     const postsResponse = await fetch(postsUrl);
 
@@ -375,7 +333,6 @@ const checkUnmigratedPostsOnRename = async (artistId) => {
   }
 };
 
-// Render warning about unmigrated posts above Artist History heading
 const renderUnmigratedPostsWarning = (oldName) => {
   document.querySelector('#unmigrated-posts-warning')?.remove();
 
@@ -388,7 +345,7 @@ const renderUnmigratedPostsWarning = (oldName) => {
 
   const span = document.createElement('span');
 
-  span.append(document.createTextNode('⚠️ There are posts still tagged with old name '));
+  span.append(document.createTextNode('⚠️ There may still be posts tagged with the old name: '));
 
   const postLink = document.createElement('a');
 
@@ -405,7 +362,119 @@ const renderUnmigratedPostsWarning = (oldName) => {
   }
 };
 
-// Initialize the script
+const otherNamesAttrsToCopy = ['name', 'id', 'placeholder', 'required'];
+
+const normalizeOtherNamesValue = (value) => value.replaceAll(/\s+/g, ' ').trim();
+
+const getOtherNamesLines = (value) => value.trim().split(/\s+/).filter(Boolean);
+
+const copyOtherNamesAttrs = (from, to) => {
+  // Keep form binding attributes when switching between input and textarea.
+  for (const attrName of otherNamesAttrsToCopy) {
+    const value = from.getAttribute(attrName);
+
+    if (value !== null) {
+      to.setAttribute(attrName, value);
+    }
+  }
+};
+
+const normalizeOtherNamesField = (field) => {
+  if (field?.tagName === 'TEXTAREA') {
+    field.value = normalizeOtherNamesValue(field.value);
+  }
+};
+
+const createOtherNamesInput = (current) => {
+  const input = document.createElement('input');
+
+  copyOtherNamesAttrs(current, input);
+  input.type = 'text';
+  input.className = 'w-full max-w-360px string optional iac-autocomplete';
+  input.value = normalizeOtherNamesValue(current.value);
+
+  return input;
+};
+
+const createOtherNamesTextarea = (current, form) => {
+  const textarea = document.createElement('textarea');
+
+  copyOtherNamesAttrs(current, textarea);
+  textarea.className = 'text optional iac-autocomplete';
+
+  const lines = getOtherNamesLines(current.value);
+
+  textarea.value = lines.join('\n');
+  textarea.rows = Math.min(20, Math.max(4, lines.length + 1));
+  textarea.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      form?.requestSubmit();
+    }
+  });
+
+  return textarea;
+};
+
+// Toggle other_names between compact input and multi-line textarea modes.
+const addOtherNamesToggleButton = () => {
+  const field = document.querySelector('#artist_other_names_string');
+
+  if (!field || document.querySelector('#other-names-toggle-btn')) {
+    return;
+  }
+
+  const form = field.closest('form');
+
+  // Wrap the field so the toggle button stays aligned to the right.
+  const wrapper = document.createElement('div');
+
+  wrapper.className = 'other-names-wrapper';
+  field.before(wrapper);
+  wrapper.append(field);
+
+  const button = document.createElement('button');
+
+  button.id = 'other-names-toggle-btn';
+  button.type = 'button';
+  button.className = 'other-names-toggle-btn';
+  button.textContent = 'expand';
+  button.title = 'Toggle multi-line view';
+  wrapper.append(button);
+
+  button.addEventListener('click', (e) => {
+    e.preventDefault();
+
+    const current = wrapper.querySelector('#artist_other_names_string');
+
+    if (!current) {
+      console.warn('Other names field not found inside wrapper.');
+      button.disabled = true;
+
+      return;
+    }
+
+    const isTextarea = current.tagName === 'TEXTAREA';
+
+    const nextField = isTextarea
+      ? createOtherNamesInput(current)
+      : createOtherNamesTextarea(current, form);
+
+    current.replaceWith(nextField);
+    button.textContent = isTextarea ? 'expand' : 'collapse';
+  });
+
+  // Safety net: normalize back to space-separated on form submit,
+  // in case the user submits while still in textarea mode.
+  form?.addEventListener(
+    'submit',
+    () => {
+      normalizeOtherNamesField(wrapper.querySelector('#artist_other_names_string'));
+    },
+    { capture: true },
+  );
+};
+
 const init = () => {
   addStyles();
 
@@ -417,6 +486,13 @@ const init = () => {
       fetchArtistUnrecognizedHostnames(artistId).then(highlightUnrecognizedHostnamesInVersions);
       checkUnmigratedPostsOnRename(artistId);
     }
+
+    return;
+  }
+
+  // Artist new/edit page: expose a multi-line editor for other names.
+  if (document.querySelector('#artist_other_names_string')) {
+    addOtherNamesToggleButton();
 
     return;
   }
@@ -433,7 +509,6 @@ const init = () => {
   }
 };
 
-// Execute after page loads
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
 } else {

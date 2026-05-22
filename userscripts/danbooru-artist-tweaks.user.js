@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         Danbooru Artist Tweaks
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      1.0.2
+// @version      1.0.3
 // @author       Neko_Aria
-// @description  Add Create wiki link for artist pages without wiki page, copy artist name button, replace wiki links with bulk update request links for tag aliases, show pending BURs, highlight unrecognized external hostnames in artist versions, and warn about unmigrated posts on artist rename
+// @description  Add Create wiki link for artist pages without wiki page, copy artist name button, replace wiki links with bulk update request links for tag aliases, show pending BURs, highlight unrecognized external hostnames in artist versions, provide an expandable multi-line editor for the artist "Other Names" field, and warn about unmigrated posts on artist rename
 // @downloadURL  https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts/danbooru-artist-tweaks.user.js
 // @updateURL    https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts/danbooru-artist-tweaks.user.js
 // @match        *://*.donmai.us/artists/*
@@ -12,7 +12,9 @@
 // ==/UserScript==
 
 (function() {
-var getArtistTagName = () => {
+  'use strict';
+	var style_default = ".artist-copy-btn,\n.other-names-toggle-btn {\n  background-color: var(--link-color);\n  color: white;\n  border: none;\n  cursor: pointer;\n  transition: background-color 0.2s;\n  font-size: var(--text-sm);\n}\n\n.artist-copy-btn:hover,\n.other-names-toggle-btn:hover {\n  background-color: var(--link-hover-color) !important;\n}\n\n.artist-copy-btn.copied {\n  background-color: var(--success-color);\n}\n\n#pending-bur-section .pending-bur {\n  color: var(--warning-color);\n}\n\n.other-names-wrapper {\n  display: flex;\n  gap: 0.5rem;\n}\n\n.other-names-wrapper > #artist_other_names_string {\n  flex: 1;\n}\n\n.other-names-toggle-btn {\n  padding: 0 0.75rem;\n  flex-shrink: 0;\n  max-height: 2.25em;\n}\n\nform.simple_form div.input .hint {\n  padding-left: 0 !important;\n}\n";
+	var getArtistTagName = () => {
 		const tagElement = document.querySelector(".tag-type-1.heading.text-xl");
 		if (tagElement) return tagElement.textContent.trim().replaceAll(/\s+/g, "_");
 		return null;
@@ -107,28 +109,7 @@ var getArtistTagName = () => {
 	};
 	var addStyles = () => {
 		const style = document.createElement("style");
-		style.textContent = `
-      .artist-copy-btn {
-        background-color: var(--link-color);
-        color: white;
-        border: none;
-        cursor: pointer;
-        transition: background-color 0.2s;
-        font-size: var(--text-sm);
-      }
-
-      .artist-copy-btn:hover {
-        background-color: var(--link-hover-color) !important;
-      }
-
-      .artist-copy-btn.copied {
-        background-color: var(--success-color) !important;
-      }
-
-      #pending-bur-section .pending-bur {
-        color: var(--warning-color);
-      }
-    `;
+		style.textContent = style_default;
 		document.head.append(style);
 	};
 	var addCopyButton = () => {
@@ -212,7 +193,7 @@ var getArtistTagName = () => {
 		section.id = "unmigrated-posts-warning";
 		section.className = "notice notice-info flex text-center items-center justify-center gap-2";
 		const span = document.createElement("span");
-		span.append(document.createTextNode("⚠️ There are posts still tagged with old name "));
+		span.append(document.createTextNode("⚠️ There may still be posts tagged with the old name: "));
 		const postLink = document.createElement("a");
 		postLink.href = `${origin}/posts?tags=${oldName}`;
 		postLink.textContent = oldName;
@@ -220,6 +201,78 @@ var getArtistTagName = () => {
 		section.append(span);
 		const h1 = document.querySelector("h1");
 		if (h1) h1.before(section);
+	};
+	var otherNamesAttrsToCopy = [
+		"name",
+		"id",
+		"placeholder",
+		"required"
+	];
+	var normalizeOtherNamesValue = (value) => value.replaceAll(/\s+/g, " ").trim();
+	var getOtherNamesLines = (value) => value.trim().split(/\s+/).filter(Boolean);
+	var copyOtherNamesAttrs = (from, to) => {
+		for (const attrName of otherNamesAttrsToCopy) {
+			const value = from.getAttribute(attrName);
+			if (value !== null) to.setAttribute(attrName, value);
+		}
+	};
+	var normalizeOtherNamesField = (field) => {
+		if (field?.tagName === "TEXTAREA") field.value = normalizeOtherNamesValue(field.value);
+	};
+	var createOtherNamesInput = (current) => {
+		const input = document.createElement("input");
+		copyOtherNamesAttrs(current, input);
+		input.type = "text";
+		input.className = "w-full max-w-360px string optional iac-autocomplete";
+		input.value = normalizeOtherNamesValue(current.value);
+		return input;
+	};
+	var createOtherNamesTextarea = (current, form) => {
+		const textarea = document.createElement("textarea");
+		copyOtherNamesAttrs(current, textarea);
+		textarea.className = "text optional iac-autocomplete";
+		const lines = getOtherNamesLines(current.value);
+		textarea.value = lines.join("\n");
+		textarea.rows = Math.min(20, Math.max(4, lines.length + 1));
+		textarea.addEventListener("keydown", (e) => {
+			if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+				e.preventDefault();
+				form?.requestSubmit();
+			}
+		});
+		return textarea;
+	};
+	var addOtherNamesToggleButton = () => {
+		const field = document.querySelector("#artist_other_names_string");
+		if (!field || document.querySelector("#other-names-toggle-btn")) return;
+		const form = field.closest("form");
+		const wrapper = document.createElement("div");
+		wrapper.className = "other-names-wrapper";
+		field.before(wrapper);
+		wrapper.append(field);
+		const button = document.createElement("button");
+		button.id = "other-names-toggle-btn";
+		button.type = "button";
+		button.className = "other-names-toggle-btn";
+		button.textContent = "expand";
+		button.title = "Toggle multi-line view";
+		wrapper.append(button);
+		button.addEventListener("click", (e) => {
+			e.preventDefault();
+			const current = wrapper.querySelector("#artist_other_names_string");
+			if (!current) {
+				console.warn("Other names field not found inside wrapper.");
+				button.disabled = true;
+				return;
+			}
+			const isTextarea = current.tagName === "TEXTAREA";
+			const nextField = isTextarea ? createOtherNamesInput(current) : createOtherNamesTextarea(current, form);
+			current.replaceWith(nextField);
+			button.textContent = isTextarea ? "expand" : "collapse";
+		});
+		form?.addEventListener("submit", () => {
+			normalizeOtherNamesField(wrapper.querySelector("#artist_other_names_string"));
+		}, { capture: true });
 	};
 	var init = () => {
 		addStyles();
@@ -229,6 +282,10 @@ var getArtistTagName = () => {
 				fetchArtistUnrecognizedHostnames(artistId).then(highlightUnrecognizedHostnamesInVersions);
 				checkUnmigratedPostsOnRename(artistId);
 			}
+			return;
+		}
+		if (document.querySelector("#artist_other_names_string")) {
+			addOtherNamesToggleButton();
 			return;
 		}
 		addCopyButton();

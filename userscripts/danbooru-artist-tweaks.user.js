@@ -4,8 +4,8 @@
 // @version      1.0.3
 // @author       Neko_Aria
 // @description  Add Create wiki link for artist pages without wiki page, copy artist name button, replace wiki links with bulk update request links for tag aliases, show pending BURs, highlight unrecognized external hostnames in artist versions, provide an expandable multi-line editor for the artist "Other Names" field, and warn about unmigrated posts on artist rename
-// @downloadURL  https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts/danbooru-artist-tweaks.user.js
-// @updateURL    https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts/danbooru-artist-tweaks.user.js
+// @homepageURL  https://github.com/NekoAria/JavaScript-Tools/tree/main/packages/danbooru-artist-tweaks
+// @supportURL   https://github.com/NekoAria/JavaScript-Tools/issues
 // @match        *://*.donmai.us/artists/*
 // @match        *://*.donmai.us/artist_versions*
 // @grant        none

@@ -4,8 +4,8 @@
 // @version      1.0.0
 // @author       Neko_Aria
 // @description  Automatically convert DeviantArt /view/c/[base36] URLs to /view/[base10]
-// @downloadURL  https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts/deviantart-base36-auto-converter.user.js
-// @updateURL    https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts/deviantart-base36-auto-converter.user.js
+// @homepageURL  https://github.com/NekoAria/JavaScript-Tools/tree/main/packages/deviantart-base36-auto-converter
+// @supportURL   https://github.com/NekoAria/JavaScript-Tools/issues
 // @match        https://www.deviantart.com/view/c/*
 // @match        https://deviantart.com/view/c/*
 // @grant        none

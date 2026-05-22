@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import monkey from 'vite-plugin-monkey';
 
-import { USERSCRIPT_BASE_URL } from './constants.js';
+import { ISSUE_URL, REPOSITORY_URL } from './constants.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const userscriptsDir = path.resolve(__dirname, '..', 'userscripts');
@@ -28,8 +28,8 @@ export function defineMonkeyConfig({ name, entry = 'src/main.js', userscript }) 
       monkey({
         entry,
         userscript: {
-          downloadURL: `${USERSCRIPT_BASE_URL}/${name}.user.js`,
-          updateURL: `${USERSCRIPT_BASE_URL}/${name}.user.js`,
+          homepageURL: `${REPOSITORY_URL}/tree/main/packages/${name}`,
+          supportURL: ISSUE_URL,
           ...userscript,
         },
       }),

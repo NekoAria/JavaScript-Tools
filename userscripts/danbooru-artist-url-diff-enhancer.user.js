@@ -4,8 +4,8 @@
 // @version      1.0.0
 // @author       Neko_Aria
 // @description  Enhance artist version diff lists with smart URL matching and character-level diff highlighting
-// @downloadURL  https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts/danbooru-artist-url-diff-enhancer.user.js
-// @updateURL    https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts/danbooru-artist-url-diff-enhancer.user.js
+// @homepageURL  https://github.com/NekoAria/JavaScript-Tools/tree/main/packages/danbooru-artist-url-diff-enhancer
+// @supportURL   https://github.com/NekoAria/JavaScript-Tools/issues
 // @match        *://*.donmai.us/artist_versions*
 // @grant        none
 // ==/UserScript==

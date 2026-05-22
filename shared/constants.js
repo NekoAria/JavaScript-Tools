@@ -1,10 +1,3 @@
-/**
- * Shared constants for all userscripts
- */
+export const REPOSITORY_URL = 'https://github.com/NekoAria/JavaScript-Tools';
 
-/**
- * Base URL for userscript download and update URLs
- * @type {string}
- */
-export const USERSCRIPT_BASE_URL =
-  'https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts';
+export const ISSUE_URL = `${REPOSITORY_URL}/issues`;

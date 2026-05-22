@@ -4,8 +4,8 @@
 // @version      2.0.1
 // @author       Neko_Aria
 // @description  Compare images on Danbooru / Yande.re / Konachan with multiple modes and transformations
-// @downloadURL  https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts/booru-image-comparator.user.js
-// @updateURL    https://github.com/NekoAria/JavaScript-Tools/raw/refs/heads/main/userscripts/booru-image-comparator.user.js
+// @homepageURL  https://github.com/NekoAria/JavaScript-Tools/tree/main/packages/booru-image-comparator
+// @supportURL   https://github.com/NekoAria/JavaScript-Tools/issues
 // @match        *://*.donmai.us/iqdb_queries*
 // @match        *://*.donmai.us/posts/*
 // @match        *://*.donmai.us/uploads/*

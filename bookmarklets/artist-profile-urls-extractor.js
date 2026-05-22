@@ -287,6 +287,27 @@ javascript: void (async () => {
     return createProfileResult(primaryUrl, secondaryUrl);
   };
 
+  const handleRule34 = async () => {
+    const usernameElement = document.querySelector('#content > h2');
+    const username = usernameElement?.textContent?.trim();
+
+    const idLink = document.querySelector(
+      'a[href*="s=tag_edits"][href*="id="], ' +
+        'a[href*="page=favorites"][href*="id="], ' +
+        'a[href*="s=report"][href*="user_id="]',
+    );
+    const userId = idLink?.getAttribute('href')?.match(/(?:user_)?id=(\d+)/)?.[1];
+
+    if (!username || !userId) {
+      throw new Error(utils.userNotFoundError('Rule34'));
+    }
+
+    const primaryUrl = `https://rule34.xxx/index.php?page=account&s=profile&uname=${username}`;
+    const secondaryUrl = `https://rule34.xxx/index.php?page=account&s=profile&id=${userId}`;
+
+    return createProfileResult(primaryUrl, secondaryUrl);
+  };
+
   const handleTwitter = async () => {
     const scriptTag = document.querySelector("script[type='application/ld+json']");
 
@@ -554,6 +575,7 @@ javascript: void (async () => {
     'fantia.jp': handleFantia,
     'inkbunny.net': handleInkbunny,
     'ko-fi.com': handleKoFi,
+    'rule34.xxx': handleRule34,
     'tieba.baidu.com': handleTieba,
     'www.facebook.com': handleFacebook,
     'www.patreon.com': handlePatreon,

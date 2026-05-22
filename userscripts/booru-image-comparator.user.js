@@ -17,7 +17,8 @@
 // ==/UserScript==
 
 (function() {
-var STORAGE_KEY_MODE = "universal_comparator_mode";
+  'use strict';
+	var STORAGE_KEY_MODE = "universal_comparator_mode";
 	var STORAGE_KEY_BACKGROUND = "universal_comparator_background";
 	var MODES = {
 		SIDE_BY_SIDE: "side-by-side",
@@ -38,8 +39,8 @@ var STORAGE_KEY_MODE = "universal_comparator_mode";
 		Child: 3
 	};
 	var style_default = "/* ============================================================\n   Design tokens\n   ============================================================ */\n.comparator {\n  --sp-0-5: 0.125rem;\n  --sp-1: 0.25rem;\n  --sp-1-5: 0.375rem;\n  --sp-2: 0.5rem;\n  --sp-3: 0.75rem;\n  --sp-4: 1rem;\n  --sp-5: 1.25rem;\n\n  --grey-0: oklch(98.5% 0 0);\n  --grey-1: oklch(97% 0 0);\n  --grey-2: oklch(92.2% 0 0);\n  --grey-3: oklch(87% 0 0);\n  --grey-4: oklch(70.8% 0 0);\n  --grey-5: oklch(55.6% 0 0);\n  --grey-6: oklch(43.9% 0 0);\n  --grey-7: oklch(37.1% 0 0);\n  --grey-8: oklch(26.9% 0 0);\n  --grey-9: oklch(20.5% 0 0);\n  --grey-10: oklch(14.5% 0 0);\n\n  --accent: oklch(62.3% 0.214 259.815);\n  --ring: oklch(62.3% 0.214 259.815 / 25%);\n  --text-muted: var(--grey-2);\n  --ease: 120ms ease-out;\n  --divider-width: var(--sp-1);\n  --radius: var(--sp-1);\n  --border: 1px solid var(--grey-7);\n  --border-in: 1px solid var(--grey-6);\n\n  --z-header: 10001;\n  --z-overlay: 10002;\n  --z-slider: 10003;\n\n  display: flex;\n  flex-direction: column;\n  position: fixed;\n  inset: 0;\n  z-index: 10000;\n  background: var(--grey-10);\n  color: var(--grey-0);\n  font:\n    0.875rem/1.5 Verdana,\n    system-ui,\n    -apple-system,\n    Helvetica,\n    sans-serif;\n  overflow: hidden;\n  box-sizing: border-box;\n\n  &,\n  & *,\n  & *::before,\n  & *::after {\n    box-sizing: border-box;\n  }\n\n  outline: none;\n\n  @media (prefers-reduced-motion: reduce) {\n    --ease: 0ms;\n  }\n}\n\n/* Header */\n.header {\n  display: flex;\n  flex-direction: column;\n  gap: var(--sp-2);\n  z-index: var(--z-header);\n  background: var(--grey-9);\n  border-bottom: var(--border);\n  padding: var(--sp-2) var(--sp-3);\n}\n\n.primary-controls {\n  display: flex;\n  align-items: center;\n  gap: var(--sp-2);\n  flex-wrap: wrap;\n  justify-content: space-between;\n  width: 100%;\n}\n\n.right-controls {\n  display: flex;\n  align-items: center;\n  gap: var(--sp-2);\n  margin-left: auto;\n}\n\n.mode-label {\n  color: var(--text-muted);\n}\n\n.post-info {\n  color: var(--text-muted);\n  font-size: 0.75rem;\n}\n\n/* Form control */\n.form-control {\n  appearance: none;\n  background: var(--grey-8);\n  border: var(--border-in);\n  border-radius: var(--radius);\n  color: var(--grey-0);\n  padding: var(--sp-0-5) var(--sp-2);\n  font: inherit;\n  outline: none;\n  transition:\n    border-color var(--ease),\n    box-shadow var(--ease);\n\n  @media (hover: hover) {\n    &:hover {\n      border-color: var(--grey-5);\n    }\n  }\n\n  &:focus-visible {\n    border-color: var(--accent);\n    box-shadow: 0 0 0 2px var(--ring);\n  }\n}\n\n.form-control::placeholder {\n  color: var(--grey-4);\n}\n\n.id-input {\n  width: 10rem;\n}\n\n/* Buttons */\n.btn {\n  appearance: none;\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  gap: var(--sp-1);\n  border: var(--border);\n  border-radius: var(--radius);\n  background: var(--grey-8);\n  color: var(--grey-1);\n  padding: var(--sp-0-5) var(--sp-2);\n  font: inherit;\n  line-height: 1.25;\n  white-space: nowrap;\n  cursor: pointer;\n  outline: none;\n  transition:\n    background var(--ease),\n    border-color var(--ease),\n    color var(--ease),\n    box-shadow var(--ease);\n\n  @media (hover: hover) {\n    &:hover {\n      background: var(--grey-7);\n      border-color: var(--grey-6);\n      color: var(--grey-0);\n    }\n  }\n\n  &:active {\n    background: var(--grey-6);\n  }\n  &:disabled {\n    opacity: 0.5;\n    cursor: not-allowed;\n    pointer-events: none;\n  }\n\n  &:focus-visible {\n    border-color: var(--accent);\n    box-shadow: 0 0 0 2px var(--ring);\n  }\n\n  &.btn-close {\n    background: var(--grey-9);\n    font-size: 1.25rem;\n    line-height: 1;\n    padding: var(--sp-0-5) var(--sp-1);\n\n    @media (hover: hover) {\n      &:hover {\n        background: oklch(100% 0 0 / 8%);\n        color: var(--grey-0);\n      }\n    }\n  }\n}\n\n/* Range */\n.comparator input[type='range'] {\n  appearance: none;\n  height: var(--sp-1);\n  border-radius: calc(var(--sp-1) / 2);\n  background: var(--grey-7);\n  outline: none;\n  cursor: pointer;\n\n  &::-webkit-slider-thumb {\n    appearance: none;\n    width: var(--sp-4);\n    height: var(--sp-4);\n    border-radius: 50%;\n    background: var(--grey-1);\n    border: 2px solid var(--grey-6);\n    cursor: pointer;\n    transition: border-color var(--ease);\n    @media (hover: hover) {\n      &:hover {\n        border-color: var(--accent);\n      }\n    }\n  }\n\n  &::-moz-range-track {\n    height: var(--sp-1);\n    border-radius: calc(var(--sp-1) / 2);\n    background: var(--grey-7);\n  }\n\n  &::-moz-range-thumb {\n    width: var(--sp-4);\n    height: var(--sp-4);\n    border-radius: 50%;\n    background: var(--grey-1);\n    border: 2px solid var(--grey-6);\n    cursor: pointer;\n    transition: border-color var(--ease);\n    @media (hover: hover) {\n      &:hover {\n        border-color: var(--accent);\n      }\n    }\n  }\n}\n\n.range-control {\n  width: 7.5rem;\n  margin-right: var(--sp-1-5);\n}\n\n.range-value {\n  width: 3em;\n  text-align: center;\n  color: var(--text-muted);\n  font-variant-numeric: tabular-nums;\n}\n\n.comparator label {\n  display: inline-flex;\n  align-items: center;\n  gap: var(--sp-1);\n  color: var(--text-muted);\n  font-weight: normal;\n  font-size: inherit;\n  cursor: default;\n}\n\n/* Controls row */\n.controls-row {\n  display: flex;\n  flex-wrap: wrap;\n  align-items: center;\n  gap: var(--sp-4);\n  width: 100%;\n}\n\n.transform-group {\n  display: flex;\n  align-items: center;\n  gap: var(--sp-1-5);\n  margin-left: auto;\n}\n\n.control-group {\n  display: flex;\n  align-items: center;\n  gap: var(--sp-1-5);\n}\n\n/* Select wrapper */\n.select-wrapper,\n.post-selector {\n  position: relative;\n  display: inline-flex;\n  align-items: center;\n\n  & > select {\n    padding-right: var(--sp-5);\n    cursor: pointer;\n  }\n\n  &::after {\n    content: '';\n    position: absolute;\n    right: var(--sp-2);\n    top: 50%;\n    width: var(--sp-2);\n    height: var(--sp-2);\n    border-right: 1.5px solid var(--text-muted);\n    border-bottom: 1.5px solid var(--text-muted);\n    transform: translateY(-50%) rotate(45deg) translate(-1px, -1px);\n    pointer-events: none;\n  }\n}\n\n/* Content area */\n.content {\n  display: flex;\n  position: relative;\n  flex: 1;\n  min-height: 0;\n  overflow: hidden;\n}\n\n.comparison-side {\n  display: flex;\n  position: relative;\n  flex: 1;\n  justify-content: center;\n  align-items: center;\n  min-height: 0;\n  overflow: hidden;\n\n  & .sync-pan {\n    position: relative;\n  }\n}\n\n.divider {\n  background: var(--grey-6);\n  width: var(--divider-width);\n  align-self: stretch;\n  cursor: default;\n  transition: background var(--ease);\n  @media (hover: hover) {\n    &:hover {\n      background: var(--accent);\n    }\n  }\n}\n\n/* Overlay */\n.overlay-container {\n  position: absolute;\n  inset: 0;\n  z-index: var(--z-overlay);\n  overflow: hidden;\n\n  &.is-inverted {\n    filter: invert(1);\n  }\n\n  & .sync-pan {\n    position: absolute;\n    top: 0;\n    left: 0;\n  }\n\n  &[data-bg='black'] {\n    background: var(--grey-10);\n  }\n  &[data-bg='grey'] {\n    background: var(--grey-5);\n  }\n  &[data-bg='white'] {\n    background: var(--grey-0);\n  }\n}\n\n#comparison-content[data-bg='black'] {\n  background: var(--grey-10);\n}\n#comparison-content[data-bg='grey'] {\n  background: var(--grey-5);\n}\n#comparison-content[data-bg='white'] {\n  background: var(--grey-0);\n}\n\n/* Slider */\n.comparison-slider {\n  position: absolute;\n  top: 0;\n  bottom: 0;\n  z-index: var(--z-slider);\n  background: var(--grey-0);\n  width: var(--divider-width);\n  cursor: col-resize;\n\n  &::after {\n    content: '';\n    position: absolute;\n    top: 50%;\n    left: 50%;\n    transform: translate(-50%, -50%);\n    width: 2rem;\n    height: 2rem;\n    border-radius: 50%;\n    background: var(--grey-0);\n    border: 1px solid var(--grey-4);\n    box-shadow: 0 1px 4px oklch(0% 0 0 / 40%);\n  }\n}\n\n/* Pan/zoom */\n.sync-pan {\n  display: flex;\n  position: relative;\n  justify-content: center;\n  align-items: center;\n  width: 100%;\n  height: 100%;\n  overflow: hidden;\n}\n\n/* Images */\n.compared-img {\n  display: block;\n  max-width: 100%;\n  max-height: 100%;\n  object-fit: contain;\n  image-rendering: pixelated;\n  transform: scale(var(--flip-x, 1), var(--flip-y, 1)) rotate(var(--rotate, 0deg));\n}\n\n/* Overlay images */\n.overlay-img {\n  display: block;\n  position: absolute;\n  inset: 0;\n  width: 100%;\n  height: 100%;\n\n  &.mode-fade {\n    opacity: var(--fade-opacity, 0.5);\n  }\n  &.mode-difference {\n    mix-blend-mode: difference;\n  }\n}\n\n/* Utility states */\n.is-overlay-hidden {\n  display: none !important;\n}\n.is-hidden {\n  display: none !important;\n}\n";
-var root = null;
-var $ = (selector) => root?.querySelector(selector) ?? null;
+	var root = null;
+	var $ = (selector) => root?.querySelector(selector) ?? null;
 	function createShadowHost() {
 		const host = document.createElement("div");
 		const shadow = host.attachShadow({ mode: "open" });
@@ -207,7 +208,7 @@ var $ = (selector) => root?.querySelector(selector) ?? null;
 			class: "transform-group"
 		}, btn("flip-h-left", "↔️ L", "Flip Left Horizontally"), btn("flip-v-left", "↕️ L", "Flip Left Vertically"), btn("rotate-left", "🔄 L", "Rotate Left"), btn("flip-h-right", "↔️ R", "Flip Right Horizontally"), btn("flip-v-right", "↕️ R", "Flip Right Vertically"), btn("rotate-right", "🔄 R", "Rotate Right"), btn("reset-transform", "Reset", "Reset Transforms"));
 	}
-function createEl(tag, attrs = {}, ...children) {
+	function createEl(tag, attrs = {}, ...children) {
 		const el = document.createElement(tag);
 		for (const [k, v] of Object.entries(attrs)) if (k === "id") el.id = v;
 		else if (k === "class") el.className = v;
@@ -215,7 +216,7 @@ function createEl(tag, attrs = {}, ...children) {
 		el.append(...children);
 		return el;
 	}
-function getCurrentImageId(state) {
+	function getCurrentImageId(state) {
 		const { kind, postId } = resolvePageContext(state);
 		switch (kind) {
 			case "iqdb": return postId || "iqdb";
@@ -233,7 +234,7 @@ function getCurrentImageId(state) {
 			default: return postId ? `Post #${postId}` : "Custom";
 		}
 	}
-function resolvePageContext(state) {
+	function resolvePageContext(state) {
 		const { site, isIqdb, isUpload, isSimilar, postId } = state.get();
 		if (site === "danbooru") {
 			if (isIqdb) return {
@@ -253,17 +254,17 @@ function resolvePageContext(state) {
 			postId
 		};
 	}
-function wrapSelect(content) {
+	function wrapSelect(content) {
 		const d = createEl("div", { class: "select-wrapper" });
 		d.append(content);
 		return d;
 	}
-var ID_LABELS = {
+	var ID_LABELS = {
 		iqdb: "IQDB",
 		upload: "Upload",
 		similar: "Similar"
 	};
-function updateInfoUI(postId) {
+	function updateInfoUI(postId) {
 		updatePostInfo();
 		const input = $("#second-image-input");
 		if (input && postId !== "custom") input.value = postId;
@@ -271,7 +272,7 @@ function updateInfoUI(postId) {
 		if (selector) if (postId === "custom") selector.value = "";
 		else selector.value = [...selector.options].some((opt) => opt.value === postId) ? postId : "";
 	}
-function updatePostInfo() {
+	function updatePostInfo() {
 		const leftImg = $("#left-image");
 		const rightImg = $("#right-image");
 		const infoEl = $("#post-info-display");
@@ -289,32 +290,32 @@ function updatePostInfo() {
 		"yande.re": "yandere",
 		"konachan.com": "konachan"
 	};
-function detectSite() {
+	function detectSite() {
 		return detectSiteFromHostname(globalThis.location.hostname);
 	}
-function detectSiteFromHostname(hostname) {
+	function detectSiteFromHostname(hostname) {
 		return SITE_MAP[hostname] ?? null;
 	}
-function extractPostIdFromArticle(el) {
+	function extractPostIdFromArticle(el) {
 		const direct = el.dataset.id;
 		if (direct) return direct;
 		return el.querySelector("a.thumb")?.getAttribute("href")?.match(/\/(?:post\/show|posts)\/(\d+)/)?.[1] ?? null;
 	}
-function extractPostIdFromPath(pathname) {
+	function extractPostIdFromPath(pathname) {
 		return pathname.match(/\/(?:show|similar)\/(\d+)/)?.[1] ?? null;
 	}
-function extractPostIdFromUrl(url) {
+	function extractPostIdFromUrl(url) {
 		return url.match(/\/(?:posts|show)\/(\d+)/)?.[1] ?? null;
 	}
-function isValidPage() {
+	function isValidPage() {
 		const { hostname, pathname, href } = globalThis.location;
 		if (hostname.endsWith(".donmai.us")) return /\/posts\/\d+/.test(href) || /\/uploads\/\d+/.test(href) || /\/iqdb_queries/.test(href);
 		return /\/post\/(show|similar)/.test(pathname);
 	}
-function isValidPostUrl(url) {
+	function isValidPostUrl(url) {
 		return /https:\/\/([\w.-]+\.donmai\.us\/posts|yande\.re\/post\/show|konachan\.com\/post\/show)\/\d+/.test(url);
 	}
-async function fetchPostsByTag(query) {
+	async function fetchPostsByTag(query) {
 		const host = document.location.hostname;
 		const endpoint = `/post.json?tags=${query}`;
 		const res = await fetch(`https://${host}${endpoint}`);
@@ -322,7 +323,7 @@ async function fetchPostsByTag(query) {
 		const data = await res.json();
 		return Array.isArray(data) ? data : [data];
 	}
-async function fetchSinglePost(postId, state, sourceHost = null) {
+	async function fetchSinglePost(postId, state, sourceHost = null) {
 		const targetHost = sourceHost ?? document.location.hostname;
 		const endpoint = (sourceHost ? detectSiteFromHostname(sourceHost) : state.get().site) === "danbooru" ? `/posts/${postId}.json` : `/post.json?tags=id:${postId}`;
 		const res = await fetch(`https://${targetHost}${endpoint}`);
@@ -330,7 +331,7 @@ async function fetchSinglePost(postId, state, sourceHost = null) {
 		const data = await res.json();
 		return Array.isArray(data) ? data[0] : data;
 	}
-if (typeof window !== "undefined") {
+	if (typeof window !== "undefined") {
 		if (window.NodeList && !NodeList.prototype.forEach) NodeList.prototype.forEach = Array.prototype.forEach;
 		if (typeof window.CustomEvent !== "function") window.CustomEvent = function CustomEvent(event, params) {
 			params = params || {
@@ -344,12 +345,12 @@ if (typeof window !== "undefined") {
 		};
 	}
 	var isIE = typeof document !== "undefined" && !!document.documentMode;
-var divStyle;
+	var divStyle;
 	function createStyle() {
 		if (divStyle) return divStyle;
 		return divStyle = document.createElement("div").style;
 	}
-var prefixes = [
+	var prefixes = [
 		"webkit",
 		"moz",
 		"ms"
@@ -366,7 +367,7 @@ var prefixes = [
 			if (prefixedName in divStyle) return prefixCache[name] = prefixedName;
 		}
 	}
-function getCSSNum(name, style) {
+	function getCSSNum(name, style) {
 		return parseFloat(style[getPrefixedName(name)]) || 0;
 	}
 	function getBoxStyle(elem, name, style = window.getComputedStyle(elem)) {
@@ -378,20 +379,20 @@ function getCSSNum(name, style) {
 			bottom: getCSSNum(`${name}Bottom${suffix}`, style)
 		};
 	}
-function setStyle(elem, name, value) {
+	function setStyle(elem, name, value) {
 		elem.style[getPrefixedName(name)] = value;
 	}
-function setTransition(elem, options) {
+	function setTransition(elem, options) {
 		setStyle(elem, "transition", `${getPrefixedName("transform")} ${options.duration}ms ${options.easing}`);
 	}
-function setTransform(elem, { x, y, scale, isSVG }, _options) {
+	function setTransform(elem, { x, y, scale, isSVG }, _options) {
 		setStyle(elem, "transform", `scale(${scale}) translate(${x}px, ${y}px)`);
 		if (isSVG && isIE) {
 			const matrixValue = window.getComputedStyle(elem).getPropertyValue("transform");
 			elem.setAttribute("transform", matrixValue);
 		}
 	}
-function getDimensions(elem) {
+	function getDimensions(elem) {
 		let parent = elem.parentNode;
 		if (!parent || parent.nodeType !== 1) parent = document.documentElement;
 		const style = window.getComputedStyle(elem);
@@ -450,7 +451,7 @@ function getDimensions(elem) {
 			elem.removeEventListener(name, handler);
 		});
 	}
-function findEventIndex(pointers, event) {
+	function findEventIndex(pointers, event) {
 		let i = pointers.length;
 		while (i--) if (pointers[i].pointerId === event.pointerId) return i;
 		return -1;
@@ -477,7 +478,7 @@ function findEventIndex(pointers, event) {
 		const i = findEventIndex(pointers, event);
 		if (i > -1) pointers.splice(i, 1);
 	}
-function getMiddle(pointers) {
+	function getMiddle(pointers) {
 		pointers = pointers.slice(0);
 		let event1 = pointers.pop();
 		let event2;
@@ -487,13 +488,13 @@ function getMiddle(pointers) {
 		};
 		return event1;
 	}
-function getDistance(pointers) {
+	function getDistance(pointers) {
 		if (pointers.length < 2) return 0;
 		const event1 = pointers[0];
 		const event2 = pointers[1];
 		return Math.sqrt(Math.pow(Math.abs(event2.clientX - event1.clientX), 2) + Math.pow(Math.abs(event2.clientY - event1.clientY), 2));
 	}
-function isAttached(node) {
+	function isAttached(node) {
 		let currentNode = node;
 		while (currentNode && currentNode.parentNode) {
 			if (currentNode.parentNode === document) return true;
@@ -511,7 +512,7 @@ function isAttached(node) {
 		for (let cur = elem; cur != null; cur = cur.parentNode) if (hasClass(cur, options.excludeClass) || options.exclude.indexOf(cur) > -1) return true;
 		return false;
 	}
-var rsvg = /^http:[\w\.\/]+svg$/;
+	var rsvg = /^http:[\w\.\/]+svg$/;
 	function isSVGElement(elem) {
 		return rsvg.test(elem.namespaceURI) && elem.nodeName.toLowerCase() !== "svg";
 	}
@@ -520,7 +521,7 @@ var rsvg = /^http:[\w\.\/]+svg$/;
 		for (const key in obj) if (obj.hasOwnProperty(key)) clone[key] = obj[key];
 		return clone;
 	}
-var defaultOptions = {
+	var defaultOptions = {
 		animate: false,
 		canvas: false,
 		cursor: "move",
@@ -887,11 +888,11 @@ var defaultOptions = {
 		};
 	}
 	Panzoom.defaultOptions = defaultOptions;
-var wheelListeners = new WeakMap();
-function activeZoomInstance(appState) {
+	var wheelListeners = new WeakMap();
+	function activeZoomInstance(appState) {
 		return appState.panzoomInstances.overlay ?? appState.panzoomInstances.left ?? appState.panzoomInstances.right ?? null;
 	}
-function applyZoomTransition(state, fromMode, toMode) {
+	function applyZoomTransition(state, fromMode, toMode) {
 		const { zoomState } = state.get();
 		const fromOverlay = isOverlayMode(fromMode);
 		const toOverlay = isOverlayMode(toMode);
@@ -938,7 +939,7 @@ function applyZoomTransition(state, fromMode, toMode) {
 			wheelListeners.delete(el);
 		}
 	}
-function commitZoomState(state) {
+	function commitZoomState(state) {
 		const active = activeZoomInstance(state.get());
 		if (!active) return;
 		const pan = active.getPan();
@@ -995,7 +996,7 @@ function commitZoomState(state) {
 		wheelListeners.set(container, wh);
 		container.addEventListener("wheel", wh);
 	}
-function initView(state) {
+	function initView(state) {
 		const leftPan = $("#left-pan");
 		const rightPan = $("#right-pan");
 		if (!leftPan || !rightPan) return;
@@ -1021,7 +1022,7 @@ function initView(state) {
 			pz.zoomWithWheel(e);
 		};
 	}
-function resetZoom(state) {
+	function resetZoom(state) {
 		const { left, right, overlay } = state.get().panzoomInstances;
 		for (const pz of [
 			left,
@@ -1048,7 +1049,7 @@ function resetZoom(state) {
 			});
 		}
 	}
-function syncPanzoom(state) {
+	function syncPanzoom(state) {
 		const leftPan = $("#left-pan");
 		const rightPan = $("#right-pan");
 		const { left, right } = state.get().panzoomInstances;
@@ -1114,7 +1115,7 @@ function syncPanzoom(state) {
 		const select = wrap.querySelector("select");
 		if (select) bindPostSelectorEvents(select, onSelect);
 	}
-function extractFromNotices(posts) {
+	function extractFromNotices(posts) {
 		const notice = document.querySelector(".post-notice-parent, .post-notice-child");
 		if (!notice) return;
 		for (const link of notice.querySelectorAll("a[href*='parent'], a[href*='child']")) {
@@ -1129,7 +1130,7 @@ function extractFromNotices(posts) {
 			});
 		}
 	}
-function extractFromPreviews(state, posts) {
+	function extractFromPreviews(state, posts) {
 		const { postId } = state.get();
 		for (const { selector, isParent } of [{
 			selector: "#has-parent-relationship-preview",
@@ -1159,7 +1160,7 @@ function extractFromPreviews(state, posts) {
 		if (!url) throw new Error("No image URL found in post data");
 		return url;
 	}
-async function fetchChildren(state, posts) {
+	async function fetchChildren(state, posts) {
 		const { postId } = state.get();
 		const children = await fetchPostsByTag(`parent:${postId}`);
 		for (const p of children) if (p.id.toString() !== postId) posts.push({
@@ -1167,7 +1168,7 @@ async function fetchChildren(state, posts) {
 			relationshipType: "Child"
 		});
 	}
-async function fetchParentSiblings(state, posts) {
+	async function fetchParentSiblings(state, posts) {
 		const { postId } = state.get();
 		const resp = await fetchPostsByTag(`id:${postId}`);
 		if (resp.length === 0) return;
@@ -1191,7 +1192,7 @@ async function fetchParentSiblings(state, posts) {
 		extractFromNotices(posts);
 		return posts;
 	}
-function getDanbooruSimilar(state) {
+	function getDanbooruSimilar(state) {
 		const { postId } = state.get();
 		const posts = [];
 		for (const el of document.querySelectorAll(".iqdb-posts .post-preview")) {
@@ -1206,7 +1207,7 @@ function getDanbooruSimilar(state) {
 		}
 		return posts;
 	}
-function getOriginalImageUrl(state) {
+	function getOriginalImageUrl(state) {
 		const { site, isUpload, isIqdb, isSimilar, searchUrl } = state.get();
 		if (site === "danbooru") {
 			if (isUpload) return document.querySelector(".media-asset-image")?.src || null;
@@ -1216,11 +1217,11 @@ function getOriginalImageUrl(state) {
 		if (isSimilar) return searchUrl;
 		return document.querySelector("a#highres")?.href || null;
 	}
-async function getRelatedPosts(state) {
+	async function getRelatedPosts(state) {
 		const { site } = state.get();
 		return site === "danbooru" ? getDanbooru(state) : getYandereKonachan(state);
 	}
-async function getYandereKonachan(state) {
+	async function getYandereKonachan(state) {
 		const { isSimilar } = state.get();
 		if (isSimilar) return getYandereSimilar();
 		const posts = [];
@@ -1238,7 +1239,7 @@ async function getYandereKonachan(state) {
 		}
 		return sortPosts(posts);
 	}
-function getYandereSimilar() {
+	function getYandereSimilar() {
 		const posts = [];
 		for (const el of document.querySelectorAll("#post-list-posts li")) {
 			const id = extractPostIdFromArticle(el);
@@ -1252,7 +1253,7 @@ function getYandereSimilar() {
 		}
 		return posts;
 	}
-function populatePostSelector(select, posts) {
+	function populatePostSelector(select, posts) {
 		select.append(new Option("-- Select post --", ""));
 		const currentRightId = $("#right-image")?.dataset.id || null;
 		for (const post of posts) {
@@ -1267,14 +1268,14 @@ function populatePostSelector(select, posts) {
 		}
 		if (currentRightId && posts.some((p) => p.id === currentRightId)) select.value = currentRightId;
 	}
-function sortPosts(posts) {
+	function sortPosts(posts) {
 		return posts.toSorted((a, b) => {
 			const pa = RELATIONSHIP_PRIORITY[a.relationshipType] ?? 5;
 			const pb = RELATIONSHIP_PRIORITY[b.relationshipType] ?? 5;
 			return pa === pb ? +a.id - +b.id : pa - pb;
 		});
 	}
-function applyTransforms(state) {
+	function applyTransforms(state) {
 		const { transforms: t } = state.get();
 		const map = {
 			left: ["left-image", "overlay-left-image"],
@@ -1374,7 +1375,7 @@ function applyTransforms(state) {
 		const sl = $("#opacity-slider");
 		if (sl) applyFade(+sl.value);
 	}
-var sliderCleanup = [];
+	var sliderCleanup = [];
 	function bindSliderEvents(state, sliderEl, rightImg, container) {
 		unbindSlider();
 		let dragging = false;
@@ -1422,7 +1423,7 @@ var sliderCleanup = [];
 		}
 		sliderCleanup = newCleanup;
 	}
-function initSlider(state) {
+	function initSlider(state) {
 		const container = $("#comparison-overlay-container");
 		const rightImg = $("#overlay-image");
 		if (!container || !rightImg?.src?.trim()) return;
@@ -1436,16 +1437,16 @@ function initSlider(state) {
 		updateSlider(state, el, rightImg, container.clientWidth / 2, container);
 		bindSliderEvents(state, el, rightImg, container);
 	}
-function subscribeSliderUpdater(state) {
+	function subscribeSliderUpdater(state) {
 		return state.subscribe((next, prev) => {
 			if (next.mode === MODES.SLIDER && (JSON.stringify(next.transforms) !== JSON.stringify(prev.transforms) || prev.mode !== MODES.SLIDER || JSON.stringify(next.zoomState) !== JSON.stringify(prev.zoomState))) setTimeout(() => updateSliderIfNeeded(state), 0);
 		});
 	}
-function unbindSlider() {
+	function unbindSlider() {
 		for (const fn of sliderCleanup) fn();
 		sliderCleanup = [];
 	}
-function updateSlider(state, sliderEl, rightImg, containerX, container) {
+	function updateSlider(state, sliderEl, rightImg, containerX, container) {
 		const x = Math.max(0, Math.min(containerX, container.clientWidth));
 		sliderEl.style.left = `${x}px`;
 		const { panzoomInstances, transforms } = state.get();
@@ -1491,7 +1492,7 @@ function updateSlider(state, sliderEl, rightImg, containerX, container) {
 			"comparison-divider"
 		]) $(`#${id}`)?.classList.add("is-overlay-hidden");
 	}
-function resetModeDisplay() {
+	function resetModeDisplay() {
 		for (const id of [
 			"left-side",
 			"right-side",
@@ -1507,7 +1508,7 @@ function resetModeDisplay() {
 		$("#difference-controls")?.classList.add("is-hidden");
 		$("#filter-controls")?.classList.remove("is-hidden");
 	}
-function setupDifference(state) {
+	function setupDifference(state) {
 		hideMainElements();
 		showOverlay();
 		createOverlayImages();
@@ -1521,7 +1522,7 @@ function setupDifference(state) {
 		if (invertBtn) invertBtn.textContent = "Invert";
 		$("#difference-controls")?.classList.remove("is-hidden");
 	}
-function setupFade(state) {
+	function setupFade(state) {
 		hideMainElements();
 		showOverlay();
 		createOverlayImages();
@@ -1550,7 +1551,7 @@ function setupFade(state) {
 				break;
 		}
 	}
-function setupSlider(state) {
+	function setupSlider(state) {
 		hideMainElements();
 		showOverlay();
 		createOverlayImages();
@@ -1606,7 +1607,7 @@ function setupSlider(state) {
 		const sel = $("#comparison-mode");
 		if (sel) sel.value = saved;
 	}
-function bindEvents(state, deps) {
+	function bindEvents(state, deps) {
 		const cleanup = [];
 		const on = (id, handler, event = "click") => {
 			const el = $(`#${id}`);
@@ -1668,7 +1669,7 @@ function bindEvents(state, deps) {
 		on("rotate-right", () => rotateTransform(state, "right"));
 		on("reset-transform", () => resetTransforms(state));
 	}
-function updateMode(state) {
+	function updateMode(state) {
 		commitZoomState(state);
 		destroyOverlayZoom(state);
 		cleanupOverlayWheelListeners();
@@ -1687,9 +1688,9 @@ function updateMode(state) {
 			$("#image-comparison-container")?.focus();
 		}, 0);
 	}
-var loadAbortMap = new WeakMap();
+	var loadAbortMap = new WeakMap();
 	var currentLoadToken = 0;
-function clearRightImage() {
+	function clearRightImage() {
 		const rightImg = $("#right-image");
 		const overlayImg = $("#overlay-image");
 		if (rightImg) {
@@ -1705,7 +1706,7 @@ function clearRightImage() {
 		}
 		updatePostInfo();
 	}
-function finalizeImageLoad(state, postId) {
+	function finalizeImageLoad(state, postId) {
 		updateInfoUI(postId);
 		resetZoom(state);
 		updateMode(state);
@@ -1713,7 +1714,7 @@ function finalizeImageLoad(state, postId) {
 	function generateLoadToken() {
 		return ++currentLoadToken;
 	}
-function handleLoadImage(state) {
+	function handleLoadImage(state) {
 		const value = $("#second-image-input")?.value.trim();
 		if (!value) {
 			alert("Please enter a valid post ID or URL");
@@ -1721,12 +1722,12 @@ function handleLoadImage(state) {
 		}
 		loadImage(state, value);
 	}
-function invalidatePendingLoads() {
+	function invalidatePendingLoads() {
 		++currentLoadToken;
 		const rightImg = $("#right-image");
 		if (rightImg) loadAbortMap.get(rightImg)?.abort();
 	}
-function loadDirectUrl(state, url) {
+	function loadDirectUrl(state, url) {
 		try {
 			const parsed = new URL(url);
 			if (parsed.protocol !== "http:" && parsed.protocol !== "https:") throw new Error("Invalid URL format");
@@ -1753,7 +1754,7 @@ function loadDirectUrl(state, url) {
 			alert("Invalid URL format");
 		}
 	}
-function loadImage(state, input) {
+	function loadImage(state, input) {
 		const rightImg = $("#right-image");
 		if (rightImg) loadAbortMap.get(rightImg)?.abort();
 		clearRightImage();
@@ -1765,7 +1766,7 @@ function loadImage(state, input) {
 			else alert("Could not extract post ID from URL");
 		} else loadDirectUrl(state, input);
 	}
-async function loadPostById(state, postId, token) {
+	async function loadPostById(state, postId, token) {
 		try {
 			const posts = await getRelatedPosts(state);
 			if (currentLoadToken !== token) return;
@@ -1783,7 +1784,7 @@ async function loadPostById(state, postId, token) {
 			alert(`Failed to load post: ${error instanceof Error ? error.message : String(error)}`);
 		}
 	}
-async function loadReferenceImage(state) {
+	async function loadReferenceImage(state) {
 		const leftImg = $("#left-image");
 		if (!leftImg) return;
 		const { postId, isSimilar, searchUrl } = state.get();
@@ -1800,7 +1801,7 @@ async function loadReferenceImage(state) {
 		}
 		updatePostInfo();
 	}
-function swapDataAttr(a, b, key) {
+	function swapDataAttr(a, b, key) {
 		const av = a.dataset[key];
 		const bv = b.dataset[key];
 		if (bv === void 0) delete a.dataset[key];
@@ -1808,7 +1809,7 @@ function swapDataAttr(a, b, key) {
 		if (av === void 0) delete b.dataset[key];
 		else b.dataset[key] = av;
 	}
-function swapImages(state) {
+	function swapImages(state) {
 		const leftImg = $("#left-image");
 		const rightImg = $("#right-image");
 		if (!leftImg || !rightImg) return;
@@ -1824,9 +1825,9 @@ function swapImages(state) {
 		if (mode === MODES.SIDE_BY_SIDE) applyTransforms(state);
 		else updateMode(state);
 	}
-var pendingLoadTimer = null;
-var originalBodyOverflow = null;
-function closeComparator(state) {
+	var pendingLoadTimer = null;
+	var originalBodyOverflow = null;
+	function closeComparator(state) {
 		if (pendingLoadTimer) {
 			clearTimeout(pendingLoadTimer);
 			pendingLoadTimer = null;
@@ -1844,7 +1845,7 @@ function closeComparator(state) {
 		}
 		destroyShadow();
 	}
-async function openComparator(postId, state) {
+	async function openComparator(postId, state) {
 		const { host, shadow } = createShadowHost();
 		const container = buildInterface(state);
 		shadow.append(container);
@@ -1860,7 +1861,7 @@ async function openComparator(postId, state) {
 		await setupComparator(state);
 		if (postId) pendingLoadTimer = setTimeout(() => loadImage(state, postId), 100);
 	}
-async function setupComparator(state) {
+	async function setupComparator(state) {
 		await createPostSelector(state, () => handleLoadImage(state));
 		bindEvents(state, {
 			onClose: () => closeComparator(state),
@@ -1875,7 +1876,7 @@ async function setupComparator(state) {
 		updateMode(state);
 		updatePostInfo();
 	}
-function addCompareLinks(state, onCompare) {
+	function addCompareLinks(state, onCompare) {
 		const { site } = state.get();
 		const selector = site === "danbooru" ? ".posts-container .post-preview, .iqdb-posts .post-preview" : "#post-list-posts li";
 		for (const article of document.querySelectorAll(selector)) {
@@ -1898,7 +1899,7 @@ function addCompareLinks(state, onCompare) {
 			else article.append(container);
 		}
 	}
-function addMainMenuLink(state, onCompare) {
+	function addMainMenuLink(state, onCompare) {
 		const { site } = state.get();
 		const mainMenu = document.querySelector("#main-menu > ul") ?? document.querySelector("#main-menu");
 		if (!mainMenu || mainMenu.querySelector("#nav-compare")) return;
@@ -1918,7 +1919,7 @@ function addMainMenuLink(state, onCompare) {
 			mainMenu.append(li);
 		}
 	}
-function createAppState() {
+	function createAppState() {
 		const site = detectSite();
 		const { pathname, search } = globalThis.location;
 		let isUpload;
@@ -1968,7 +1969,7 @@ function createAppState() {
 			originalImageUrl: null
 		});
 	}
-function createReactiveState(initial) {
+	function createReactiveState(initial) {
 		let state = { ...initial };
 		const listeners = new Set();
 		return {
@@ -1999,7 +2000,7 @@ function createReactiveState(initial) {
 			}
 		};
 	}
-function safeDecodeURIComponent(raw) {
+	function safeDecodeURIComponent(raw) {
 		if (raw === null) return null;
 		try {
 			return decodeURIComponent(raw);
@@ -2007,7 +2008,7 @@ function safeDecodeURIComponent(raw) {
 			return raw;
 		}
 	}
-var init = () => {
+	var init = () => {
 		if (!isValidPage()) return;
 		const state = createAppState();
 		state.update("originalImageUrl", getOriginalImageUrl(state));

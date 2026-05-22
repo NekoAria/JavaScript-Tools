@@ -11,7 +11,8 @@
 // ==/UserScript==
 
 (function() {
-function calculateSimilarity(str1, str2) {
+  'use strict';
+	function calculateSimilarity(str1, str2) {
 		if (str1 === str2) return 1;
 		if (!str1 || !str2) return 0;
 		const diffs = lcsCharDiff(str1, str2);
@@ -28,7 +29,7 @@ function calculateSimilarity(str1, str2) {
 		}
 		return merged;
 	}
-function computeDiff(text1, text2) {
+	function computeDiff(text1, text2) {
 		if (!text1) return [[1, text2]];
 		if (!text2) return [[-1, text1]];
 		const longText = text1.length > text2.length ? text1 : text2;
@@ -55,7 +56,7 @@ function computeDiff(text1, text2) {
 	function extractSignificantIds(url) {
 		return url.match(/\d{6,}/g) ?? [];
 	}
-function lcsBasedDiff(text1, text2) {
+	function lcsBasedDiff(text1, text2) {
 		const m = text1.length;
 		const n = text2.length;
 		const DIAGONAL = 0;
@@ -93,7 +94,7 @@ function lcsBasedDiff(text1, text2) {
 		}
 		return diffs.toReversed();
 	}
-function lcsCharDiff(text1, text2) {
+	function lcsCharDiff(text1, text2) {
 		if (text1 === text2) return text1 ? [[0, text1]] : [];
 		if (!text1) return [[1, text2]];
 		if (!text2) return [[-1, text1]];
@@ -132,7 +133,7 @@ function lcsCharDiff(text1, text2) {
 			original: url
 		};
 	}
-function optimizedDiff(removedUrls, addedUrls) {
+	function optimizedDiff(removedUrls, addedUrls) {
 		const pairs = [];
 		const usedAdded = new Set();
 		const usedRemoved = new Set();
@@ -253,7 +254,7 @@ function optimizedDiff(removedUrls, addedUrls) {
 			return null;
 		}
 	}
-function escapeHtml(text) {
+	function escapeHtml(text) {
 		const escapeMap = {
 			"&": "&amp;",
 			"<": "&lt;",
@@ -263,7 +264,7 @@ function escapeHtml(text) {
 		};
 		return text.replaceAll(/[&<>"']/g, (m) => escapeMap[m]);
 	}
-function generateCharDiffHTML(oldUrl, newUrl) {
+	function generateCharDiffHTML(oldUrl, newUrl) {
 		const diffs = lcsCharDiff(oldUrl, newUrl);
 		let removedHTML = "";
 		let addedHTML = "";
@@ -281,7 +282,7 @@ function generateCharDiffHTML(oldUrl, newUrl) {
 			addedHTML
 		};
 	}
-function generateDiffHTML(pairs) {
+	function generateDiffHTML(pairs) {
 		let html = "";
 		for (const pair of pairs) switch (pair.type) {
 			case "changed": {
@@ -334,7 +335,7 @@ function generateDiffHTML(pairs) {
 			subtree: true
 		});
 	}
-function processDiffLists() {
+	function processDiffLists() {
 		const diffLists = document.querySelectorAll("td.urls-column ul.diff-list:not([data-enhanced])");
 		for (const diffList of diffLists) {
 			const allItems = diffList.querySelectorAll("li");

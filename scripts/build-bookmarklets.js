@@ -31,10 +31,16 @@ async function buildBookmarklets() {
 
     const result = await transform(stripped, {
       minify: true,
+      supported: {
+        // Bookmarklet URLs cannot safely contain raw line breaks. Without this,
+        // esbuild may shorten "\n" strings into template literals with literal
+        // newlines, and browsers can normalize them to spaces when saved/run.
+        'template-literal': false,
+      },
     });
 
-    // Re-add javascript: prefix
-    const output = JAVASCRIPT_PREFIX + result.code;
+    // Re-add javascript: prefix and remove esbuild's trailing newline.
+    const output = JAVASCRIPT_PREFIX + result.code.trimEnd();
 
     await writeFile(outputPath, output, 'utf8');
 

@@ -2,16 +2,38 @@
 
 A collection of useful JavaScript utilities including bookmarklets and userscripts.
 
+## Source Layout
+
+This repository contains both source files and generated installable outputs.
+
+| Type         | Source                 | Installable output      | Build command             |
+| ------------ | ---------------------- | ----------------------- | ------------------------- |
+| Bookmarklets | `bookmarklets/*.js`    | `bookmarklets/*.min.js` | `pnpm build:bookmarklets` |
+| Userscripts  | `packages/<name>/src/` | `userscripts/*.user.js` | `pnpm build:packages`     |
+
+Do not edit generated outputs directly. Update the corresponding source files and rebuild instead.
+
 ## Bookmarklets
+
+> Use the `*.min.js` files as installable bookmarklets. The non-minified `bookmarklets/*.js` files are source entries used by the build process and may import shared package code.
 
 ### Artist Profile URLs Extractor
 
 - **File**: [artist-profile-urls-extractor.min.js](bookmarklets/artist-profile-urls-extractor.min.js)
-- **Function**: Extract artist profile URLs from multiple websites
+- **Function**: Extract canonical artist profile URLs from supported artist profile pages
 
 ## Userscripts
 
-> **Note**: The files in the `userscripts` directory are **built outputs**, not source code. The actual source code for each userscript is located in the `packages` directory.
+> The files in `userscripts/` are generated installable userscripts. Their source code lives under `packages/<name>/src/`.
+
+### Artist Profile URLs Extractor
+
+- **File**: [artist-profile-urls-extractor.user.js](userscripts/artist-profile-urls-extractor.user.js)
+- **Function**: Add a draggable floating button on supported artist profile pages that opens a modal with canonical profile URLs and copy actions
+
+#### Description
+
+Unlike the bookmarklet version, this userscript stays active on supported artist profile pages. When profile URLs can be detected, it shows a small draggable floating button. Clicking the button opens a modal with the extracted primary and secondary URLs, plus Copy and Copy All actions.
 
 ### Universal Booru Image Comparator
 

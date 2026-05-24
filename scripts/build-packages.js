@@ -12,8 +12,6 @@ const sharedDir = path.resolve(rootDir, 'shared');
 const userscriptsDir = path.resolve(rootDir, 'userscripts');
 const cacheFile = path.resolve(rootDir, '.cache', 'build-packages.json');
 
-// CLI argument parsing
-
 const args = process.argv.slice(2);
 const isForce = args.includes('--force');
 const isVerbose = args.includes('--verbose');
@@ -41,8 +39,6 @@ function getArgValue(flag) {
 
 const packageFilter = getArgValue('--package');
 
-// Package discovery
-
 /**
  * Discover package directories that have a build script.
  *
@@ -63,14 +59,12 @@ async function discoverPackages() {
         packages.push({ name: dir.name, dir: path.join(packagesDir, dir.name) });
       }
     } catch {
-      // no package.json or invalid JSON, skip
+      // Skip directories without a readable package.json.
     }
   }
 
   return packages;
 }
-
-// Hash computation
 
 /** Global input files shared by all packages. */
 const globalInputs = [
@@ -99,7 +93,11 @@ async function buildPackage(pkg, expectedOutput) {
 
     const currentOutputMtime = await getFileMtime(expectedOutput);
 
-    if (currentOutputMtime === null || currentOutputMtime <= previousOutputMtime) {
+    const outputWasNotUpdated =
+      currentOutputMtime === null ||
+      (previousOutputMtime !== null && currentOutputMtime <= previousOutputMtime);
+
+    if (outputWasNotUpdated) {
       console.error(`${label} failed`);
       console.error(
         `${label} expected output was not updated: ${path.relative(rootDir, expectedOutput)}`,
@@ -161,8 +159,6 @@ async function getFileMtime(file) {
   }
 }
 
-// Build
-
 async function main() {
   if (hasArgError) {
     return;
@@ -199,10 +195,10 @@ async function main() {
   let anyFailed = false;
 
   for (const pkg of selected) {
-    const pkgOut = outputPath(pkg.name);
+    const expectedOutputPath = outputPath(pkg.name);
     const hash = await computePackageHash(pkg.dir);
 
-    if (!isForce && (await fileExists(pkgOut)) && cache[pkg.name] === hash) {
+    if (!isForce && (await fileExists(expectedOutputPath)) && cache[pkg.name] === hash) {
       newCache[pkg.name] = hash;
 
       if (isVerbose) {
@@ -212,7 +208,7 @@ async function main() {
       continue;
     }
 
-    if (await buildPackage(pkg, pkgOut)) {
+    if (await buildPackage(pkg, expectedOutputPath)) {
       newCache[pkg.name] = hash;
       anyBuilt = true;
     } else {
@@ -235,30 +231,12 @@ async function main() {
   }
 }
 
-// Main
-
 await main();
 
-// Helpers
-
-/**
- * Get the expected output path for a package.
- *
- * @param {string} name - Package name
- * @returns {string} Absolute path to the userscript output file
- */
 function outputPath(name) {
   return path.join(userscriptsDir, `${name}.user.js`);
 }
 
-/**
- * Run a command in a given directory and return a promise.
- *
- * @param {string} cmd
- * @param {string[]} cmdArgs
- * @param {string} cwd
- * @returns {Promise<void>}
- */
 function run(cmd, cmdArgs, cwd) {
   return new Promise((resolve, reject) => {
     let stderr = '';

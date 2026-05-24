@@ -1,0 +1,177 @@
+:host {
+  --color-neutral-50: oklch(98.5% 0 0);
+  --color-neutral-200: oklch(92.2% 0 0);
+  --color-neutral-700: oklch(37.1% 0 0);
+  --color-neutral-800: oklch(26.9% 0 0);
+  --color-neutral-900: oklch(20.5% 0 0);
+  --color-neutral-950: oklch(14.5% 0 0);
+  --color-blue-500: oklch(62.3% 0.214 259.815);
+  --color-black: #000;
+
+  --bg: var(--color-neutral-900);
+  --panel: var(--color-neutral-800);
+  --hover: var(--color-neutral-700);
+  --text: var(--color-neutral-50);
+  --muted: var(--color-neutral-200);
+  --border: var(--color-neutral-700);
+  --accent: var(--color-blue-500);
+  --ring: oklch(62.3% 0.214 259.815 / 25%);
+  --backdrop: oklch(14.5% 0 0 / 72%);
+  --modal-shadow: rgb(0 0 0 / 45%);
+  --radius: 4px;
+
+  all: initial;
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 2147483647;
+  display: block;
+  width: 32px;
+  height: 32px;
+  font-family:
+    Verdana,
+    system-ui,
+    -apple-system,
+    Helvetica,
+    sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  color-scheme: dark;
+  -webkit-text-size-adjust: none;
+  text-size-adjust: none;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+button,
+input {
+  font: inherit;
+  color: var(--text);
+  appearance: none;
+  outline: none;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+button:focus-visible,
+input:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+button:hover:not(:disabled),
+input:hover {
+  background: var(--hover);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.floating-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  font-size: 16px;
+  line-height: 1;
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+  background: var(--bg);
+}
+
+.floating-button:active {
+  cursor: grabbing;
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--backdrop);
+}
+
+.modal {
+  width: min(640px, 100%);
+  padding: 16px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 16px 48px var(--modal-shadow);
+}
+
+.modal-title {
+  margin: 0 0 16px;
+  font-size: 16px;
+  line-height: 1.25;
+}
+
+.url-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.url-label {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.url-input {
+  width: 100%;
+  min-width: 0;
+  padding: 4px 8px;
+}
+
+.url-input::selection {
+  color: var(--text);
+  background: var(--accent);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.modal-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 12px;
+  line-height: 1.25;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+@media (max-width: 576px) {
+  .url-row {
+    grid-template-columns: 1fr;
+  }
+
+  .actions {
+    flex-direction: column;
+  }
+
+  .modal-button {
+    width: 100%;
+  }
+}

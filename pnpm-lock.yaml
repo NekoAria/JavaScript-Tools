@@ -72,6 +72,15 @@ importers:
         specifier: 'catalog:'
         version: 8.0.5(postcss@8.5.15)(vite@8.0.14(esbuild@0.28.0)(jiti@2.7.0)(yaml@2.9.0))
 
+  packages/artist-profile-urls-extractor:
+    devDependencies:
+      vite:
+        specifier: 'catalog:'
+        version: 8.0.14(esbuild@0.28.0)(jiti@2.7.0)(yaml@2.9.0)
+      vite-plugin-monkey:
+        specifier: 'catalog:'
+        version: 8.0.5(postcss@8.5.15)(vite@8.0.14(esbuild@0.28.0)(jiti@2.7.0)(yaml@2.9.0))
+
   packages/booru-image-comparator:
     dependencies:
       '@panzoom/panzoom':

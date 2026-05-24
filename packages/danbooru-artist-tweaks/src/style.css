@@ -1,11 +1,11 @@
 .artist-copy-btn,
 .other-names-toggle-btn {
-  background-color: var(--link-color);
-  color: white;
-  border: none;
-  cursor: pointer;
-  transition: background-color 0.2s;
   font-size: var(--text-sm);
+  color: white;
+  cursor: pointer;
+  background-color: var(--link-color);
+  border: none;
+  transition: background-color 0.2s;
 }
 
 .artist-copy-btn:hover,
@@ -31,9 +31,9 @@
 }
 
 .other-names-toggle-btn {
-  padding: 0 0.75rem;
   flex-shrink: 0;
   max-height: 2.25em;
+  padding: 0 0.75rem;
 }
 
 form.simple_form div.input .hint {

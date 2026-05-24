@@ -59,11 +59,11 @@ body[data-current-user-theme='dark'] {
 }
 
 td.urls-column .diff-list li {
-  color: unset;
   padding: 5px;
   margin: 2px 0;
-  border-left: 3px solid transparent;
+  color: unset;
   word-break: break-all;
+  border-left: 3px solid transparent;
   border-radius: 4px;
 }
 
@@ -91,15 +91,15 @@ td.urls-column .diff-list li.changed {
 
 .char-diff-removed,
 .char-diff-added {
-  word-break: break-all;
   padding: 2px 0;
+  word-break: break-all;
 }
 
 .char-diff-arrow {
-  color: unset;
-  font-weight: bold;
   align-self: flex-start;
   margin: 2px 0;
+  font-weight: bold;
+  color: unset;
 }
 
 .char-common {
@@ -107,25 +107,25 @@ td.urls-column .diff-list li.changed {
 }
 
 .char-removed {
-  background-color: var(--diff-char-removed-bg);
-  color: white;
   padding: 1px 2px;
+  color: white;
+  background-color: var(--diff-char-removed-bg);
   border-radius: 2px;
 }
 
 .char-added {
-  background-color: var(--diff-char-added-bg);
-  color: white;
   padding: 1px 2px;
-  border-radius: 2px;
   font-weight: bold;
+  color: white;
+  background-color: var(--diff-char-added-bg);
+  border-radius: 2px;
 }
 
 @media (min-width: 768px) {
   .char-diff-container {
     flex-direction: row;
-    align-items: center;
     gap: 8px;
+    align-items: center;
   }
 
   .char-diff-arrow {

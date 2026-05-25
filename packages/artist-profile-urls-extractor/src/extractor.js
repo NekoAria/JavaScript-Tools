@@ -474,34 +474,34 @@ const handlePixiv = async () => {
   return createProfileResult(primaryUrl, secondaryUrl);
 };
 
+const extractTiebaPortraitId = (avatarUrl) => {
+  if (!avatarUrl) {
+    return null;
+  }
+
+  try {
+    const avatarPath = new URL(avatarUrl.trim(), location.href).pathname;
+
+    return /\/portrait\/item\/([^/]+)/.exec(avatarPath)?.[1] ?? null;
+  } catch {
+    return null;
+  }
+};
+
 const handleTieba = async () => {
-  const pageContent = document.documentElement.outerHTML;
-  const userInfoMatch = pageContent.match(
-    /_.Module\.use\('ihome\/widget\/Userinfo',\s*(\{.*?\})\s*\);/,
-  );
+  const username =
+    document.querySelector('.user-information-wrapper .head-name')?.textContent?.trim() || null;
 
-  let username = null;
-  let portrait = null;
+  const avatarImage = document.querySelector('.user-information-wrapper .user-avatar img');
+  const avatarUrl = avatarImage?.dataset.src || avatarImage?.getAttribute('src');
+  const portraitId = extractTiebaPortraitId(avatarUrl);
 
-  const userInfo = userInfoMatch ? utils.safeJsonParse(userInfoMatch[1]) : null;
-
-  if (userInfo?.user) {
-    username = userInfo.user.homeUserName || userInfo.user.show_nickname;
-    portrait = userInfo.user.portrait?.split('?')[0];
-  }
-
-  if (!username) {
-    const pageDataMatch = pageContent.match(/PageData\.current_page_uname\s*=\s*['"]([^'"]+)['"]/);
-
-    username = pageDataMatch?.[1] ?? null;
-  }
-
-  if (!username) {
+  if (!username || !portraitId) {
     return fail(utils.userNotFoundError('Tieba'));
   }
 
   const primaryUrl = `https://tieba.baidu.com/home/main?un=${username}`;
-  const secondaryUrl = portrait ? `https://tieba.baidu.com/home/main?id=${portrait}` : null;
+  const secondaryUrl = portraitId ? `https://tieba.baidu.com/home/main?id=${portraitId}` : null;
 
   return createProfileResult(primaryUrl, secondaryUrl);
 };

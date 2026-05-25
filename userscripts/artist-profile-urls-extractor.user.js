@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Artist Profile URLs Extractor
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      1.0.0
+// @version      1.0.1
 // @author       Neko_Aria
 // @description  Add a draggable floating button on supported artist profile pages that opens a modal with canonical profile URLs and copy actions
 // @homepageURL  https://github.com/NekoAria/JavaScript-Tools/tree/main/packages/artist-profile-urls-extractor
@@ -238,19 +238,21 @@
 		const secondaryUrl = (await utils.safeFetch(staccUrl))?.url ?? null;
 		return createProfileResult(primaryUrl, secondaryUrl);
 	};
-	var handleTieba = async () => {
-		const pageContent = document.documentElement.outerHTML;
-		const userInfoMatch = pageContent.match(/_.Module\.use\('ihome\/widget\/Userinfo',\s*(\{.*?\})\s*\);/);
-		let username = null;
-		let portrait = null;
-		const userInfo = userInfoMatch ? utils.safeJsonParse(userInfoMatch[1]) : null;
-		if (userInfo?.user) {
-			username = userInfo.user.homeUserName || userInfo.user.show_nickname;
-			portrait = userInfo.user.portrait?.split("?")[0];
+	var extractTiebaPortraitId = (avatarUrl) => {
+		if (!avatarUrl) return null;
+		try {
+			const avatarPath = new URL(avatarUrl.trim(), location.href).pathname;
+			return /\/portrait\/item\/([^/]+)/.exec(avatarPath)?.[1] ?? null;
+		} catch {
+			return null;
 		}
-		if (!username) username = pageContent.match(/PageData\.current_page_uname\s*=\s*['"]([^'"]+)['"]/)?.[1] ?? null;
-		if (!username) return fail(utils.userNotFoundError("Tieba"));
-		return createProfileResult(`https://tieba.baidu.com/home/main?un=${username}`, portrait ? `https://tieba.baidu.com/home/main?id=${portrait}` : null);
+	};
+	var handleTieba = async () => {
+		const username = document.querySelector(".user-information-wrapper .head-name")?.textContent?.trim() || null;
+		const avatarImage = document.querySelector(".user-information-wrapper .user-avatar img");
+		const portraitId = extractTiebaPortraitId(avatarImage?.dataset.src || avatarImage?.getAttribute("src"));
+		if (!username || !portraitId) return fail(utils.userNotFoundError("Tieba"));
+		return createProfileResult(`https://tieba.baidu.com/home/main?un=${username}`, portraitId ? `https://tieba.baidu.com/home/main?id=${portraitId}` : null);
 	};
 	var handleWeibo = async () => {
 		const username = document.querySelector("[class^=\"_name_\"]")?.textContent?.trim();

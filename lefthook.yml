@@ -3,14 +3,24 @@ pre-commit:
   commands:
     lint-and-format-scripts:
       glob: '*.{js,ts,mjs}'
+      exclude:
+        - '*.min.js'
+        - '*.d.ts'
+        - 'userscripts/**'
       stage_fixed: true
-      run: pnpm exec eslint --fix {staged_files} && pnpm exec prettier --write {staged_files}
+      run: pnpm exec oxlint --fix --no-error-on-unmatched-pattern {staged_files} && pnpm exec eslint --fix --no-error-on-unmatched-pattern {staged_files} && pnpm exec oxfmt --no-error-on-unmatched-pattern {staged_files}
     format-css:
       glob: '*.css'
       stage_fixed: true
-      run: pnpm exec stylelint --fix {staged_files} && pnpm exec prettier --write {staged_files}
-    format-misc:
-      glob: '*.{json,jsonc,md}'
+      run: pnpm exec stylelint --fix {staged_files} && pnpm exec oxfmt --no-error-on-unmatched-pattern {staged_files}
+    format-config:
+      glob: '*.{json,jsonc}'
+      stage_fixed: true
+      run: pnpm exec oxfmt --no-error-on-unmatched-pattern {staged_files}
+    format-docs:
+      glob: '*.{md,yml,yaml}'
+      exclude:
+        - 'pnpm-lock.yaml'
       stage_fixed: true
       run: pnpm exec prettier --write {staged_files}
 

@@ -3,6 +3,7 @@ import { defineConfig, globalIgnores } from 'eslint/config';
 import eslintConfigPrettier from 'eslint-config-prettier';
 import { importX } from 'eslint-plugin-import-x';
 import nodePlugin from 'eslint-plugin-n';
+import oxlint from 'eslint-plugin-oxlint';
 import perfectionist from 'eslint-plugin-perfectionist';
 import unicorn from 'eslint-plugin-unicorn';
 import unusedImports from 'eslint-plugin-unused-imports';
@@ -189,6 +190,18 @@ export default defineConfig([
     files: ['scripts/**/*.js'],
     rules: {
       'no-console': 'off',
+    },
+  },
+
+  // Disable ESLint rules already covered by Oxlint; keep ESLint for unsupported/plugin/type-aware rules.
+  ...oxlint.buildFromOxlintConfigFile('./.oxlintrc.json'),
+
+  // Keep ESLint's no-console checks because existing eslint-disable comments document debug logging.
+  {
+    files: ['**/*.{js,mjs,ts}'],
+    ignores: ['shared/**/*.js', 'scripts/**/*.js', '**/vite.config.{js,ts}'],
+    rules: {
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
     },
   },
 ]);

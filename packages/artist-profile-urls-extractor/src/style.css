@@ -19,6 +19,7 @@
   --backdrop: oklch(14.5% 0 0 / 72%);
   --modal-shadow: rgb(0 0 0 / 45%);
   --radius: 4px;
+  --ui-font-family: Verdana, system-ui, -apple-system, Helvetica, sans-serif;
 
   all: initial;
   position: fixed;
@@ -28,12 +29,7 @@
   display: block;
   width: 32px;
   height: 32px;
-  font-family:
-    Verdana,
-    system-ui,
-    -apple-system,
-    Helvetica,
-    sans-serif;
+  font-family: var(--ui-font-family);
   font-size: 14px;
   line-height: 1.5;
   color: var(--text);
@@ -57,6 +53,19 @@ input {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--radius);
+}
+
+/* Page styles can still target the shadow host, so reset inherited UI text styles inside it. */
+.floating-button,
+.backdrop {
+  font: 400 14px / 1.5 var(--ui-font-family);
+  color: var(--text);
+  text-align: left;
+  text-transform: none;
+  letter-spacing: normal;
+  color-scheme: dark;
+  -webkit-text-size-adjust: none;
+  text-size-adjust: none;
 }
 
 button:focus-visible,

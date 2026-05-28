@@ -427,7 +427,11 @@
 			button.textContent = originalText;
 		}, COPY_FEEDBACK_DELAY);
 	};
+	var handleModalEscape = (event) => {
+		if (event.key === "Escape") closeModal();
+	};
 	var closeModal = () => {
+		document.removeEventListener("keydown", handleModalEscape);
 		modalElement?.remove();
 		modalElement = null;
 	};
@@ -471,6 +475,7 @@
 		backdrop.append(modal);
 		shadowRoot.append(backdrop);
 		modalElement = backdrop;
+		document.addEventListener("keydown", handleModalEscape);
 		closeButton.focus();
 	};
 	var enableDrag = (button) => {

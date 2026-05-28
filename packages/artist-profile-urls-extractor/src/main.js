@@ -66,7 +66,14 @@ const copyToClipboard = async (text, button) => {
   }, COPY_FEEDBACK_DELAY);
 };
 
+const handleModalEscape = (event) => {
+  if (event.key === 'Escape') {
+    closeModal();
+  }
+};
+
 const closeModal = () => {
+  document.removeEventListener('keydown', handleModalEscape);
   modalElement?.remove();
   modalElement = null;
 };
@@ -127,6 +134,7 @@ const showModal = (profileUrls) => {
   backdrop.append(modal);
   shadowRoot.append(backdrop);
   modalElement = backdrop;
+  document.addEventListener('keydown', handleModalEscape);
   closeButton.focus();
 };
 

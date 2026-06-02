@@ -13,7 +13,7 @@
 // ==/UserScript==
 
 (function() {
-  'use strict';
+	"use strict";
 	var isValidBase36 = (str) => /^[0-9a-zA-Z]+$/.test(str);
 	var base36ToBase10 = (str) => Number.parseInt(str, 36).toString(10);
 	var artId = globalThis.location.pathname.replace(/\/$/, "").split("/").pop();

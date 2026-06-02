@@ -14,7 +14,7 @@
 // ==/UserScript==
 
 (function() {
-  'use strict';
+	"use strict";
 	var style_default = ":root {\n  --kemono-grid-gallery-gap: 16px;\n  --kemono-grid-gallery-min-column-width: 250px;\n}\n\n.card-list--legacy .card-list__items {\n  display: grid !important;\n  grid-template-columns: repeat(\n    auto-fill,\n    minmax(var(--kemono-grid-gallery-min-column-width), 1fr)\n  );\n  grid-auto-rows: auto;\n  gap: var(--kemono-grid-gallery-gap);\n  width: 100%;\n  padding: var(--kemono-grid-gallery-gap);\n  margin: 0 auto;\n}\n\n.post-card {\n  width: 100% !important;\n  height: auto !important;\n  margin: 0 !important;\n  overflow: hidden;\n  background: rgba(0, 0, 0, 0.5);\n  border-radius: 8px;\n  transition: transform 0.2s ease;\n  break-inside: avoid;\n}\n\n.post-card:hover {\n  transform: translateY(-2px);\n}\n\n.post-card__image-container {\n  position: relative;\n  width: 100%;\n  height: auto !important;\n}\n\n.post-card__image {\n  display: block;\n  width: 100%;\n  height: 100%;\n  object-fit: cover;\n}\n\n.loading-overlay {\n  position: fixed;\n  top: 50%;\n  left: 50%;\n  z-index: 9999;\n  display: flex;\n  align-items: center;\n  padding: 20px;\n  color: white;\n  background: rgba(0, 0, 0, 0.8);\n  border-radius: 8px;\n  transform: translate(-50%, -50%);\n}\n\n.loading-spinner {\n  width: 20px;\n  height: 20px;\n  margin-right: 10px;\n  border: 3px solid #fff;\n  border-top-color: transparent;\n  border-radius: 50%;\n  animation: spin 1s linear infinite;\n}\n\n@keyframes spin {\n  to {\n    transform: rotate(360deg);\n  }\n}\n";
 	var CONFIG = {
 		SELECTORS: {

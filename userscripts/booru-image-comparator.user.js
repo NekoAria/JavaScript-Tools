@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Universal Booru Image Comparator
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      2.0.1
+// @version      2.0.2
 // @author       Neko_Aria
 // @description  Compare images on Danbooru / Yande.re / Konachan with multiple modes and transformations
 // @homepageURL  https://github.com/NekoAria/JavaScript-Tools/tree/main/packages/booru-image-comparator
@@ -17,7 +17,7 @@
 // ==/UserScript==
 
 (function() {
-  'use strict';
+	"use strict";
 	var STORAGE_KEY_MODE = "universal_comparator_mode";
 	var STORAGE_KEY_BACKGROUND = "universal_comparator_background";
 	var MODES = {
@@ -1115,7 +1115,8 @@
 		const select = wrap.querySelector("select");
 		if (select) bindPostSelectorEvents(select, onSelect);
 	}
-	function extractFromNotices(posts) {
+	function extractFromNotices(state, posts) {
+		const { postId } = state.get();
 		const notice = document.querySelector(".post-notice-parent, .post-notice-child");
 		if (!notice) return;
 		for (const link of notice.querySelectorAll("a[href*='parent'], a[href*='child']")) {
@@ -1124,7 +1125,7 @@
 			const decoded = decodeURIComponent(href);
 			const isParent = /parent:/.test(decoded);
 			const id = decoded.match(/(?:parent|child):(\d+)/)?.[1];
-			if (id && !posts.some((p) => p.id === id)) posts.push({
+			if (id && id !== postId && !posts.some((p) => p.id === id)) posts.push({
 				id,
 				relationshipType: isParent ? "Parent" : "Child"
 			});
@@ -1189,7 +1190,7 @@
 		if (isIqdb || isUpload) return getDanbooruSimilar(state);
 		const posts = [];
 		extractFromPreviews(state, posts);
-		extractFromNotices(posts);
+		extractFromNotices(state, posts);
 		return posts;
 	}
 	function getDanbooruSimilar(state) {

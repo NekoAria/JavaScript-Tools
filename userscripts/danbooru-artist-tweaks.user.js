@@ -12,7 +12,7 @@
 // ==/UserScript==
 
 (function() {
-  'use strict';
+	"use strict";
 	var style_default = ".artist-copy-btn,\n.other-names-toggle-btn {\n  font-size: var(--text-sm);\n  color: white;\n  cursor: pointer;\n  background-color: var(--link-color);\n  border: none;\n  transition: background-color 0.2s;\n}\n\n.artist-copy-btn:hover,\n.other-names-toggle-btn:hover {\n  background-color: var(--link-hover-color) !important;\n}\n\n.artist-copy-btn.copied {\n  background-color: var(--success-color);\n}\n\n#pending-bur-section .pending-bur {\n  color: var(--warning-color);\n}\n\n.other-names-wrapper {\n  display: flex;\n  gap: 0.5rem;\n}\n\n.other-names-wrapper > #artist_other_names_string {\n  flex: 1;\n}\n\n.other-names-toggle-btn {\n  flex-shrink: 0;\n  max-height: 2.25em;\n  padding: 0 0.75rem;\n}\n\nform.simple_form div.input .hint {\n  padding-left: 0 !important;\n}\n";
 	var getArtistTagName = () => {
 		const tagElement = document.querySelector(".tag-type-1.heading.text-xl");

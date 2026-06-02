@@ -6,7 +6,7 @@ export default defineMonkeyConfig({
   userscript: {
     name: 'Universal Booru Image Comparator',
     namespace: 'https://github.com/NekoAria/JavaScript-Tools',
-    version: '2.0.1',
+    version: '2.0.2',
     description:
       'Compare images on Danbooru / Yande.re / Konachan with multiple modes and transformations',
     author: 'Neko_Aria',

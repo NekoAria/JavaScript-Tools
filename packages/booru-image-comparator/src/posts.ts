@@ -63,7 +63,8 @@ export async function createPostSelector(state: StateManager, onSelect: () => vo
 }
 
 /** Extract parent/child post IDs from danbooru notice banners. */
-function extractFromNotices(posts: PostData[]): void {
+function extractFromNotices(state: StateManager, posts: PostData[]): void {
+  const { postId } = state.get();
   const notice = document.querySelector('.post-notice-parent, .post-notice-child');
 
   if (!notice) {
@@ -81,7 +82,7 @@ function extractFromNotices(posts: PostData[]): void {
     const isParent = /parent:/.test(decoded);
     const id = decoded.match(/(?:parent|child):(\d+)/)?.[1];
 
-    if (id && !posts.some((p) => p.id === id)) {
+    if (id && id !== postId && !posts.some((p) => p.id === id)) {
       posts.push({ id, relationshipType: isParent ? 'Parent' : 'Child' });
     }
   }
@@ -193,7 +194,7 @@ function getDanbooru(state: StateManager): PostData[] {
   const posts: PostData[] = [];
 
   extractFromPreviews(state, posts);
-  extractFromNotices(posts);
+  extractFromNotices(state, posts);
 
   return posts;
 }

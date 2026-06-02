@@ -11,7 +11,7 @@
 // ==/UserScript==
 
 (function() {
-  'use strict';
+	"use strict";
 	function calculateSimilarity(str1, str2) {
 		if (str1 === str2) return 1;
 		if (!str1 || !str2) return 0;

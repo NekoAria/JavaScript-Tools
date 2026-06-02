@@ -12,7 +12,7 @@
 // ==/UserScript==
 
 (function() {
-  'use strict';
+	"use strict";
 	var createProfileResult = (primaryUrl, secondaryUrl = null) => ({
 		primaryUrl,
 		secondaryUrl

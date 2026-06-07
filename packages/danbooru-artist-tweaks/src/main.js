@@ -271,6 +271,26 @@ const highlightUnrecognizedHostnamesInVersions = (hostnameSet) => {
   }
 };
 
+const hasActiveTagAlias = async (oldName, newName) => {
+  const { origin } = globalThis.location;
+  const url = `${origin}/tag_aliases.json?search[antecedent_name_matches]=${oldName}`;
+
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  const aliases = await response.json();
+
+  return aliases.some(
+    (alias) =>
+      alias.status === 'active' &&
+      alias.antecedent_name === oldName &&
+      alias.consequent_name === newName,
+  );
+};
+
 const checkUnmigratedPostsOnRename = async (artistId) => {
   const rows = document.querySelectorAll('#artist-versions-table tbody tr');
 
@@ -305,11 +325,23 @@ const checkUnmigratedPostsOnRename = async (artistId) => {
     }
     const versions = await response.json();
 
+    const newName = versions[renameIndex]?.name;
+
     // In the API response, the version after the rename row contains the old name.
     const oldName = versions[renameIndex + 1]?.name;
 
-    if (!oldName) {
+    if (!oldName || !newName) {
       return;
+    }
+
+    // If the old name already aliases to the new name, Danbooru searches for the old
+    // tag resolve to the new tag and are not evidence of unmigrated posts.
+    try {
+      if (await hasActiveTagAlias(oldName, newName)) {
+        return;
+      }
+    } catch (error) {
+      console.error('Failed to check tag aliases; continuing unmigrated posts check:', error);
     }
 
     // Check for posts that still have the old artist tag after a rename.
@@ -321,8 +353,8 @@ const checkUnmigratedPostsOnRename = async (artistId) => {
     }
     const posts = await postsResponse.json();
 
-    const hasUnmigratedPosts = posts.some(
-      (post) => post.tag_string_artist && post.tag_string_artist.includes(oldName),
+    const hasUnmigratedPosts = posts.some((post) =>
+      (post.tag_string_artist ?? '').split(/\s+/).includes(oldName),
     );
 
     if (hasUnmigratedPosts) {

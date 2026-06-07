@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Danbooru Artist Tweaks
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      1.0.3
+// @version      1.0.4
 // @author       Neko_Aria
 // @description  Add Create wiki link for artist pages without wiki page, copy artist name button, replace wiki links with bulk update request links for tag aliases, show pending BURs, highlight unrecognized external hostnames in artist versions, provide an expandable multi-line editor for the artist "Other Names" field, and warn about unmigrated posts on artist rename
 // @homepageURL  https://github.com/NekoAria/JavaScript-Tools/tree/main/packages/danbooru-artist-tweaks
@@ -162,6 +162,13 @@
 		for (const li of document.querySelectorAll("#artist-versions-table .urls-column li")) if (li.classList.contains("changed")) for (const span of li.querySelectorAll("span.removed, span.added")) prependGlobeIfUnrecognized(span, hostnameSet);
 		else prependGlobeIfUnrecognized(li, hostnameSet, { inside: true });
 	};
+	var hasActiveTagAlias = async (oldName, newName) => {
+		const { origin } = globalThis.location;
+		const url = `${origin}/tag_aliases.json?search[antecedent_name_matches]=${oldName}`;
+		const response = await fetch(url);
+		if (!response.ok) throw new Error(`HTTP ${response.status}`);
+		return (await response.json()).some((alias) => alias.status === "active" && alias.antecedent_name === oldName && alias.consequent_name === newName);
+	};
 	var checkUnmigratedPostsOnRename = async (artistId) => {
 		const rows = document.querySelectorAll("#artist-versions-table tbody tr");
 		if (rows.length < 2) return;
@@ -176,12 +183,19 @@
 		try {
 			const response = await fetch(url);
 			if (!response.ok) throw new Error(`HTTP ${response.status}`);
-			const oldName = (await response.json())[renameIndex + 1]?.name;
-			if (!oldName) return;
+			const versions = await response.json();
+			const newName = versions[renameIndex]?.name;
+			const oldName = versions[renameIndex + 1]?.name;
+			if (!oldName || !newName) return;
+			try {
+				if (await hasActiveTagAlias(oldName, newName)) return;
+			} catch (error) {
+				console.error("Failed to check tag aliases; continuing unmigrated posts check:", error);
+			}
 			const postsUrl = `${origin}/posts.json?tags=${oldName}&limit=1`;
 			const postsResponse = await fetch(postsUrl);
 			if (!postsResponse.ok) throw new Error(`HTTP ${postsResponse.status}`);
-			if ((await postsResponse.json()).some((post) => post.tag_string_artist && post.tag_string_artist.includes(oldName))) renderUnmigratedPostsWarning(oldName);
+			if ((await postsResponse.json()).some((post) => (post.tag_string_artist ?? "").split(/\s+/).includes(oldName))) renderUnmigratedPostsWarning(oldName);
 		} catch (error) {
 			console.error("Failed to check unmigrated posts:", error);
 		}

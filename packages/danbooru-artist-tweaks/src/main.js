@@ -22,7 +22,6 @@ const createCopyButton = (tagName) => {
     try {
       await navigator.clipboard.writeText(tagName);
 
-      // Briefly confirm the clipboard write without changing layout.
       const originalText = button.textContent;
 
       button.textContent = 'copied!';
@@ -87,7 +86,6 @@ const fetchPendingBURs = async (tagName) => {
 };
 
 const renderPendingBURs = (burs) => {
-  // Remove any previously rendered pending BUR section to avoid duplicates.
   document.querySelector('#pending-bur-section')?.remove();
 
   if (burs.length === 0) {
@@ -135,7 +133,6 @@ const renderPendingBURs = (burs) => {
     section.append(p);
   }
 
-  // Insert after the last fineprint paragraph, or after the artist info block.
   const fineprintParagraphs = document.querySelectorAll('p.fineprint');
   const insertAfter =
     fineprintParagraphs.length > 0
@@ -271,9 +268,12 @@ const highlightUnrecognizedHostnamesInVersions = (hostnameSet) => {
   }
 };
 
-const hasActiveTagAlias = async (oldName, newName) => {
+const fetchTagAliases = async (antecedentName) => {
   const { origin } = globalThis.location;
-  const url = `${origin}/tag_aliases.json?search[antecedent_name_matches]=${oldName}`;
+  const params = new URLSearchParams({
+    'search[antecedent_name_matches]': antecedentName,
+  });
+  const url = `${origin}/tag_aliases.json?${params}`;
 
   const response = await fetch(url);
 
@@ -281,14 +281,52 @@ const hasActiveTagAlias = async (oldName, newName) => {
     throw new Error(`HTTP ${response.status}`);
   }
 
-  const aliases = await response.json();
+  return await response.json();
+};
 
-  return aliases.some(
+const hasActiveTagAlias = (aliases, antecedentName, consequentName) =>
+  aliases.some(
     (alias) =>
       alias.status === 'active' &&
-      alias.antecedent_name === oldName &&
-      alias.consequent_name === newName,
+      alias.antecedent_name === antecedentName &&
+      alias.consequent_name === consequentName,
   );
+
+const hasActiveTagAliasBetweenNames = async (oldName, newName) => {
+  const oldNameAliases = await fetchTagAliases(oldName);
+
+  if (hasActiveTagAlias(oldNameAliases, oldName, newName)) {
+    return true;
+  }
+
+  const newNameAliases = await fetchTagAliases(newName);
+
+  return hasActiveTagAlias(newNameAliases, newName, oldName);
+};
+
+const fetchActiveArtistByName = async (name) => {
+  const { origin } = globalThis.location;
+  const params = new URLSearchParams({
+    'search[name]': name,
+    'search[is_deleted]': 'false',
+    limit: '1',
+    only: 'id,name,is_deleted',
+  });
+  const url = `${origin}/artists.json?${params}`;
+
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  return await response.json();
+};
+
+const hasActiveArtistEntry = async (name) => {
+  const artists = await fetchActiveArtistByName(name);
+
+  return artists.some((artist) => artist.name === name && !artist.is_deleted);
 };
 
 const checkUnmigratedPostsOnRename = async (artistId) => {
@@ -334,18 +372,23 @@ const checkUnmigratedPostsOnRename = async (artistId) => {
       return;
     }
 
-    // If the old name already aliases to the new name, Danbooru searches for the old
-    // tag resolve to the new tag and are not evidence of unmigrated posts.
-    try {
-      if (await hasActiveTagAlias(oldName, newName)) {
-        return;
-      }
-    } catch (error) {
-      console.error('Failed to check tag aliases; continuing unmigrated posts check:', error);
+    // Active aliases can make old-name posts expected, especially after a later
+    // reverse BUR supersedes this rename.
+    if (await hasActiveTagAliasBetweenNames(oldName, newName)) {
+      return;
     }
 
-    // Check for posts that still have the old artist tag after a rename.
-    const postsUrl = `${origin}/posts.json?tags=${oldName}&limit=1`;
+    // If the old name now has its own active artist entry, posts under that tag
+    // are expected and should not be treated as unmigrated rename leftovers.
+    if (await hasActiveArtistEntry(oldName)) {
+      return;
+    }
+
+    const postsParams = new URLSearchParams({
+      limit: '1',
+      tags: oldName,
+    });
+    const postsUrl = `${origin}/posts.json?${postsParams}`;
     const postsResponse = await fetch(postsUrl);
 
     if (!postsResponse.ok) {
@@ -381,7 +424,7 @@ const renderUnmigratedPostsWarning = (oldName) => {
 
   const postLink = document.createElement('a');
 
-  postLink.href = `${origin}/posts?tags=${oldName}`;
+  postLink.href = `${origin}/posts?tags=${encodeURIComponent(oldName)}`;
   postLink.textContent = oldName;
 
   span.append(postLink);
@@ -448,7 +491,6 @@ const createOtherNamesTextarea = (current, form) => {
   return textarea;
 };
 
-// Toggle other_names between compact input and multi-line textarea modes.
 const addOtherNamesToggleButton = () => {
   const field = document.querySelector('#artist_other_names_string');
 

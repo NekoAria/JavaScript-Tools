@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Danbooru Artist Tweaks
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      1.0.4
+// @version      1.0.5
 // @author       Neko_Aria
 // @description  Add Create wiki link for artist pages without wiki page, copy artist name button, replace wiki links with bulk update request links for tag aliases, show pending BURs, highlight unrecognized external hostnames in artist versions, provide an expandable multi-line editor for the artist "Other Names" field, and warn about unmigrated posts on artist rename
 // @homepageURL  https://github.com/NekoAria/JavaScript-Tools/tree/main/packages/danbooru-artist-tweaks
@@ -162,12 +162,32 @@
 		for (const li of document.querySelectorAll("#artist-versions-table .urls-column li")) if (li.classList.contains("changed")) for (const span of li.querySelectorAll("span.removed, span.added")) prependGlobeIfUnrecognized(span, hostnameSet);
 		else prependGlobeIfUnrecognized(li, hostnameSet, { inside: true });
 	};
-	var hasActiveTagAlias = async (oldName, newName) => {
+	var fetchTagAliases = async (antecedentName) => {
 		const { origin } = globalThis.location;
-		const url = `${origin}/tag_aliases.json?search[antecedent_name_matches]=${oldName}`;
+		const url = `${origin}/tag_aliases.json?${new URLSearchParams({ "search[antecedent_name_matches]": antecedentName })}`;
 		const response = await fetch(url);
 		if (!response.ok) throw new Error(`HTTP ${response.status}`);
-		return (await response.json()).some((alias) => alias.status === "active" && alias.antecedent_name === oldName && alias.consequent_name === newName);
+		return await response.json();
+	};
+	var hasActiveTagAlias = (aliases, antecedentName, consequentName) => aliases.some((alias) => alias.status === "active" && alias.antecedent_name === antecedentName && alias.consequent_name === consequentName);
+	var hasActiveTagAliasBetweenNames = async (oldName, newName) => {
+		if (hasActiveTagAlias(await fetchTagAliases(oldName), oldName, newName)) return true;
+		return hasActiveTagAlias(await fetchTagAliases(newName), newName, oldName);
+	};
+	var fetchActiveArtistByName = async (name) => {
+		const { origin } = globalThis.location;
+		const url = `${origin}/artists.json?${new URLSearchParams({
+			"search[name]": name,
+			"search[is_deleted]": "false",
+			limit: "1",
+			only: "id,name,is_deleted"
+		})}`;
+		const response = await fetch(url);
+		if (!response.ok) throw new Error(`HTTP ${response.status}`);
+		return await response.json();
+	};
+	var hasActiveArtistEntry = async (name) => {
+		return (await fetchActiveArtistByName(name)).some((artist) => artist.name === name && !artist.is_deleted);
 	};
 	var checkUnmigratedPostsOnRename = async (artistId) => {
 		const rows = document.querySelectorAll("#artist-versions-table tbody tr");
@@ -187,12 +207,12 @@
 			const newName = versions[renameIndex]?.name;
 			const oldName = versions[renameIndex + 1]?.name;
 			if (!oldName || !newName) return;
-			try {
-				if (await hasActiveTagAlias(oldName, newName)) return;
-			} catch (error) {
-				console.error("Failed to check tag aliases; continuing unmigrated posts check:", error);
-			}
-			const postsUrl = `${origin}/posts.json?tags=${oldName}&limit=1`;
+			if (await hasActiveTagAliasBetweenNames(oldName, newName)) return;
+			if (await hasActiveArtistEntry(oldName)) return;
+			const postsUrl = `${origin}/posts.json?${new URLSearchParams({
+				limit: "1",
+				tags: oldName
+			})}`;
 			const postsResponse = await fetch(postsUrl);
 			if (!postsResponse.ok) throw new Error(`HTTP ${postsResponse.status}`);
 			if ((await postsResponse.json()).some((post) => (post.tag_string_artist ?? "").split(/\s+/).includes(oldName))) renderUnmigratedPostsWarning(oldName);
@@ -209,7 +229,7 @@
 		const span = document.createElement("span");
 		span.append(document.createTextNode("⚠️ There may still be posts tagged with the old name: "));
 		const postLink = document.createElement("a");
-		postLink.href = `${origin}/posts?tags=${oldName}`;
+		postLink.href = `${origin}/posts?tags=${encodeURIComponent(oldName)}`;
 		postLink.textContent = oldName;
 		span.append(postLink);
 		section.append(span);

@@ -283,7 +283,7 @@ const refreshFloatingUi = async (retriesLeft = MAX_REFRESH_RETRIES) => {
     }
 
     if (
-      hostElement &&
+      hostElement?.isConnected &&
       displayedSourceUrl === refreshUrl &&
       areProfileUrlsEqual(displayedProfileUrls, profileUrls)
     ) {

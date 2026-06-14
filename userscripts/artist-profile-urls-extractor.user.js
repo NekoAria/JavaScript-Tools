@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Artist Profile URLs Extractor
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      1.0.2
+// @version      1.0.3
 // @author       Neko_Aria
 // @description  Add a draggable floating button on supported artist profile pages that opens a modal with canonical profile URLs and copy actions
 // @homepageURL  https://github.com/NekoAria/JavaScript-Tools/tree/main/packages/artist-profile-urls-extractor
@@ -566,7 +566,7 @@
 				if (retriesLeft > 0) scheduleFloatingUiRefresh(REFRESH_RETRY_DELAY, retriesLeft - 1);
 				return;
 			}
-			if (hostElement && displayedSourceUrl === refreshUrl && areProfileUrlsEqual(displayedProfileUrls, profileUrls)) return;
+			if (hostElement?.isConnected && displayedSourceUrl === refreshUrl && areProfileUrlsEqual(displayedProfileUrls, profileUrls)) return;
 			createFloatingUi(profileUrls, refreshUrl);
 		} catch (error) {
 			utils.warnUnexpectedError("Unexpected floating UI refresh error", error);

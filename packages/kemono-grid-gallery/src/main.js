@@ -218,7 +218,7 @@ function setupHistoryListener(methodName) {
   const originalMethod = history[methodName];
 
   history[methodName] = function (...args) {
-    const result = originalMethod.apply(this, args);
+    const result = Reflect.apply(originalMethod, history, args);
 
     handleUrlChange();
 

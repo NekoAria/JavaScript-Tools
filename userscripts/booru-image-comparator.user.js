@@ -889,6 +889,11 @@
 	}
 	Panzoom.defaultOptions = defaultOptions;
 	var wheelListeners = new WeakMap();
+	var OVERLAY_MODES = new Set([
+		MODES.SLIDER,
+		MODES.FADE,
+		MODES.DIFFERENCE
+	]);
 	function activeZoomInstance(appState) {
 		return appState.panzoomInstances.overlay ?? appState.panzoomInstances.left ?? appState.panzoomInstances.right ?? null;
 	}
@@ -1014,7 +1019,7 @@
 		bindWheelEvents(state);
 	}
 	function isOverlayMode(mode) {
-		return mode === MODES.SLIDER || mode === MODES.FADE || mode === MODES.DIFFERENCE;
+		return OVERLAY_MODES.has(mode);
 	}
 	function makeWheelHandler(pz) {
 		return (e) => {

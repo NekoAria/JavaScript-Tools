@@ -31,6 +31,7 @@ const utils = {
   },
 
   getMetaContent(name, property = 'name') {
+    // eslint-disable-next-line unicorn/require-css-escape -- Callers only pass static meta names.
     return document.querySelector(`meta[${property}='${name}']`)?.content;
   },
 
@@ -419,7 +420,7 @@ const handleTwitter = async () => {
 
 const handleFanbox = async () => {
   const { host } = location;
-  let userName;
+  let username;
 
   if (host === 'www.fanbox.cc') {
     const usernameMatch = /^\/@([a-zA-Z0-9_-]+)$/.exec(location.pathname);
@@ -427,13 +428,13 @@ const handleFanbox = async () => {
     if (!usernameMatch?.[1]) {
       return fail(utils.userNotFoundError('Fanbox'));
     }
-    userName = usernameMatch[1];
+    username = usernameMatch[1];
   } else {
-    userName = host.split('.')[0];
+    username = host.split('.', 1)[0];
   }
 
   const apiResponse = await utils.safeFetch(
-    `https://api.fanbox.cc/creator.get?creatorId=${userName}`,
+    `https://api.fanbox.cc/creator.get?creatorId=${username}`,
   );
 
   if (!apiResponse) {

@@ -213,13 +213,13 @@
 	};
 	var handleFanbox = async () => {
 		const { host } = location;
-		let userName;
+		let username;
 		if (host === "www.fanbox.cc") {
 			const usernameMatch = /^\/@([a-zA-Z0-9_-]+)$/.exec(location.pathname);
 			if (!usernameMatch?.[1]) return fail(utils.userNotFoundError("Fanbox"));
-			userName = usernameMatch[1];
-		} else userName = host.split(".")[0];
-		const apiResponse = await utils.safeFetch(`https://api.fanbox.cc/creator.get?creatorId=${userName}`);
+			username = usernameMatch[1];
+		} else username = host.split(".", 1)[0];
+		const apiResponse = await utils.safeFetch(`https://api.fanbox.cc/creator.get?creatorId=${username}`);
 		if (!apiResponse) return fail(utils.userNotFoundError("Fanbox"));
 		const apiData = await apiResponse.json();
 		if (!apiData?.body?.user) return fail("Invalid user data returned from API");

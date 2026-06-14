@@ -7,6 +7,7 @@ import { $ } from './shadow';
 
 /** Track wheel listeners without polluting HTMLElement. */
 const wheelListeners = new WeakMap<HTMLElement, (e: WheelEvent) => void>();
+const OVERLAY_MODES: ReadonlySet<ModeType> = new Set([MODES.SLIDER, MODES.FADE, MODES.DIFFERENCE]);
 
 /** Return the currently active Panzoom instance, preferring overlay over side-by-side panels. */
 function activeZoomInstance(appState: AppState): PanzoomObject | null {
@@ -195,7 +196,7 @@ export function initView(state: StateManager): void {
 }
 
 export function isOverlayMode(mode: ModeType): boolean {
-  return mode === MODES.SLIDER || mode === MODES.FADE || mode === MODES.DIFFERENCE;
+  return OVERLAY_MODES.has(mode);
 }
 
 function makeWheelHandler(pz: PanzoomObject) {

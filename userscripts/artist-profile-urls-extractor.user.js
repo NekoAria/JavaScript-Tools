@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Artist Profile URLs Extractor
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      1.0.3
+// @version      1.0.4
 // @author       Neko_Aria
 // @description  Add a draggable floating button on supported artist profile pages that opens a modal with canonical profile URLs and copy actions
 // @homepageURL  https://github.com/NekoAria/JavaScript-Tools/tree/main/packages/artist-profile-urls-extractor
@@ -28,6 +28,14 @@
 		"search",
 		"settings"
 	]);
+	var TWITTER_PROFILE_TAB_PATHS = new Set([
+		"",
+		"articles",
+		"highlights",
+		"media",
+		"with_replies"
+	]);
+	var TWITTER_STATUS_PATH_PATTERN = /^status\/\d+(?:\/(?:photo|video)\/\d+)?$/;
 	var utils = {
 		safeJsonParse(text) {
 			try {
@@ -184,8 +192,10 @@
 		return createProfileResult(`https://rule34.xxx/index.php?page=account&s=profile&uname=${username}`, `https://rule34.xxx/index.php?page=account&s=profile&id=${userId}`);
 	};
 	var getTwitterProfileName = () => {
-		const profileName = /^\/([^/?#]+)\/?$/.exec(location.pathname)?.[1];
-		if (!profileName || !/^[a-zA-Z0-9_]{1,15}$/.test(profileName) || TWITTER_RESERVED_PATHS.has(profileName.toLowerCase())) return fail("Please open the profile page");
+		const profileMatch = /^\/([^/]+)(?:\/(.+?))?\/?$/.exec(location.pathname);
+		const profileName = profileMatch?.[1];
+		const profileSubpath = profileMatch?.[2]?.toLowerCase() ?? "";
+		if (!profileName || !/^[a-zA-Z0-9_]{1,15}$/.test(profileName) || TWITTER_RESERVED_PATHS.has(profileName.toLowerCase()) || !TWITTER_PROFILE_TAB_PATHS.has(profileSubpath) && !TWITTER_STATUS_PATH_PATTERN.test(profileSubpath)) return fail("Please open the profile page");
 		return profileName;
 	};
 	var normalizeTwitterProfileName = (profileName) => profileName?.replace(/^@/, "").toLowerCase();

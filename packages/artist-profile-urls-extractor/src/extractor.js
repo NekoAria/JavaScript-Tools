@@ -10,6 +10,8 @@ const TWITTER_RESERVED_PATHS = new Set([
   'search',
   'settings',
 ]);
+const TWITTER_PROFILE_TAB_PATHS = new Set(['', 'articles', 'highlights', 'media', 'with_replies']);
+const TWITTER_STATUS_PATH_PATTERN = /^status\/\d+(?:\/(?:photo|video)\/\d+)?$/;
 
 const utils = {
   safeJsonParse(text) {
@@ -354,13 +356,16 @@ const handleRule34 = async () => {
 };
 
 const getTwitterProfileName = () => {
-  const profileMatch = /^\/([^/?#]+)\/?$/.exec(location.pathname);
+  const profileMatch = /^\/([^/]+)(?:\/(.+?))?\/?$/.exec(location.pathname);
   const profileName = profileMatch?.[1];
+  const profileSubpath = profileMatch?.[2]?.toLowerCase() ?? '';
 
   if (
     !profileName ||
     !/^[a-zA-Z0-9_]{1,15}$/.test(profileName) ||
-    TWITTER_RESERVED_PATHS.has(profileName.toLowerCase())
+    TWITTER_RESERVED_PATHS.has(profileName.toLowerCase()) ||
+    (!TWITTER_PROFILE_TAB_PATHS.has(profileSubpath) &&
+      !TWITTER_STATUS_PATH_PATTERN.test(profileSubpath))
   ) {
     return fail('Please open the profile page');
   }

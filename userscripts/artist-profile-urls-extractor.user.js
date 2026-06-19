@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Artist Profile URLs Extractor
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      1.0.4
+// @version      1.0.5
 // @author       Neko_Aria
 // @description  Add a draggable floating button on supported artist profile pages that opens a modal with canonical profile URLs and copy actions
 // @homepageURL  https://github.com/NekoAria/JavaScript-Tools/tree/main/packages/artist-profile-urls-extractor
@@ -36,6 +36,7 @@
 		"with_replies"
 	]);
 	var TWITTER_STATUS_PATH_PATTERN = /^status\/\d+(?:\/(?:photo|video)\/\d+)?$/;
+	var TUMBLR_API_AUTHORIZATION = "Bearer aIcXSOoTtqrzR8L8YEIOmBeW94c3FmbSNSWAUbxsny9KKx5VFh";
 	var utils = {
 		safeJsonParse(text) {
 			try {
@@ -331,6 +332,21 @@
 		if (!username || !portraitId) return fail(utils.userNotFoundError("Tieba"));
 		return createProfileResult(`https://tieba.baidu.com/home/main?un=${username}`, portraitId ? `https://tieba.baidu.com/home/main?id=${portraitId}` : null);
 	};
+	var getTumblrBlogIdentifier = () => {
+		const subdomain = /^(.+)\.tumblr\.com$/.exec(location.host)?.[1];
+		if (subdomain && subdomain !== "www") return subdomain;
+		return /^\/([^/]+)/.exec(location.pathname)?.[1] ?? null;
+	};
+	var handleTumblr = async () => {
+		const blogIdentifier = getTumblrBlogIdentifier();
+		if (!blogIdentifier) return fail(utils.userNotFoundError("Tumblr"));
+		const apiResponse = await utils.safeFetch(`https://api.tumblr.com/v2/blog/${encodeURIComponent(blogIdentifier)}/info`, { headers: { Authorization: TUMBLR_API_AUTHORIZATION } });
+		if (!apiResponse) return fail(utils.userNotFoundError("Tumblr"));
+		const blog = (await apiResponse.json())?.response?.blog;
+		const primaryUrl = (blog?.url || blog?.blog_view_url)?.replace(/^http:/, "https:").replace(/\/$/, "") || (blog?.name ? `https://${blog.name}.tumblr.com` : null);
+		if (!blog?.uuid || !primaryUrl) return fail("Invalid user data returned from API");
+		return createProfileResult(primaryUrl, `https://www.tumblr.com/blog/view/${blog.uuid}`);
+	};
 	var handleWeibo = async () => {
 		const username = document.querySelector("[class^=\"_name_\"]")?.textContent?.trim();
 		const followHref = document.querySelector("a[href*=\"/u/page/follow/\"]")?.getAttribute("href");
@@ -412,6 +428,7 @@
 		["gumroad.com", handleGumroad],
 		["lofter.com", handleLofter],
 		["mihuashi.com", handleMihuashi],
+		["tumblr.com", handleTumblr],
 		["weibo.com", handleWeibo]
 	];
 	var isHostWithinDomain = (host, domain) => host === domain || host.endsWith(`.${domain}`);

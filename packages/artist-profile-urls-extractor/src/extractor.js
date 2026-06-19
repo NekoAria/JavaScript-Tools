@@ -12,6 +12,7 @@ const TWITTER_RESERVED_PATHS = new Set([
 ]);
 const TWITTER_PROFILE_TAB_PATHS = new Set(['', 'articles', 'highlights', 'media', 'with_replies']);
 const TWITTER_STATUS_PATH_PATTERN = /^status\/\d+(?:\/(?:photo|video)\/\d+)?$/;
+const TUMBLR_API_AUTHORIZATION = 'Bearer aIcXSOoTtqrzR8L8YEIOmBeW94c3FmbSNSWAUbxsny9KKx5VFh';
 
 const utils = {
   safeJsonParse(text) {
@@ -621,6 +622,46 @@ const handleTieba = async () => {
   return createProfileResult(primaryUrl, secondaryUrl);
 };
 
+const getTumblrBlogIdentifier = () => {
+  const subdomain = /^(.+)\.tumblr\.com$/.exec(location.host)?.[1];
+
+  if (subdomain && subdomain !== 'www') {
+    return subdomain;
+  }
+
+  return /^\/([^/]+)/.exec(location.pathname)?.[1] ?? null;
+};
+
+const handleTumblr = async () => {
+  const blogIdentifier = getTumblrBlogIdentifier();
+
+  if (!blogIdentifier) {
+    return fail(utils.userNotFoundError('Tumblr'));
+  }
+
+  const apiResponse = await utils.safeFetch(
+    `https://api.tumblr.com/v2/blog/${encodeURIComponent(blogIdentifier)}/info`,
+    { headers: { Authorization: TUMBLR_API_AUTHORIZATION } },
+  );
+
+  if (!apiResponse) {
+    return fail(utils.userNotFoundError('Tumblr'));
+  }
+
+  const apiData = await apiResponse.json();
+  const blog = apiData?.response?.blog;
+
+  const primaryUrl =
+    (blog?.url || blog?.blog_view_url)?.replace(/^http:/, 'https:').replace(/\/$/, '') ||
+    (blog?.name ? `https://${blog.name}.tumblr.com` : null);
+
+  if (!blog?.uuid || !primaryUrl) {
+    return fail('Invalid user data returned from API');
+  }
+
+  return createProfileResult(primaryUrl, `https://www.tumblr.com/blog/view/${blog.uuid}`);
+};
+
 const handleWeibo = async () => {
   const nameElement = document.querySelector('[class^="_name_"]');
   const username = nameElement?.textContent?.trim();
@@ -784,6 +825,7 @@ const SUBDOMAIN_HANDLERS = [
   ['gumroad.com', handleGumroad],
   ['lofter.com', handleLofter],
   ['mihuashi.com', handleMihuashi],
+  ['tumblr.com', handleTumblr],
   ['weibo.com', handleWeibo],
 ];
 

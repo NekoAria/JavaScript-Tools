@@ -30,7 +30,7 @@
     "eslint-plugin-unicorn": "^65.0.1",
     "eslint-plugin-unused-imports": "^4.4.1",
     "globals": "^17.6.0",
-    "knip": "^6.16.1",
+    "knip": "^6.17.1",
     "lefthook": "^2.1.9",
     "oxfmt": "^0.54.0",
     "oxlint": "^1.69.0",

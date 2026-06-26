@@ -15,6 +15,10 @@ const CONFIG = {
       API_BASE_URL: 'https://kemono.cr/api/v1',
       IMAGE_BASE_URL: 'https://img.kemono.cr/thumbnail/data',
     },
+    'pawchive.st': {
+      API_BASE_URL: 'https://pawchive.st/api/v1',
+      IMAGE_BASE_URL: 'https://img.pawchive.st/thumbnail/data',
+    },
   },
   SUPPORTED_IMAGES: new Set(['.bmp', '.gif', '.jpeg', '.jpg', '.png', '.webp']),
 };

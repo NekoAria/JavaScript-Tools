@@ -63,7 +63,7 @@ This userscript automatically converts base36 IDs to base10 format URLs, allowin
 
 Note: Everything from `-` onward in filenames (such as `-pre`) are sample image suffixes and can be ignored.
 
-### Kemono/Coomer Grid Gallery Layout
+### Kemono/Coomer/Pawchive Grid Gallery Layout
 
 - **File**: [kemono-grid-gallery.user.js](userscripts/kemono-grid-gallery.user.js)
-- **Function**: Add a responsive grid gallery layout for the Kemono/Coomer thumbnails, using the first attachment image file as the cover
+- **Function**: Add a responsive grid gallery layout for the Kemono/Coomer/Pawchive thumbnails, using the first attachment image file as the cover

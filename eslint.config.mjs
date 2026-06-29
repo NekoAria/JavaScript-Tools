@@ -1,4 +1,5 @@
 import js from '@eslint/js';
+import stylistic from '@stylistic/eslint-plugin';
 import { defineConfig, globalIgnores } from 'eslint/config';
 import eslintConfigPrettier from 'eslint-config-prettier';
 import { importX } from 'eslint-plugin-import-x';
@@ -59,6 +60,7 @@ export default defineConfig([
   {
     files: ['**/*.{js,mjs,ts}'],
     plugins: {
+      '@stylistic': stylistic,
       perfectionist,
       'unused-imports': unusedImports,
     },
@@ -67,12 +69,12 @@ export default defineConfig([
       // ── Formatting / consistency ──────────
       curly: ['error', 'all'],
       'no-console': ['warn', { allow: ['warn', 'error'] }],
-      'no-multiple-empty-lines': ['warn', { max: 1 }],
+      '@stylistic/no-multiple-empty-lines': ['warn', { max: 1 }],
       'no-unused-vars': 'off',
       'operator-assignment': 'error',
       'prefer-template': 'error',
       'prefer-destructuring': ['error', { VariableDeclarator: { array: false, object: true } }],
-      'padding-line-between-statements': [
+      '@stylistic/padding-line-between-statements': [
         'warn',
         { blankLine: 'always', prev: '*', next: 'return' },
         { blankLine: 'always', prev: 'export', next: 'export' },
@@ -102,12 +104,12 @@ export default defineConfig([
           groups: [
             'type',
             'builtin',
-            'object',
             'external',
             'internal',
             'parent',
             'sibling',
             'index',
+            'object',
           ],
           named: true,
           'newlines-between': 'always',

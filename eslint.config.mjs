@@ -136,13 +136,32 @@ export default defineConfig([
       ],
 
       // ── Unicorn overrides ─────────────────
+      'unicorn/name-replacements': 'off',
       'unicorn/no-array-reduce': 'off',
       'unicorn/no-null': 'off',
       'unicorn/no-useless-undefined': 'warn',
       'unicorn/prefer-module': 'off',
       'unicorn/prefer-top-level-await': 'off',
-      'unicorn/prevent-abbreviations': 'off',
       'unicorn/filename-case': ['warn', { cases: { kebabCase: true } }],
+
+      // Keep the lint baseline stable after the Unicorn recommended preset became stricter.
+      'unicorn/consistent-boolean-name': 'off',
+      'unicorn/consistent-conditional-object-spread': 'off',
+      'unicorn/no-break-in-nested-loop': 'off',
+      'unicorn/no-computed-property-existence-check': 'off',
+      'unicorn/no-declarations-before-early-exit': 'off',
+      'unicorn/no-negated-array-predicate': 'off',
+      'unicorn/no-top-level-assignment-in-function': 'off',
+      'unicorn/no-unnecessary-global-this': 'off',
+      'unicorn/no-unreadable-for-of-expression': 'off',
+      'unicorn/no-unsafe-string-replacement': 'off',
+      'unicorn/no-useless-else': 'off',
+      'unicorn/prefer-await': 'off',
+      'unicorn/prefer-continue': 'off',
+      'unicorn/prefer-early-return': 'off',
+      'unicorn/prefer-scoped-selector': 'off',
+      'unicorn/prefer-url-href': 'off',
+      'unicorn/require-array-sort-compare': 'off',
     },
   },
 

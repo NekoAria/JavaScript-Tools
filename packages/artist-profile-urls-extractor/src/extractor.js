@@ -641,24 +641,34 @@ const handleTumblr = async () => {
     return fail(utils.userNotFoundError('Tumblr'));
   }
 
-  const apiResponse = await utils.safeFetch(
-    `https://api.tumblr.com/v2/blog/${encodeURIComponent(blogIdentifier)}/info`,
-    { headers: { Authorization: TUMBLR_API_AUTHORIZATION } },
+  const initialState = utils.safeJsonParse(
+    document.querySelector('#___INITIAL_STATE___')?.textContent,
   );
+  let blog = initialState?.queries?.queries?.find(
+    (query) => query?.state?.data?.name === blogIdentifier,
+  )?.state?.data;
 
-  if (!apiResponse) {
-    return fail(utils.userNotFoundError('Tumblr'));
+  if (!blog) {
+    const apiResponse = await utils.safeFetch(
+      `https://api.tumblr.com/v2/blog/${encodeURIComponent(blogIdentifier)}/info`,
+      { headers: { Authorization: TUMBLR_API_AUTHORIZATION } },
+    );
+
+    if (!apiResponse) {
+      return fail(utils.userNotFoundError('Tumblr'));
+    }
+
+    const apiData = await apiResponse.json();
+
+    blog = apiData?.response?.blog;
   }
 
-  const apiData = await apiResponse.json();
-  const blog = apiData?.response?.blog;
-
+  const blogUrl = blog?.url || blog?.blogViewUrl || blog?.blog_view_url;
   const primaryUrl =
-    (blog?.url || blog?.blog_view_url)?.replace(/^http:/, 'https:').replace(/\/$/, '') ||
-    (blog?.name ? `https://${blog.name}.tumblr.com` : null);
+    typeof blogUrl === 'string' ? blogUrl.replace(/^http:/, 'https:').replace(/\/$/, '') : null;
 
   if (!blog?.uuid || !primaryUrl) {
-    return fail('Invalid user data returned from API');
+    return fail(utils.userNotFoundError('Tumblr'));
   }
 
   return createProfileResult(primaryUrl, `https://www.tumblr.com/blog/view/${blog.uuid}`);

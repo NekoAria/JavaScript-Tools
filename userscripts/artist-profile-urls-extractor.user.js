@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Artist Profile URLs Extractor
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      1.0.5
+// @version      1.0.6
 // @author       Neko_Aria
 // @description  Add a draggable floating button on supported artist profile pages that opens a modal with canonical profile URLs and copy actions
 // @homepageURL  https://github.com/NekoAria/JavaScript-Tools/tree/main/packages/artist-profile-urls-extractor
@@ -342,11 +342,15 @@
 	var handleTumblr = async () => {
 		const blogIdentifier = getTumblrBlogIdentifier();
 		if (!blogIdentifier) return fail(utils.userNotFoundError("Tumblr"));
-		const apiResponse = await utils.safeFetch(`https://api.tumblr.com/v2/blog/${encodeURIComponent(blogIdentifier)}/info`, { headers: { Authorization: TUMBLR_API_AUTHORIZATION } });
-		if (!apiResponse) return fail(utils.userNotFoundError("Tumblr"));
-		const blog = (await apiResponse.json())?.response?.blog;
-		const primaryUrl = (blog?.url || blog?.blog_view_url)?.replace(/^http:/, "https:").replace(/\/$/, "") || (blog?.name ? `https://${blog.name}.tumblr.com` : null);
-		if (!blog?.uuid || !primaryUrl) return fail("Invalid user data returned from API");
+		let blog = utils.safeJsonParse(document.querySelector("#___INITIAL_STATE___")?.textContent)?.queries?.queries?.find((query) => query?.state?.data?.name === blogIdentifier)?.state?.data;
+		if (!blog) {
+			const apiResponse = await utils.safeFetch(`https://api.tumblr.com/v2/blog/${encodeURIComponent(blogIdentifier)}/info`, { headers: { Authorization: TUMBLR_API_AUTHORIZATION } });
+			if (!apiResponse) return fail(utils.userNotFoundError("Tumblr"));
+			blog = (await apiResponse.json())?.response?.blog;
+		}
+		const blogUrl = blog?.url || blog?.blogViewUrl || blog?.blog_view_url;
+		const primaryUrl = typeof blogUrl === "string" ? blogUrl.replace(/^http:/, "https:").replace(/\/$/, "") : null;
+		if (!blog?.uuid || !primaryUrl) return fail(utils.userNotFoundError("Tumblr"));
 		return createProfileResult(primaryUrl, `https://www.tumblr.com/blog/view/${blog.uuid}`);
 	};
 	var handleWeibo = async () => {

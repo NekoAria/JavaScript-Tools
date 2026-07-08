@@ -5,6 +5,33 @@ import { RELATIONSHIP_PRIORITY } from './constants';
 import { $ } from './shadow';
 import { detectSiteFromHostname, extractPostIdFromArticle } from './utils';
 
+function addPostFromPreview(
+  el: HTMLElement,
+  isParent: boolean,
+  postId: string | null,
+  posts: PostData[],
+): void {
+  const { id } = el.dataset;
+
+  if (
+    !id ||
+    !el.querySelector('.post-preview-image') ||
+    id === postId ||
+    posts.some((p) => p.id === id)
+  ) {
+    return;
+  }
+
+  const parentId = document.body.dataset.postParentId;
+  const relationshipType: RelationshipType = isParent
+    ? id === parentId
+      ? 'Parent'
+      : 'Sibling'
+    : 'Child';
+
+  posts.push({ id, relationshipType });
+}
+
 function bindPostSelectorEvents(select: HTMLSelectElement, onSelect: () => void): void {
   select.addEventListener('change', () => {
     if (!select.value) {
@@ -82,7 +109,7 @@ function extractFromNotices(state: StateManager, posts: PostData[]): void {
     const isParent = /parent:/.test(decoded);
     const id = decoded.match(/(?:parent|child):(\d+)/)?.[1];
 
-    if (id && id !== postId && !posts.some((p) => p.id === id)) {
+    if (id && id !== postId && posts.every((p) => p.id !== id)) {
       posts.push({ id, relationshipType: isParent ? 'Parent' : 'Child' });
     }
   }
@@ -106,29 +133,7 @@ function extractFromPreviews(state: StateManager, posts: PostData[]): void {
       continue;
     }
     for (const el of preview.querySelectorAll<HTMLElement>('.post-preview')) {
-      const { id } = el.dataset;
-
-      if (
-        !id ||
-        !el.querySelector('.post-preview-image') ||
-        id === postId ||
-        posts.some((p) => p.id === id)
-      ) {
-        continue;
-      }
-
-      const parentId = document.body.dataset.postParentId;
-      // Determine relationship: if this is a parent preview section, check if it's the actual parent or a sibling.
-      // Child previews are always children.
-      let relationshipType: RelationshipType;
-
-      if (isParent) {
-        relationshipType = id === parentId ? 'Parent' : 'Sibling';
-      } else {
-        relationshipType = 'Child';
-      }
-
-      posts.push({ id, relationshipType });
+      addPostFromPreview(el, isParent, postId, posts);
     }
   }
 }
@@ -288,7 +293,7 @@ function getYandereSimilar(): PostData[] {
     if (!id) {
       continue;
     }
-    const sourceHost = el.querySelector<HTMLImageElement>('.similar-text img[alt]')?.alt;
+    const sourceHost = el.querySelector<HTMLImageElement>(':scope .similar-text img[alt]')?.alt;
 
     posts.push({ id, relationshipType: 'Similar', sourceHost: sourceHost || undefined });
   }

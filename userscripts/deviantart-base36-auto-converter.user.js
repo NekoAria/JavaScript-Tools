@@ -16,10 +16,11 @@
 	"use strict";
 	var isValidBase36 = (str) => /^[0-9a-zA-Z]+$/.test(str);
 	var base36ToBase10 = (str) => Number.parseInt(str, 36).toString(10);
-	var artId = globalThis.location.pathname.replace(/\/$/, "").split("/").pop();
+	var artId = location.pathname.replace(/\/$/, "").split("/").pop();
 	if (artId && isValidBase36(artId)) {
 		const convertedId = base36ToBase10(artId);
-		const newUrl = globalThis.location.href.replace(`/view/c/${artId}`, `/view/${convertedId}`);
-		globalThis.location.replace(newUrl);
+		const newUrl = new URL(location.href);
+		newUrl.pathname = newUrl.pathname.split(`/view/c/${artId}`).join(`/view/${convertedId}`);
+		location.replace(newUrl.href);
 	}
 })();

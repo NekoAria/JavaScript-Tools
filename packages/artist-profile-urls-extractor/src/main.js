@@ -12,16 +12,18 @@ const MAX_REFRESH_RETRIES = 3;
 const REFRESH_RETRY_DELAY = 1000;
 const SPA_REFRESH_DELAY = 700;
 
-let displayedProfileUrls = null;
-let displayedSourceUrl = null;
-let hostElement = null;
-let isWatchingNavigation = false;
-let lastUrl = location.href;
-let modalElement = null;
-let refreshTimer = null;
-let refreshToken = 0;
-let shadowRoot = null;
-let suppressNextClick = false;
+const uiState = {
+  displayedProfileUrls: null,
+  displayedSourceUrl: null,
+  hostElement: null,
+  isSuppressNextClick: false,
+  isWatchingNavigation: false,
+  lastUrl: location.href,
+  modalElement: null,
+  refreshTimer: null,
+  refreshToken: 0,
+  shadowRoot: null,
+};
 
 const clamp = (value, minimum, maximum) => Math.min(Math.max(value, minimum), maximum);
 
@@ -74,8 +76,8 @@ const handleModalEscape = (event) => {
 
 const closeModal = () => {
   document.removeEventListener('keydown', handleModalEscape);
-  modalElement?.remove();
-  modalElement = null;
+  uiState.modalElement?.remove();
+  uiState.modalElement = null;
 };
 
 const createUrlRow = (label, value) => {
@@ -132,8 +134,8 @@ const showModal = (profileUrls) => {
 
   modal.append(title, ...rows.map(([label, value]) => createUrlRow(label, value)), actions);
   backdrop.append(modal);
-  shadowRoot.append(backdrop);
-  modalElement = backdrop;
+  uiState.shadowRoot.append(backdrop);
+  uiState.modalElement = backdrop;
   document.addEventListener('keydown', handleModalEscape);
   closeButton.focus();
 };
@@ -146,7 +148,7 @@ const enableDrag = (button) => {
       return;
     }
 
-    const rect = hostElement.getBoundingClientRect();
+    const rect = uiState.hostElement.getBoundingClientRect();
 
     dragState = {
       height: rect.height,
@@ -176,16 +178,16 @@ const enableDrag = (button) => {
       return;
     }
 
-    hostElement.style.left = `${clamp(
+    uiState.hostElement.style.left = `${clamp(
       dragState.initialLeft + deltaX,
       0,
-      globalThis.innerWidth - dragState.width,
+      innerWidth - dragState.width,
     )}px`;
-    hostElement.style.right = 'auto';
-    hostElement.style.top = `${clamp(
+    uiState.hostElement.style.right = 'auto';
+    uiState.hostElement.style.top = `${clamp(
       dragState.initialTop + deltaY,
       0,
-      globalThis.innerHeight - dragState.height,
+      innerHeight - dragState.height,
     )}px`;
     event.preventDefault();
   });
@@ -195,10 +197,10 @@ const enableDrag = (button) => {
       return;
     }
 
-    suppressNextClick = dragState.moved;
+    uiState.isSuppressNextClick = dragState.moved;
     dragState = null;
     setTimeout(() => {
-      suppressNextClick = false;
+      uiState.isSuppressNextClick = false;
     }, 0);
   });
 
@@ -209,14 +211,14 @@ const enableDrag = (button) => {
 
 const createFloatingButton = () => {
   const button = createButton('floating-button', '🔗', () => {
-    if (suppressNextClick) {
-      suppressNextClick = false;
+    if (uiState.isSuppressNextClick) {
+      uiState.isSuppressNextClick = false;
 
       return;
     }
 
-    if (displayedProfileUrls) {
-      showModal(displayedProfileUrls);
+    if (uiState.displayedProfileUrls) {
+      showModal(uiState.displayedProfileUrls);
     }
   });
 
@@ -229,46 +231,46 @@ const createFloatingButton = () => {
 
 const destroyFloatingUi = () => {
   closeModal();
-  hostElement?.remove();
-  displayedProfileUrls = null;
-  displayedSourceUrl = null;
-  hostElement = null;
-  shadowRoot = null;
+  uiState.hostElement?.remove();
+  uiState.displayedProfileUrls = null;
+  uiState.displayedSourceUrl = null;
+  uiState.hostElement = null;
+  uiState.shadowRoot = null;
 };
 
 const createFloatingUi = (profileUrls, sourceUrl) => {
   destroyFloatingUi();
   document.querySelector(`#${UI_ROOT_ID}`)?.remove();
 
-  hostElement = document.createElement('div');
-  hostElement.id = UI_ROOT_ID;
-  shadowRoot = hostElement.attachShadow({ mode: 'open' });
+  uiState.hostElement = document.createElement('div');
+  uiState.hostElement.id = UI_ROOT_ID;
+  uiState.shadowRoot = uiState.hostElement.attachShadow({ mode: 'open' });
 
   const style = createElement('style');
 
   style.textContent = cssText;
-  shadowRoot.append(style, createFloatingButton());
-  document.documentElement.append(hostElement);
-  displayedProfileUrls = profileUrls;
-  displayedSourceUrl = sourceUrl;
+  uiState.shadowRoot.append(style, createFloatingButton());
+  document.documentElement.append(uiState.hostElement);
+  uiState.displayedProfileUrls = profileUrls;
+  uiState.displayedSourceUrl = sourceUrl;
 };
 
 const scheduleFloatingUiRefresh = (
   delay = INITIAL_REFRESH_DELAY,
   retriesLeft = MAX_REFRESH_RETRIES,
 ) => {
-  clearTimeout(refreshTimer);
-  refreshTimer = setTimeout(() => refreshFloatingUi(retriesLeft), delay);
+  clearTimeout(uiState.refreshTimer);
+  uiState.refreshTimer = setTimeout(() => refreshFloatingUi(retriesLeft), delay);
 };
 
 const refreshFloatingUi = async (retriesLeft = MAX_REFRESH_RETRIES) => {
-  const currentToken = ++refreshToken;
+  const currentToken = ++uiState.refreshToken;
   const refreshUrl = location.href;
 
   try {
     const profileUrls = await extractProfileUrls();
 
-    if (currentToken !== refreshToken || refreshUrl !== location.href) {
+    if (currentToken !== uiState.refreshToken || refreshUrl !== location.href) {
       return;
     }
 
@@ -283,9 +285,9 @@ const refreshFloatingUi = async (retriesLeft = MAX_REFRESH_RETRIES) => {
     }
 
     if (
-      hostElement?.isConnected &&
-      displayedSourceUrl === refreshUrl &&
-      areProfileUrlsEqual(displayedProfileUrls, profileUrls)
+      uiState.hostElement?.isConnected &&
+      uiState.displayedSourceUrl === refreshUrl &&
+      areProfileUrlsEqual(uiState.displayedProfileUrls, profileUrls)
     ) {
       return;
     }
@@ -294,7 +296,7 @@ const refreshFloatingUi = async (retriesLeft = MAX_REFRESH_RETRIES) => {
   } catch (error) {
     utils.warnUnexpectedError('Unexpected floating UI refresh error', error);
 
-    if (currentToken !== refreshToken || refreshUrl !== location.href) {
+    if (currentToken !== uiState.refreshToken || refreshUrl !== location.href) {
       return;
     }
 
@@ -307,25 +309,25 @@ const refreshFloatingUi = async (retriesLeft = MAX_REFRESH_RETRIES) => {
 };
 
 const handlePotentialNavigation = () => {
-  if (location.href === lastUrl) {
+  if (location.href === uiState.lastUrl) {
     return;
   }
 
-  lastUrl = location.href;
+  uiState.lastUrl = location.href;
   // Prevent in-flight refreshes from recreating UI for the previous SPA route.
-  refreshToken += 1;
+  uiState.refreshToken += 1;
   destroyFloatingUi();
   scheduleFloatingUiRefresh(SPA_REFRESH_DELAY);
 };
 
 const watchSpaNavigation = () => {
-  if (isWatchingNavigation) {
+  if (uiState.isWatchingNavigation) {
     return;
   }
 
-  isWatchingNavigation = true;
-  globalThis.addEventListener('popstate', handlePotentialNavigation);
-  globalThis.addEventListener('hashchange', handlePotentialNavigation);
+  uiState.isWatchingNavigation = true;
+  addEventListener('popstate', handlePotentialNavigation);
+  addEventListener('hashchange', handlePotentialNavigation);
   setInterval(handlePotentialNavigation, LOCATION_POLL_INTERVAL);
 };
 
@@ -341,7 +343,7 @@ const initializeProfileUrlsExtractor = () => {
   }
 
   if (document.readyState !== 'complete') {
-    globalThis.addEventListener('load', () => scheduleFloatingUiRefresh(), { once: true });
+    addEventListener('load', () => scheduleFloatingUiRefresh(), { once: true });
   }
 };
 

@@ -264,7 +264,9 @@ const handleMihuashi = async () => {
     const profileUrl = `https://www.mihuashi.com/profiles/${profileId}`;
 
     return createProfileResult(profileUrl, userUrl);
-  } else if (pathname.startsWith('/users/')) {
+  }
+
+  if (pathname.startsWith('/users/')) {
     const apiResponse = await utils.safeFetch(
       `https://www.mihuashi.com/api/v1/users/${username}/?by=name`,
     );
@@ -283,9 +285,9 @@ const handleMihuashi = async () => {
     const profileUrl = `https://www.mihuashi.com/profiles/${profileId}`;
 
     return createProfileResult(profileUrl, userUrl);
-  } else {
-    return fail(utils.userNotFoundError('Mihuashi'));
   }
+
+  return fail(utils.userNotFoundError('Mihuashi'));
 };
 
 const PATREON_BASE_URL = 'https://www.patreon.com';
@@ -512,7 +514,7 @@ const handleTwitter = async () => {
   let userEntity = findTwitterUserEntity(document, profileName);
 
   if (!userEntity) {
-    const profileUrl = new URL(`/${profileName}`, location.origin).toString();
+    const profileUrl = new URL(`/${profileName}`, location.origin).href;
     const profileResponse = await utils.safeFetch(profileUrl, { cache: 'no-store' });
     const profileHtml = await profileResponse?.text();
 
@@ -723,11 +725,12 @@ const handleXfolio = (pageUrl, ogUrl) => {
 
   if (creatorInfo) {
     const primaryUrl = creatorInfo.dataset.creatorPortfolioTopUrl;
-    const secondaryUrl = creatorInfo.dataset.creatorUrl;
 
     if (!primaryUrl) {
       return fail(utils.userNotFoundError('Xfolio'));
     }
+
+    const secondaryUrl = creatorInfo.dataset.creatorUrl;
 
     return createProfileResult(primaryUrl, secondaryUrl);
   }
@@ -832,7 +835,7 @@ const SUBDOMAIN_HANDLERS = [
 const isHostWithinDomain = (host, domain) => host === domain || host.endsWith(`.${domain}`);
 
 const getHandlerForHost = (host) => {
-  if (PLATFORM_HANDLERS[host]) {
+  if (Object.hasOwn(PLATFORM_HANDLERS, host)) {
     return PLATFORM_HANDLERS[host];
   }
 

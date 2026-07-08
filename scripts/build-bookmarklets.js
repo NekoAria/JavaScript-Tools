@@ -23,7 +23,7 @@ const args = process.argv.slice(2);
 const isWatch = args.includes('--watch');
 const isForce = args.includes('--force');
 const isVerbose = args.includes('--verbose');
-let hasArgError = false;
+const argState = { hasError: false };
 
 function getArgValue(flag) {
   const index = args.indexOf(flag);
@@ -37,7 +37,7 @@ function getArgValue(flag) {
   if (!value || value.startsWith('--')) {
     console.error(`${flag} requires a value.`);
     process.exitCode = 1;
-    hasArgError = true;
+    argState.hasError = true;
 
     return null;
   }
@@ -94,7 +94,7 @@ const getMinifiedFileName = (file) => file.replace(/\.js$/, '.min.js');
 async function buildBookmarklets(sourceFiles, allSourceFiles = sourceFiles) {
   const cache = await readCache(cacheFile);
   const newCache = { ...cache };
-  let anyBuilt = false;
+  let isAnyBuilt = false;
 
   for (const file of sourceFiles) {
     const sourcePath = path.join(bookmarkletsDir, file);
@@ -113,7 +113,7 @@ async function buildBookmarklets(sourceFiles, allSourceFiles = sourceFiles) {
     }
 
     await buildSingle(file);
-    anyBuilt = true;
+    isAnyBuilt = true;
   }
 
   // Prune stale entries (source files that no longer exist)
@@ -125,11 +125,11 @@ async function buildBookmarklets(sourceFiles, allSourceFiles = sourceFiles) {
 
   await writeCache(cacheFile, newCache);
 
-  if (isVerbose && !anyBuilt) {
+  if (isVerbose && !isAnyBuilt) {
     console.log('All bookmarklets are up to date.');
   }
 
-  return anyBuilt;
+  return isAnyBuilt;
 }
 
 /**
@@ -197,7 +197,7 @@ async function computeHash(sourceFile, extraFiles = []) {
 }
 
 async function main() {
-  if (hasArgError) {
+  if (argState.hasError) {
     return;
   }
 

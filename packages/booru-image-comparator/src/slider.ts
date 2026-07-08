@@ -4,7 +4,7 @@ import { LAYOUT_FLUSH_MS, MODES } from './constants';
 import { $ } from './shadow';
 
 /** Cleanup array for slider DOM listeners. */
-let sliderCleanup: Array<() => void> = [];
+const sliderState: { cleanup: Array<() => void> } = { cleanup: [] };
 
 function bindSliderEvents(
   state: StateManager,
@@ -13,7 +13,7 @@ function bindSliderEvents(
   container: HTMLElement,
 ): void {
   unbindSlider();
-  let dragging = false;
+  let isDragging = false;
 
   const move = (e: MouseEvent) => {
     const x = e.clientX - container.getBoundingClientRect().left;
@@ -36,21 +36,23 @@ function bindSliderEvents(
 
   const onSliderMouseDown = (e: MouseEvent) => {
     e.preventDefault();
-    dragging = true;
+    isDragging = true;
   };
   const onContainerMouseMove = (e: MouseEvent) => {
-    if (dragging) {
+    if (isDragging) {
       move(e);
     }
   };
   const onContainerMouseDown = (e: MouseEvent) => {
-    if (e.target !== sliderEl) {
-      move(e);
-      dragging = true;
+    if (e.target === sliderEl) {
+      return;
     }
+
+    move(e);
+    isDragging = true;
   };
   const onMouseUp = () => {
-    dragging = false;
+    isDragging = false;
   };
 
   sliderEl.addEventListener('mousedown', onSliderMouseDown);
@@ -74,7 +76,7 @@ function bindSliderEvents(
     }
   }
 
-  sliderCleanup = newCleanup;
+  sliderState.cleanup = newCleanup;
 }
 
 /** Create and initialize the slider element in overlay mode. */
@@ -116,10 +118,10 @@ export function subscribeSliderUpdater(state: StateManager): () => void {
 
 /** Remove all slider event listeners. */
 export function unbindSlider(): void {
-  for (const fn of sliderCleanup) {
+  for (const fn of sliderState.cleanup) {
     fn();
   }
-  sliderCleanup = [];
+  sliderState.cleanup = [];
 }
 
 /** Position the slider divider and update the right image's clip-path. When panzoom is active,
@@ -137,7 +139,7 @@ function updateSlider(
 
   const { panzoomInstances, transforms } = state.get();
   const pz = panzoomInstances.overlay;
-  const flipped = transforms.right.flipH;
+  const isFlipped = transforms.right.flipH;
 
   if (pz) {
     const scale = pz.getScale();
@@ -147,9 +149,9 @@ function updateSlider(
     const relX = x - (imgRect.left - contRect.left);
     const clipX = Math.max(0, relX / scale);
 
-    rightImg.style.clipPath = flipped ? `inset(0 ${clipX}px 0 0)` : `inset(0 0 0 ${clipX}px)`;
+    rightImg.style.clipPath = isFlipped ? `inset(0 ${clipX}px 0 0)` : `inset(0 0 0 ${clipX}px)`;
   } else {
-    rightImg.style.clipPath = flipped ? `inset(0 ${x}px 0 0)` : `inset(0 0 0 ${x}px)`;
+    rightImg.style.clipPath = isFlipped ? `inset(0 ${x}px 0 0)` : `inset(0 0 0 ${x}px)`;
   }
 }
 

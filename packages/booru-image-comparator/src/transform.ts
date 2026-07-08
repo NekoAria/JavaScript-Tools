@@ -11,7 +11,9 @@ export function applyTransforms(state: StateManager): void {
   } as const;
 
   for (const side of ['left', 'right'] as const) {
-    for (const id of map[side]) {
+    const imageIds = map[side];
+
+    for (const id of imageIds) {
       const el = $<HTMLElement>(`#${id}`);
 
       if (el) {

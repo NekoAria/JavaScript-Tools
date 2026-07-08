@@ -39,12 +39,12 @@
 		Child: 3
 	};
 	var style_default = "/* ============================================================\n   Design tokens\n   ============================================================ */\n.comparator {\n  --sp-0-5: 0.125rem;\n  --sp-1: 0.25rem;\n  --sp-1-5: 0.375rem;\n  --sp-2: 0.5rem;\n  --sp-3: 0.75rem;\n  --sp-4: 1rem;\n  --sp-5: 1.25rem;\n\n  --grey-0: oklch(98.5% 0 0);\n  --grey-1: oklch(97% 0 0);\n  --grey-2: oklch(92.2% 0 0);\n  --grey-3: oklch(87% 0 0);\n  --grey-4: oklch(70.8% 0 0);\n  --grey-5: oklch(55.6% 0 0);\n  --grey-6: oklch(43.9% 0 0);\n  --grey-7: oklch(37.1% 0 0);\n  --grey-8: oklch(26.9% 0 0);\n  --grey-9: oklch(20.5% 0 0);\n  --grey-10: oklch(14.5% 0 0);\n\n  --accent: oklch(62.3% 0.214 259.815);\n  --ring: oklch(62.3% 0.214 259.815 / 25%);\n  --text-muted: var(--grey-2);\n  --ease: 120ms ease-out;\n  --divider-width: var(--sp-1);\n  --radius: var(--sp-1);\n  --border: 1px solid var(--grey-7);\n  --border-in: 1px solid var(--grey-6);\n\n  --z-header: 10001;\n  --z-overlay: 10002;\n  --z-slider: 10003;\n  position: fixed;\n  inset: 0;\n  z-index: 10000;\n  box-sizing: border-box;\n\n  display: flex;\n  flex-direction: column;\n  overflow: hidden;\n  font:\n    0.875rem/1.5 Verdana,\n    system-ui,\n    -apple-system,\n    Helvetica,\n    sans-serif;\n  color: var(--grey-0);\n\n  outline: none;\n  background: var(--grey-10);\n\n  &,\n  & *,\n  & *::before,\n  & *::after {\n    box-sizing: border-box;\n  }\n\n  @media (prefers-reduced-motion: reduce) {\n    --ease: 0ms;\n  }\n}\n\n/* Header */\n.header {\n  z-index: var(--z-header);\n  display: flex;\n  flex-direction: column;\n  gap: var(--sp-2);\n  padding: var(--sp-2) var(--sp-3);\n  background: var(--grey-9);\n  border-bottom: var(--border);\n}\n\n.primary-controls {\n  display: flex;\n  flex-wrap: wrap;\n  gap: var(--sp-2);\n  align-items: center;\n  justify-content: space-between;\n  width: 100%;\n}\n\n.right-controls {\n  display: flex;\n  gap: var(--sp-2);\n  align-items: center;\n  margin-left: auto;\n}\n\n.mode-label {\n  color: var(--text-muted);\n}\n\n.post-info {\n  font-size: 0.75rem;\n  color: var(--text-muted);\n}\n\n/* Form control */\n.form-control {\n  padding: var(--sp-0-5) var(--sp-2);\n  font: inherit;\n  color: var(--grey-0);\n  appearance: none;\n  outline: none;\n  background: var(--grey-8);\n  border: var(--border-in);\n  border-radius: var(--radius);\n  transition:\n    border-color var(--ease),\n    box-shadow var(--ease);\n\n  @media (hover: hover) {\n    &:hover {\n      border-color: var(--grey-5);\n    }\n  }\n\n  &:focus-visible {\n    border-color: var(--accent);\n    box-shadow: 0 0 0 2px var(--ring);\n  }\n}\n\n.form-control::placeholder {\n  color: var(--grey-4);\n}\n\n.id-input {\n  width: 10rem;\n}\n\n/* Buttons */\n.btn {\n  display: inline-flex;\n  gap: var(--sp-1);\n  align-items: center;\n  justify-content: center;\n  padding: var(--sp-0-5) var(--sp-2);\n  font: inherit;\n  line-height: 1.25;\n  color: var(--grey-1);\n  white-space: nowrap;\n  appearance: none;\n  cursor: pointer;\n  outline: none;\n  background: var(--grey-8);\n  border: var(--border);\n  border-radius: var(--radius);\n  transition:\n    background var(--ease),\n    border-color var(--ease),\n    color var(--ease),\n    box-shadow var(--ease);\n\n  @media (hover: hover) {\n    &:hover {\n      color: var(--grey-0);\n      background: var(--grey-7);\n      border-color: var(--grey-6);\n    }\n  }\n\n  &:active {\n    background: var(--grey-6);\n  }\n  &:disabled {\n    pointer-events: none;\n    cursor: not-allowed;\n    opacity: 0.5;\n  }\n\n  &:focus-visible {\n    border-color: var(--accent);\n    box-shadow: 0 0 0 2px var(--ring);\n  }\n\n  &.btn-close {\n    padding: var(--sp-0-5) var(--sp-1);\n    font-size: 1.25rem;\n    line-height: 1;\n    background: var(--grey-9);\n\n    @media (hover: hover) {\n      &:hover {\n        color: var(--grey-0);\n        background: oklch(100% 0 0 / 8%);\n      }\n    }\n  }\n}\n\n/* Range */\n.comparator input[type='range'] {\n  height: var(--sp-1);\n  appearance: none;\n  cursor: pointer;\n  outline: none;\n  background: var(--grey-7);\n  border-radius: calc(var(--sp-1) / 2);\n\n  &::-webkit-slider-thumb {\n    width: var(--sp-4);\n    height: var(--sp-4);\n    appearance: none;\n    cursor: pointer;\n    background: var(--grey-1);\n    border: 2px solid var(--grey-6);\n    border-radius: 50%;\n    transition: border-color var(--ease);\n    @media (hover: hover) {\n      &:hover {\n        border-color: var(--accent);\n      }\n    }\n  }\n\n  &::-moz-range-track {\n    height: var(--sp-1);\n    background: var(--grey-7);\n    border-radius: calc(var(--sp-1) / 2);\n  }\n\n  &::-moz-range-thumb {\n    width: var(--sp-4);\n    height: var(--sp-4);\n    cursor: pointer;\n    background: var(--grey-1);\n    border: 2px solid var(--grey-6);\n    border-radius: 50%;\n    transition: border-color var(--ease);\n    @media (hover: hover) {\n      &:hover {\n        border-color: var(--accent);\n      }\n    }\n  }\n}\n\n.range-control {\n  width: 7.5rem;\n  margin-right: var(--sp-1-5);\n}\n\n.range-value {\n  width: 3em;\n  font-variant-numeric: tabular-nums;\n  color: var(--text-muted);\n  text-align: center;\n}\n\n.comparator label {\n  display: inline-flex;\n  gap: var(--sp-1);\n  align-items: center;\n  font-size: inherit;\n  font-weight: normal;\n  color: var(--text-muted);\n  cursor: default;\n}\n\n/* Controls row */\n.controls-row {\n  display: flex;\n  flex-wrap: wrap;\n  gap: var(--sp-4);\n  align-items: center;\n  width: 100%;\n}\n\n.transform-group {\n  display: flex;\n  gap: var(--sp-1-5);\n  align-items: center;\n  margin-left: auto;\n}\n\n.control-group {\n  display: flex;\n  gap: var(--sp-1-5);\n  align-items: center;\n}\n\n/* Select wrapper */\n.select-wrapper,\n.post-selector {\n  position: relative;\n  display: inline-flex;\n  align-items: center;\n\n  & > select {\n    padding-right: var(--sp-5);\n    cursor: pointer;\n  }\n\n  &::after {\n    position: absolute;\n    top: 50%;\n    right: var(--sp-2);\n    width: var(--sp-2);\n    height: var(--sp-2);\n    pointer-events: none;\n    content: '';\n    border-right: 1.5px solid var(--text-muted);\n    border-bottom: 1.5px solid var(--text-muted);\n    transform: translateY(-50%) rotate(45deg) translate(-1px, -1px);\n  }\n}\n\n/* Content area */\n.content {\n  position: relative;\n  display: flex;\n  flex: 1;\n  min-height: 0;\n  overflow: hidden;\n}\n\n.comparison-side {\n  position: relative;\n  display: flex;\n  flex: 1;\n  align-items: center;\n  justify-content: center;\n  min-height: 0;\n  overflow: hidden;\n\n  & .sync-pan {\n    position: relative;\n  }\n}\n\n.divider {\n  align-self: stretch;\n  width: var(--divider-width);\n  cursor: default;\n  background: var(--grey-6);\n  transition: background var(--ease);\n  @media (hover: hover) {\n    &:hover {\n      background: var(--accent);\n    }\n  }\n}\n\n/* Overlay */\n.overlay-container {\n  position: absolute;\n  inset: 0;\n  z-index: var(--z-overlay);\n  overflow: hidden;\n\n  &.is-inverted {\n    filter: invert(1);\n  }\n\n  & .sync-pan {\n    position: absolute;\n    top: 0;\n    left: 0;\n  }\n\n  &[data-bg='black'] {\n    background: var(--grey-10);\n  }\n  &[data-bg='grey'] {\n    background: var(--grey-5);\n  }\n  &[data-bg='white'] {\n    background: var(--grey-0);\n  }\n}\n\n#comparison-content[data-bg='black'] {\n  background: var(--grey-10);\n}\n#comparison-content[data-bg='grey'] {\n  background: var(--grey-5);\n}\n#comparison-content[data-bg='white'] {\n  background: var(--grey-0);\n}\n\n/* Slider */\n.comparison-slider {\n  position: absolute;\n  top: 0;\n  bottom: 0;\n  z-index: var(--z-slider);\n  width: var(--divider-width);\n  cursor: col-resize;\n  background: var(--grey-0);\n\n  &::after {\n    position: absolute;\n    top: 50%;\n    left: 50%;\n    width: 2rem;\n    height: 2rem;\n    content: '';\n    background: var(--grey-0);\n    border: 1px solid var(--grey-4);\n    border-radius: 50%;\n    box-shadow: 0 1px 4px oklch(0% 0 0 / 40%);\n    transform: translate(-50%, -50%);\n  }\n}\n\n/* Pan/zoom */\n.sync-pan {\n  position: relative;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  width: 100%;\n  height: 100%;\n  overflow: hidden;\n}\n\n/* Images */\n.compared-img {\n  display: block;\n  max-width: 100%;\n  max-height: 100%;\n  object-fit: contain;\n  image-rendering: pixelated;\n  transform: scale(var(--flip-x, 1), var(--flip-y, 1)) rotate(var(--rotate, 0deg));\n}\n\n/* Overlay images */\n.overlay-img {\n  position: absolute;\n  inset: 0;\n  display: block;\n  width: 100%;\n  height: 100%;\n\n  &.mode-fade {\n    opacity: var(--fade-opacity, 0.5);\n  }\n  &.mode-difference {\n    mix-blend-mode: difference;\n  }\n}\n\n/* Utility states */\n.is-overlay-hidden {\n  display: none !important;\n}\n.is-hidden {\n  display: none !important;\n}\n";
-	var root = null;
-	var $ = (selector) => root?.querySelector(selector) ?? null;
+	var shadowState = { root: null };
+	var $ = (selector) => shadowState.root?.querySelector(selector) ?? null;
 	function createShadowHost() {
 		const host = document.createElement("div");
 		const shadow = host.attachShadow({ mode: "open" });
-		root = shadow;
+		shadowState.root = shadow;
 		const style = document.createElement("style");
 		style.textContent = style_default;
 		shadow.append(style);
@@ -54,16 +54,15 @@
 		};
 	}
 	function destroyShadow() {
-		if (root) {
-			root.host.remove();
-			root = null;
-		}
+		if (!shadowState.root) return;
+		shadowState.root.host.remove();
+		shadowState.root = null;
 	}
 	function btn(id, label, title) {
 		return createEl("button", {
 			id,
 			class: "btn",
-			...title ? { title } : {}
+			...title && { title }
 		}, label);
 	}
 	function buildBackgroundControls() {
@@ -291,7 +290,7 @@
 		"konachan.com": "konachan"
 	};
 	function detectSite() {
-		return detectSiteFromHostname(globalThis.location.hostname);
+		return detectSiteFromHostname(location.hostname);
 	}
 	function detectSiteFromHostname(hostname) {
 		return SITE_MAP[hostname] ?? null;
@@ -308,7 +307,7 @@
 		return url.match(/\/(?:posts|show)\/(\d+)/)?.[1] ?? null;
 	}
 	function isValidPage() {
-		const { hostname, pathname, href } = globalThis.location;
+		const { hostname, pathname, href } = location;
 		if (hostname.endsWith(".donmai.us")) return /\/posts\/\d+/.test(href) || /\/uploads\/\d+/.test(href) || /\/iqdb_queries/.test(href);
 		return /\/post\/(show|similar)/.test(pathname);
 	}
@@ -899,9 +898,9 @@
 	}
 	function applyZoomTransition(state, fromMode, toMode) {
 		const { zoomState } = state.get();
-		const fromOverlay = isOverlayMode(fromMode);
-		const toOverlay = isOverlayMode(toMode);
-		if (fromOverlay === toOverlay) return;
+		const isFromOverlay = isOverlayMode(fromMode);
+		const isToOverlay = isOverlayMode(toMode);
+		if (isFromOverlay === isToOverlay) return;
 		const refImg = $("#left-image");
 		const content = $("#comparison-content");
 		if (!refImg || !content || !refImg.naturalWidth) return;
@@ -913,7 +912,7 @@
 		};
 		const sideBySideH = computeImageHeight(refImg, sideW);
 		const overlayH = computeImageHeight(refImg, content.clientWidth);
-		const ratio = fromOverlay && !toOverlay ? overlayH / sideBySideH : sideBySideH / overlayH;
+		const ratio = isFromOverlay && !isToOverlay ? overlayH / sideBySideH : sideBySideH / overlayH;
 		if (ratio !== 1) state.update("zoomState", {
 			...zoomState,
 			scale: Math.max(.1, zoomState.scale * ratio),
@@ -1059,10 +1058,10 @@
 		const rightPan = $("#right-pan");
 		const { left, right } = state.get().panzoomInstances;
 		if (!leftPan || !rightPan || !left || !right) return;
-		let busy = false;
+		let isBusy = false;
 		const sync = (target) => (e) => {
-			if (busy) return;
-			busy = true;
+			if (isBusy) return;
+			isBusy = true;
 			try {
 				const { x, y, scale } = e.detail;
 				target.zoom(scale, {
@@ -1076,7 +1075,7 @@
 			} catch (error) {
 				console.warn("Panzoom sync failed:", error);
 			} finally {
-				busy = false;
+				isBusy = false;
 			}
 		};
 		const leftHandler = sync(right);
@@ -1088,6 +1087,16 @@
 			() => leftPan.removeEventListener("panzoomchange", leftHandler),
 			() => rightPan.removeEventListener("panzoomchange", rightHandler)
 		]);
+	}
+	function addPostFromPreview(el, isParent, postId, posts) {
+		const { id } = el.dataset;
+		if (!id || !el.querySelector(".post-preview-image") || id === postId || posts.some((p) => p.id === id)) return;
+		const parentId = document.body.dataset.postParentId;
+		const relationshipType = isParent ? id === parentId ? "Parent" : "Sibling" : "Child";
+		posts.push({
+			id,
+			relationshipType
+		});
 	}
 	function bindPostSelectorEvents(select, onSelect) {
 		select.addEventListener("change", () => {
@@ -1130,7 +1139,7 @@
 			const decoded = decodeURIComponent(href);
 			const isParent = /parent:/.test(decoded);
 			const id = decoded.match(/(?:parent|child):(\d+)/)?.[1];
-			if (id && id !== postId && !posts.some((p) => p.id === id)) posts.push({
+			if (id && id !== postId && posts.every((p) => p.id !== id)) posts.push({
 				id,
 				relationshipType: isParent ? "Parent" : "Child"
 			});
@@ -1147,18 +1156,7 @@
 		}]) {
 			const preview = document.querySelector(selector);
 			if (!preview) continue;
-			for (const el of preview.querySelectorAll(".post-preview")) {
-				const { id } = el.dataset;
-				if (!id || !el.querySelector(".post-preview-image") || id === postId || posts.some((p) => p.id === id)) continue;
-				const parentId = document.body.dataset.postParentId;
-				let relationshipType;
-				if (isParent) relationshipType = id === parentId ? "Parent" : "Sibling";
-				else relationshipType = "Child";
-				posts.push({
-					id,
-					relationshipType
-				});
-			}
+			for (const el of preview.querySelectorAll(".post-preview")) addPostFromPreview(el, isParent, postId, posts);
 		}
 	}
 	function extractImageUrl(data, site = "danbooru") {
@@ -1250,7 +1248,7 @@
 		for (const el of document.querySelectorAll("#post-list-posts li")) {
 			const id = extractPostIdFromArticle(el);
 			if (!id) continue;
-			const sourceHost = el.querySelector(".similar-text img[alt]")?.alt;
+			const sourceHost = el.querySelector(":scope .similar-text img[alt]")?.alt;
 			posts.push({
 				id,
 				relationshipType: "Similar",
@@ -1287,9 +1285,12 @@
 			left: ["left-image", "overlay-left-image"],
 			right: ["right-image", "overlay-image"]
 		};
-		for (const side of ["left", "right"]) for (const id of map[side]) {
-			const el = $(`#${id}`);
-			if (el) applyTransformTo(el, t[side]);
+		for (const side of ["left", "right"]) {
+			const imageIds = map[side];
+			for (const id of imageIds) {
+				const el = $(`#${id}`);
+				if (el) applyTransformTo(el, t[side]);
+			}
 		}
 	}
 	function applyTransformTo(el, t) {
@@ -1381,10 +1382,10 @@
 		const sl = $("#opacity-slider");
 		if (sl) applyFade(+sl.value);
 	}
-	var sliderCleanup = [];
+	var sliderState = { cleanup: [] };
 	function bindSliderEvents(state, sliderEl, rightImg, container) {
 		unbindSlider();
-		let dragging = false;
+		let isDragging = false;
 		const move = (e) => {
 			updateSlider(state, sliderEl, rightImg, e.clientX - container.getBoundingClientRect().left, container);
 		};
@@ -1394,19 +1395,18 @@
 		};
 		const onSliderMouseDown = (e) => {
 			e.preventDefault();
-			dragging = true;
+			isDragging = true;
 		};
 		const onContainerMouseMove = (e) => {
-			if (dragging) move(e);
+			if (isDragging) move(e);
 		};
 		const onContainerMouseDown = (e) => {
-			if (e.target !== sliderEl) {
-				move(e);
-				dragging = true;
-			}
+			if (e.target === sliderEl) return;
+			move(e);
+			isDragging = true;
 		};
 		const onMouseUp = () => {
-			dragging = false;
+			isDragging = false;
 		};
 		sliderEl.addEventListener("mousedown", onSliderMouseDown);
 		container.addEventListener("mousemove", onContainerMouseMove);
@@ -1427,7 +1427,7 @@
 			overlayPan.addEventListener(ev, onPanzoomChange);
 			newCleanup.push(() => overlayPan.removeEventListener(ev, onPanzoomChange));
 		}
-		sliderCleanup = newCleanup;
+		sliderState.cleanup = newCleanup;
 	}
 	function initSlider(state) {
 		const container = $("#comparison-overlay-container");
@@ -1449,23 +1449,23 @@
 		});
 	}
 	function unbindSlider() {
-		for (const fn of sliderCleanup) fn();
-		sliderCleanup = [];
+		for (const fn of sliderState.cleanup) fn();
+		sliderState.cleanup = [];
 	}
 	function updateSlider(state, sliderEl, rightImg, containerX, container) {
 		const x = Math.max(0, Math.min(containerX, container.clientWidth));
 		sliderEl.style.left = `${x}px`;
 		const { panzoomInstances, transforms } = state.get();
 		const pz = panzoomInstances.overlay;
-		const flipped = transforms.right.flipH;
+		const isFlipped = transforms.right.flipH;
 		if (pz) {
 			const scale = pz.getScale();
 			const imgRect = rightImg.getBoundingClientRect();
 			const contRect = container.getBoundingClientRect();
 			const relX = x - (imgRect.left - contRect.left);
 			const clipX = Math.max(0, relX / scale);
-			rightImg.style.clipPath = flipped ? `inset(0 ${clipX}px 0 0)` : `inset(0 0 0 ${clipX}px)`;
-		} else rightImg.style.clipPath = flipped ? `inset(0 ${x}px 0 0)` : `inset(0 0 0 ${x}px)`;
+			rightImg.style.clipPath = isFlipped ? `inset(0 ${clipX}px 0 0)` : `inset(0 0 0 ${clipX}px)`;
+		} else rightImg.style.clipPath = isFlipped ? `inset(0 ${x}px 0 0)` : `inset(0 0 0 ${x}px)`;
 	}
 	function updateSliderIfNeeded(state) {
 		if (state.get().mode !== MODES.SLIDER) return;
@@ -1695,7 +1695,7 @@
 		}, 0);
 	}
 	var loadAbortMap = new WeakMap();
-	var currentLoadToken = 0;
+	var imageLoadState = { currentLoadToken: 0 };
 	function clearRightImage() {
 		const rightImg = $("#right-image");
 		const overlayImg = $("#overlay-image");
@@ -1718,7 +1718,7 @@
 		updateMode(state);
 	}
 	function generateLoadToken() {
-		return ++currentLoadToken;
+		return ++imageLoadState.currentLoadToken;
 	}
 	function handleLoadImage(state) {
 		const value = $("#second-image-input")?.value.trim();
@@ -1729,7 +1729,7 @@
 		loadImage(state, value);
 	}
 	function invalidatePendingLoads() {
-		++currentLoadToken;
+		++imageLoadState.currentLoadToken;
 		const rightImg = $("#right-image");
 		if (rightImg) loadAbortMap.get(rightImg)?.abort();
 	}
@@ -1775,18 +1775,18 @@
 	async function loadPostById(state, postId, token) {
 		try {
 			const posts = await getRelatedPosts(state);
-			if (currentLoadToken !== token) return;
+			if (imageLoadState.currentLoadToken !== token) return;
 			const postData = posts.find((p) => p.id === postId);
 			const sourceHost = postData?.sourceHost;
 			const data = await (sourceHost && sourceHost !== document.location.hostname ? fetchSinglePost(postId, state, sourceHost) : fetchSinglePost(postId, state));
-			if (currentLoadToken !== token) return;
+			if (imageLoadState.currentLoadToken !== token) return;
 			const rightImg = $("#right-image");
 			if (!rightImg) return;
 			rightImg.src = extractImageUrl(data, (postData?.sourceHost && detectSiteFromHostname(postData.sourceHost) || state.get().site) ?? "danbooru");
 			rightImg.dataset.id = postId;
 			finalizeImageLoad(state, postId);
 		} catch (error) {
-			if (currentLoadToken !== token) return;
+			if (imageLoadState.currentLoadToken !== token) return;
 			alert(`Failed to load post: ${error instanceof Error ? error.message : String(error)}`);
 		}
 	}
@@ -1831,12 +1831,14 @@
 		if (mode === MODES.SIDE_BY_SIDE) applyTransforms(state);
 		else updateMode(state);
 	}
-	var pendingLoadTimer = null;
-	var originalBodyOverflow = null;
+	var comparatorState = {
+		originalBodyOverflow: null,
+		pendingLoadTimer: null
+	};
 	function closeComparator(state) {
-		if (pendingLoadTimer) {
-			clearTimeout(pendingLoadTimer);
-			pendingLoadTimer = null;
+		if (comparatorState.pendingLoadTimer) {
+			clearTimeout(comparatorState.pendingLoadTimer);
+			comparatorState.pendingLoadTimer = null;
 		}
 		invalidatePendingLoads();
 		unbindSlider();
@@ -1845,9 +1847,9 @@
 		destroyAllZoom(state);
 		for (const fn of state.get().eventCleanup) fn();
 		state.update("eventCleanup", []);
-		if (originalBodyOverflow !== null) {
-			document.body.style.overflow = originalBodyOverflow;
-			originalBodyOverflow = null;
+		if (comparatorState.originalBodyOverflow !== null) {
+			document.body.style.overflow = comparatorState.originalBodyOverflow;
+			comparatorState.originalBodyOverflow = null;
 		}
 		destroyShadow();
 	}
@@ -1856,7 +1858,7 @@
 		const container = buildInterface(state);
 		shadow.append(container);
 		document.body.append(host);
-		originalBodyOverflow = document.body.style.overflow;
+		comparatorState.originalBodyOverflow = document.body.style.overflow;
 		document.body.style.overflow = "hidden";
 		const { originalImageUrl } = state.get();
 		const leftImg = container.querySelector("#left-image");
@@ -1865,7 +1867,7 @@
 			leftImg.dataset.id = getCurrentImageId(state);
 		}
 		await setupComparator(state);
-		if (postId) pendingLoadTimer = setTimeout(() => loadImage(state, postId), 100);
+		if (postId) comparatorState.pendingLoadTimer = setTimeout(() => loadImage(state, postId), 100);
 	}
 	async function setupComparator(state) {
 		await createPostSelector(state, () => handleLoadImage(state));
@@ -1927,7 +1929,7 @@
 	}
 	function createAppState() {
 		const site = detectSite();
-		const { pathname, search } = globalThis.location;
+		const { pathname, search } = location;
 		let isUpload;
 		let isIqdb;
 		let isSimilar;

@@ -15,7 +15,7 @@ const cacheFile = path.resolve(rootDir, '.cache', 'build-packages.json');
 const args = process.argv.slice(2);
 const isForce = args.includes('--force');
 const isVerbose = args.includes('--verbose');
-let hasArgError = false;
+const argState = { hasError: false };
 
 function getArgValue(flag) {
   const index = args.indexOf(flag);
@@ -29,7 +29,7 @@ function getArgValue(flag) {
   if (!value || value.startsWith('--')) {
     console.error(`${flag} requires a value.`);
     process.exitCode = 1;
-    hasArgError = true;
+    argState.hasError = true;
 
     return null;
   }
@@ -93,11 +93,11 @@ async function buildPackage(pkg, expectedOutput) {
 
     const currentOutputMtime = await getFileMtime(expectedOutput);
 
-    const outputWasNotUpdated =
+    const isOutputStale =
       currentOutputMtime === null ||
       (previousOutputMtime !== null && currentOutputMtime <= previousOutputMtime);
 
-    if (outputWasNotUpdated) {
+    if (isOutputStale) {
       console.error(`${label} failed`);
       console.error(
         `${label} expected output was not updated: ${path.relative(rootDir, expectedOutput)}`,
@@ -160,7 +160,7 @@ async function getFileMtime(file) {
 }
 
 async function main() {
-  if (hasArgError) {
+  if (argState.hasError) {
     return;
   }
 
@@ -191,8 +191,8 @@ async function main() {
 
   const cache = await readCache(cacheFile);
   const newCache = { ...cache };
-  let anyBuilt = false;
-  let anyFailed = false;
+  let isAnyBuilt = false;
+  let isAnyFailed = false;
 
   for (const pkg of selected) {
     const expectedOutputPath = outputPath(pkg.name);
@@ -210,23 +210,23 @@ async function main() {
 
     if (await buildPackage(pkg, expectedOutputPath)) {
       newCache[pkg.name] = hash;
-      anyBuilt = true;
+      isAnyBuilt = true;
     } else {
       delete newCache[pkg.name];
-      anyFailed = true;
+      isAnyFailed = true;
     }
   }
 
   // Prune stale entries (packages that no longer exist)
   for (const key of Object.keys(newCache)) {
-    if (!packages.some((p) => p.name === key)) {
+    if (packages.every((p) => p.name !== key)) {
       delete newCache[key];
     }
   }
 
   await writeCache(cacheFile, newCache);
 
-  if (isVerbose && !anyBuilt && !anyFailed) {
+  if (isVerbose && !isAnyBuilt && !isAnyFailed) {
     console.log('All packages are up to date.');
   }
 }

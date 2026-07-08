@@ -16,7 +16,7 @@ type Attrs = Partial<{
 }>;
 
 function btn(id: string, label: string, title?: string): HTMLButtonElement {
-  return createEl('button', { id, class: 'btn', ...(title ? { title } : {}) }, label);
+  return createEl('button', { id, class: 'btn', ...(title && { title }) }, label);
 }
 
 function buildBackgroundControls(): HTMLElement {

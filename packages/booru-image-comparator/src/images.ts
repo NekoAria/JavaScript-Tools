@@ -14,7 +14,7 @@ import { updateMode } from './view';
 const loadAbortMap = new WeakMap<HTMLImageElement, AbortController>();
 
 // Monotonically incremented token to discard stale async results and prevent race-condition overwrites
-let currentLoadToken = 0;
+const imageLoadState = { currentLoadToken: 0 };
 
 /** Clear the right image and reset overlay state. */
 function clearRightImage(): void {
@@ -43,7 +43,7 @@ function finalizeImageLoad(state: StateManager, postId: string): void {
 }
 
 function generateLoadToken(): number {
-  return ++currentLoadToken;
+  return ++imageLoadState.currentLoadToken;
 }
 
 /** Read the input field and trigger loading the comparison image. */
@@ -61,7 +61,7 @@ export function handleLoadImage(state: StateManager): void {
 
 /** Cancel all pending image loads and bump the load token. */
 export function invalidatePendingLoads(): void {
-  ++currentLoadToken;
+  ++imageLoadState.currentLoadToken;
   const rightImg = $<HTMLImageElement>('#right-image');
 
   if (rightImg) {
@@ -146,7 +146,7 @@ async function loadPostById(state: StateManager, postId: string, token: number):
     // Bail out early if a newer load has been requested while we were awaiting
     const posts = await getRelatedPosts(state);
 
-    if (currentLoadToken !== token) {
+    if (imageLoadState.currentLoadToken !== token) {
       return;
     }
 
@@ -157,7 +157,7 @@ async function loadPostById(state: StateManager, postId: string, token: number):
       ? fetchSinglePost(postId, state, sourceHost)
       : fetchSinglePost(postId, state));
 
-    if (currentLoadToken !== token) {
+    if (imageLoadState.currentLoadToken !== token) {
       return;
     }
 
@@ -175,7 +175,7 @@ async function loadPostById(state: StateManager, postId: string, token: number):
     rightImg.dataset.id = postId;
     finalizeImageLoad(state, postId);
   } catch (error) {
-    if (currentLoadToken !== token) {
+    if (imageLoadState.currentLoadToken !== token) {
       return;
     }
     alert(`Failed to load post: ${error instanceof Error ? error.message : String(error)}`);

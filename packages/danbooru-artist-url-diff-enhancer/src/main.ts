@@ -9,6 +9,24 @@ function addCustomStyles(): void {
   document.head.append(style);
 }
 
+const DIFF_LIST_SELECTOR = 'ul.diff-list:not([data-enhanced])';
+const URLS_COLUMN_SELECTOR = 'td.urls-column';
+
+function hasUnenhancedDiffList(node: Node): boolean {
+  if (node.nodeType !== Node.ELEMENT_NODE) {
+    return false;
+  }
+
+  const el = node as Element;
+
+  return (
+    (el.matches(DIFF_LIST_SELECTOR) && el.closest(URLS_COLUMN_SELECTOR) !== null) ||
+    (el.matches(URLS_COLUMN_SELECTOR) &&
+      el.querySelector(`:scope ${DIFF_LIST_SELECTOR}`) !== null) ||
+    el.querySelector(`:scope ${URLS_COLUMN_SELECTOR} ${DIFF_LIST_SELECTOR}`) !== null
+  );
+}
+
 function init(): void {
   addCustomStyles();
   processDiffLists();
@@ -16,32 +34,25 @@ function init(): void {
   // Debounce re-processing: Danbooru may insert several diff-list DOM
   // fragments in rapid succession (e.g. when expanding multiple artist
   // sections).  A 100 ms window coalesces those into one pass.
-  let debounceTimer: ReturnType<typeof globalThis.setTimeout> | null = null;
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const scheduleProcessDiffLists = () => {
+    if (debounceTimer !== null) {
+      clearTimeout(debounceTimer);
+    }
+    debounceTimer = setTimeout(() => {
+      debounceTimer = null;
+      processDiffLists();
+    }, 100);
+  };
 
   const observer = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
-      if (mutation.type !== 'childList') {
-        continue;
-      }
-
-      for (const node of mutation.addedNodes) {
-        if (node.nodeType !== Node.ELEMENT_NODE) {
-          continue;
-        }
-
-        const el = node as Element;
-        // Only act when the new subtree contains un-enhanced diff lists.
-        const diffLists = el.querySelectorAll('td.urls-column ul.diff-list:not([data-enhanced])');
-
-        if (diffLists.length > 0) {
-          if (debounceTimer !== null) {
-            clearTimeout(debounceTimer);
-          }
-          debounceTimer = globalThis.setTimeout(() => {
-            debounceTimer = null;
-            processDiffLists();
-          }, 100);
-        }
+      if (
+        mutation.type === 'childList' &&
+        [...mutation.addedNodes].some((node) => hasUnenhancedDiffList(node))
+      ) {
+        scheduleProcessDiffLists();
       }
     }
   });

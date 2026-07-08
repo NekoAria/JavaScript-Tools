@@ -30,10 +30,10 @@ export function applyZoomTransition(
   toMode: ModeType,
 ): void {
   const { zoomState } = state.get();
-  const fromOverlay = isOverlayMode(fromMode);
-  const toOverlay = isOverlayMode(toMode);
+  const isFromOverlay = isOverlayMode(fromMode);
+  const isToOverlay = isOverlayMode(toMode);
 
-  if (fromOverlay === toOverlay) {
+  if (isFromOverlay === isToOverlay) {
     return;
   }
 
@@ -60,7 +60,7 @@ export function applyZoomTransition(
 
   const sideBySideH = computeImageHeight(refImg, sideW);
   const overlayH = computeImageHeight(refImg, content.clientWidth);
-  const ratio = fromOverlay && !toOverlay ? overlayH / sideBySideH : sideBySideH / overlayH;
+  const ratio = isFromOverlay && !isToOverlay ? overlayH / sideBySideH : sideBySideH / overlayH;
 
   if (ratio !== 1) {
     state.update('zoomState', {
@@ -239,13 +239,13 @@ function syncPanzoom(state: StateManager): void {
   }
 
   // Prevent infinite recursion: updating one panzoom fires panzoomchange, which would otherwise sync back to the source
-  let busy = false;
+  let isBusy = false;
 
   const sync = (target: PanzoomObject) => (e: Event) => {
-    if (busy) {
+    if (isBusy) {
       return;
     }
-    busy = true;
+    isBusy = true;
     try {
       const { x, y, scale } = (e as CustomEvent<{ x: number; y: number; scale: number }>).detail;
 
@@ -254,7 +254,7 @@ function syncPanzoom(state: StateManager): void {
     } catch (error) {
       console.warn('Panzoom sync failed:', error);
     } finally {
-      busy = false;
+      isBusy = false;
     }
   };
 

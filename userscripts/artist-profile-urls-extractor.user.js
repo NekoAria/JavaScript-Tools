@@ -163,13 +163,15 @@
 			const profileIdMatch = /\/profiles\/(\d+)/.exec(pathname);
 			if (!profileIdMatch?.[1]) return fail(utils.userNotFoundError("Mihuashi"));
 			return createProfileResult(`https://www.mihuashi.com/profiles/${profileIdMatch[1]}`, userUrl);
-		} else if (pathname.startsWith("/users/")) {
+		}
+		if (pathname.startsWith("/users/")) {
 			const apiResponse = await utils.safeFetch(`https://www.mihuashi.com/api/v1/users/${username}/?by=name`);
 			if (!apiResponse) return fail(utils.userNotFoundError("Mihuashi"));
 			const apiData = await apiResponse.json();
 			if (!apiData?.user?.id) return fail("Invalid user data returned from API");
 			return createProfileResult(`https://www.mihuashi.com/profiles/${apiData.user.id}`, userUrl);
-		} else return fail(utils.userNotFoundError("Mihuashi"));
+		}
+		return fail(utils.userNotFoundError("Mihuashi"));
 	};
 	var PATREON_BASE_URL = "https://www.patreon.com";
 	var PATREON_NON_VANITY_PATHS = new Set([
@@ -282,7 +284,7 @@
 		if (!profileName) return null;
 		let userEntity = findTwitterUserEntity(document, profileName);
 		if (!userEntity) {
-			const profileUrl = new URL(`/${profileName}`, location.origin).toString();
+			const profileUrl = new URL(`/${profileName}`, location.origin).href;
 			const profileHtml = await (await utils.safeFetch(profileUrl, { cache: "no-store" }))?.text();
 			if (profileHtml) userEntity = findTwitterUserEntity(new DOMParser().parseFromString(profileHtml, "text/html"), profileName);
 		}
@@ -374,8 +376,8 @@
 		const creatorInfo = document.querySelector("div.creatorInfo");
 		if (creatorInfo) {
 			const primaryUrl = creatorInfo.dataset.creatorPortfolioTopUrl;
-			const secondaryUrl = creatorInfo.dataset.creatorUrl;
 			if (!primaryUrl) return fail(utils.userNotFoundError("Xfolio"));
+			const secondaryUrl = creatorInfo.dataset.creatorUrl;
 			return createProfileResult(primaryUrl, secondaryUrl);
 		}
 		if (pageUrl.pathname.startsWith("/users/")) {
@@ -433,7 +435,7 @@
 	];
 	var isHostWithinDomain = (host, domain) => host === domain || host.endsWith(`.${domain}`);
 	var getHandlerForHost = (host) => {
-		if (PLATFORM_HANDLERS[host]) return PLATFORM_HANDLERS[host];
+		if (Object.hasOwn(PLATFORM_HANDLERS, host)) return PLATFORM_HANDLERS[host];
 		for (const [domain, handler] of SUBDOMAIN_HANDLERS) if (isHostWithinDomain(host, domain)) return handler;
 		return null;
 	};
@@ -483,16 +485,18 @@
 	var MAX_REFRESH_RETRIES = 3;
 	var REFRESH_RETRY_DELAY = 1e3;
 	var SPA_REFRESH_DELAY = 700;
-	var displayedProfileUrls = null;
-	var displayedSourceUrl = null;
-	var hostElement = null;
-	var isWatchingNavigation = false;
-	var lastUrl = location.href;
-	var modalElement = null;
-	var refreshTimer = null;
-	var refreshToken = 0;
-	var shadowRoot = null;
-	var suppressNextClick = false;
+	var uiState = {
+		displayedProfileUrls: null,
+		displayedSourceUrl: null,
+		hostElement: null,
+		isSuppressNextClick: false,
+		isWatchingNavigation: false,
+		lastUrl: location.href,
+		modalElement: null,
+		refreshTimer: null,
+		refreshToken: 0,
+		shadowRoot: null
+	};
 	var clamp = (value, minimum, maximum) => Math.min(Math.max(value, minimum), maximum);
 	var createElement = (tagName, className) => {
 		const element = document.createElement(tagName);
@@ -526,8 +530,8 @@
 	};
 	var closeModal = () => {
 		document.removeEventListener("keydown", handleModalEscape);
-		modalElement?.remove();
-		modalElement = null;
+		uiState.modalElement?.remove();
+		uiState.modalElement = null;
 	};
 	var createUrlRow = (label, value) => {
 		const row = createElement("div", "url-row");
@@ -567,8 +571,8 @@
 		});
 		modal.append(title, ...rows.map(([label, value]) => createUrlRow(label, value)), actions);
 		backdrop.append(modal);
-		shadowRoot.append(backdrop);
-		modalElement = backdrop;
+		uiState.shadowRoot.append(backdrop);
+		uiState.modalElement = backdrop;
 		document.addEventListener("keydown", handleModalEscape);
 		closeButton.focus();
 	};
@@ -576,7 +580,7 @@
 		let dragState = null;
 		button.addEventListener("pointerdown", (event) => {
 			if (event.button !== 0) return;
-			const rect = hostElement.getBoundingClientRect();
+			const rect = uiState.hostElement.getBoundingClientRect();
 			dragState = {
 				height: rect.height,
 				initialLeft: rect.left,
@@ -594,17 +598,17 @@
 			const deltaY = event.clientY - dragState.startY;
 			if (Math.abs(deltaX) > DRAG_THRESHOLD || Math.abs(deltaY) > DRAG_THRESHOLD) dragState.moved = true;
 			if (!dragState.moved) return;
-			hostElement.style.left = `${clamp(dragState.initialLeft + deltaX, 0, globalThis.innerWidth - dragState.width)}px`;
-			hostElement.style.right = "auto";
-			hostElement.style.top = `${clamp(dragState.initialTop + deltaY, 0, globalThis.innerHeight - dragState.height)}px`;
+			uiState.hostElement.style.left = `${clamp(dragState.initialLeft + deltaX, 0, innerWidth - dragState.width)}px`;
+			uiState.hostElement.style.right = "auto";
+			uiState.hostElement.style.top = `${clamp(dragState.initialTop + deltaY, 0, innerHeight - dragState.height)}px`;
 			event.preventDefault();
 		});
 		button.addEventListener("pointerup", () => {
 			if (!dragState) return;
-			suppressNextClick = dragState.moved;
+			uiState.isSuppressNextClick = dragState.moved;
 			dragState = null;
 			setTimeout(() => {
-				suppressNextClick = false;
+				uiState.isSuppressNextClick = false;
 			}, 0);
 		});
 		button.addEventListener("pointercancel", () => {
@@ -613,11 +617,11 @@
 	};
 	var createFloatingButton = () => {
 		const button = createButton("floating-button", "🔗", () => {
-			if (suppressNextClick) {
-				suppressNextClick = false;
+			if (uiState.isSuppressNextClick) {
+				uiState.isSuppressNextClick = false;
 				return;
 			}
-			if (displayedProfileUrls) showModal(displayedProfileUrls);
+			if (uiState.displayedProfileUrls) showModal(uiState.displayedProfileUrls);
 		});
 		button.setAttribute("aria-label", "Show profile URLs");
 		button.title = "Drag to move. Click to show profile URLs.";
@@ -626,68 +630,68 @@
 	};
 	var destroyFloatingUi = () => {
 		closeModal();
-		hostElement?.remove();
-		displayedProfileUrls = null;
-		displayedSourceUrl = null;
-		hostElement = null;
-		shadowRoot = null;
+		uiState.hostElement?.remove();
+		uiState.displayedProfileUrls = null;
+		uiState.displayedSourceUrl = null;
+		uiState.hostElement = null;
+		uiState.shadowRoot = null;
 	};
 	var createFloatingUi = (profileUrls, sourceUrl) => {
 		destroyFloatingUi();
 		document.querySelector(`#${UI_ROOT_ID}`)?.remove();
-		hostElement = document.createElement("div");
-		hostElement.id = UI_ROOT_ID;
-		shadowRoot = hostElement.attachShadow({ mode: "open" });
+		uiState.hostElement = document.createElement("div");
+		uiState.hostElement.id = UI_ROOT_ID;
+		uiState.shadowRoot = uiState.hostElement.attachShadow({ mode: "open" });
 		const style = createElement("style");
 		style.textContent = style_default;
-		shadowRoot.append(style, createFloatingButton());
-		document.documentElement.append(hostElement);
-		displayedProfileUrls = profileUrls;
-		displayedSourceUrl = sourceUrl;
+		uiState.shadowRoot.append(style, createFloatingButton());
+		document.documentElement.append(uiState.hostElement);
+		uiState.displayedProfileUrls = profileUrls;
+		uiState.displayedSourceUrl = sourceUrl;
 	};
 	var scheduleFloatingUiRefresh = (delay = INITIAL_REFRESH_DELAY, retriesLeft = MAX_REFRESH_RETRIES) => {
-		clearTimeout(refreshTimer);
-		refreshTimer = setTimeout(() => refreshFloatingUi(retriesLeft), delay);
+		clearTimeout(uiState.refreshTimer);
+		uiState.refreshTimer = setTimeout(() => refreshFloatingUi(retriesLeft), delay);
 	};
 	var refreshFloatingUi = async (retriesLeft = MAX_REFRESH_RETRIES) => {
-		const currentToken = ++refreshToken;
+		const currentToken = ++uiState.refreshToken;
 		const refreshUrl = location.href;
 		try {
 			const profileUrls = await extractProfileUrls();
-			if (currentToken !== refreshToken || refreshUrl !== location.href) return;
+			if (currentToken !== uiState.refreshToken || refreshUrl !== location.href) return;
 			if (!profileUrls) {
 				destroyFloatingUi();
 				if (retriesLeft > 0) scheduleFloatingUiRefresh(REFRESH_RETRY_DELAY, retriesLeft - 1);
 				return;
 			}
-			if (hostElement?.isConnected && displayedSourceUrl === refreshUrl && areProfileUrlsEqual(displayedProfileUrls, profileUrls)) return;
+			if (uiState.hostElement?.isConnected && uiState.displayedSourceUrl === refreshUrl && areProfileUrlsEqual(uiState.displayedProfileUrls, profileUrls)) return;
 			createFloatingUi(profileUrls, refreshUrl);
 		} catch (error) {
 			utils.warnUnexpectedError("Unexpected floating UI refresh error", error);
-			if (currentToken !== refreshToken || refreshUrl !== location.href) return;
+			if (currentToken !== uiState.refreshToken || refreshUrl !== location.href) return;
 			destroyFloatingUi();
 			if (retriesLeft > 0) scheduleFloatingUiRefresh(REFRESH_RETRY_DELAY, retriesLeft - 1);
 		}
 	};
 	var handlePotentialNavigation = () => {
-		if (location.href === lastUrl) return;
-		lastUrl = location.href;
-		refreshToken += 1;
+		if (location.href === uiState.lastUrl) return;
+		uiState.lastUrl = location.href;
+		uiState.refreshToken += 1;
 		destroyFloatingUi();
 		scheduleFloatingUiRefresh(SPA_REFRESH_DELAY);
 	};
 	var watchSpaNavigation = () => {
-		if (isWatchingNavigation) return;
-		isWatchingNavigation = true;
-		globalThis.addEventListener("popstate", handlePotentialNavigation);
-		globalThis.addEventListener("hashchange", handlePotentialNavigation);
+		if (uiState.isWatchingNavigation) return;
+		uiState.isWatchingNavigation = true;
+		addEventListener("popstate", handlePotentialNavigation);
+		addEventListener("hashchange", handlePotentialNavigation);
 		setInterval(handlePotentialNavigation, LOCATION_POLL_INTERVAL);
 	};
 	var initializeProfileUrlsExtractor = () => {
 		watchSpaNavigation();
 		if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => scheduleFloatingUiRefresh(0), { once: true });
 		else scheduleFloatingUiRefresh(0);
-		if (document.readyState !== "complete") globalThis.addEventListener("load", () => scheduleFloatingUiRefresh(), { once: true });
+		if (document.readyState !== "complete") addEventListener("load", () => scheduleFloatingUiRefresh(), { once: true });
 	};
 	initializeProfileUrlsExtractor();
 })();

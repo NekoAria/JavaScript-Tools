@@ -26,10 +26,12 @@ const CONFIG = {
 const URL_CHANGE_DEBOUNCE_MS = 200;
 const STYLE_ELEMENT_ID = 'kemono-grid-gallery-style';
 
-let debounceTimer;
-let isProcessing = false;
-let lastUrl = globalThis.location.href;
-let pendingInitialization = false;
+const galleryState = {
+  debounceTimer: undefined,
+  isPendingInitialization: false,
+  isProcessing: false,
+  lastUrl: location.href,
+};
 
 function addStyles() {
   if (document.querySelector(`#${STYLE_ELEMENT_ID}`)) {
@@ -73,9 +75,9 @@ function createLoadingOverlay() {
 async function fetchPosts(siteConfig, { service, userId }) {
   const url = new URL(`${siteConfig.API_BASE_URL}/${service}/user/${userId}/posts`);
 
-  url.search = globalThis.location.search;
+  url.search = location.search;
 
-  const response = await fetch(url.toString());
+  const response = await fetch(url.href);
 
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
@@ -85,7 +87,7 @@ async function fetchPosts(siteConfig, { service, userId }) {
 }
 
 function getCurrentSiteConfig() {
-  return CONFIG.SITES[globalThis.location.hostname] || null;
+  return CONFIG.SITES[location.hostname] || null;
 }
 
 function getFirstImagePath(post) {
@@ -106,11 +108,11 @@ function getPostIdFromCard(card) {
 }
 
 function handleUrlChange() {
-  if (globalThis.location.href === lastUrl) {
+  if (location.href === galleryState.lastUrl) {
     return;
   }
 
-  lastUrl = globalThis.location.href;
+  galleryState.lastUrl = location.href;
   scheduleInitializeGallery();
 }
 
@@ -141,23 +143,23 @@ async function initializeGallery() {
 }
 
 async function initializeGallerySafely() {
-  if (isProcessing) {
-    pendingInitialization = true;
+  if (galleryState.isProcessing) {
+    galleryState.isPendingInitialization = true;
 
     return;
   }
 
-  isProcessing = true;
+  galleryState.isProcessing = true;
 
   try {
     do {
-      pendingInitialization = false;
+      galleryState.isPendingInitialization = false;
       await initializeGallery();
-    } while (pendingInitialization);
+    } while (galleryState.isPendingInitialization);
   } catch (error) {
     console.error('Gallery initialization failed:', error);
   } finally {
-    isProcessing = false;
+    galleryState.isProcessing = false;
   }
 }
 
@@ -177,7 +179,7 @@ function isImageFile(path) {
 }
 
 function parseUserPath() {
-  const match = globalThis.location.pathname.match(/^\/([^/]+)\/user\/([^/]+)\/?$/);
+  const match = location.pathname.match(/^\/([^/]+)\/user\/([^/]+)\/?$/);
 
   if (!match) {
     return null;
@@ -214,8 +216,8 @@ async function processCards(grid, siteConfig, postAttachments) {
 }
 
 function scheduleInitializeGallery() {
-  clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(initializeGallerySafely, URL_CHANGE_DEBOUNCE_MS);
+  clearTimeout(galleryState.debounceTimer);
+  galleryState.debounceTimer = setTimeout(initializeGallerySafely, URL_CHANGE_DEBOUNCE_MS);
 }
 
 function setupHistoryListener(methodName) {
@@ -234,7 +236,7 @@ function setupUrlChangeListener() {
   const observer = new MutationObserver(handleUrlChange);
 
   observer.observe(document.body, { childList: true, subtree: true });
-  globalThis.addEventListener('popstate', handleUrlChange);
+  addEventListener('popstate', handleUrlChange);
 
   setupHistoryListener('pushState');
   setupHistoryListener('replaceState');
@@ -242,7 +244,7 @@ function setupUrlChangeListener() {
 
 function start() {
   if (!document.body) {
-    globalThis.addEventListener('DOMContentLoaded', start, { once: true });
+    addEventListener('DOMContentLoaded', start, { once: true });
 
     return;
   }

@@ -54,11 +54,10 @@ export function generateDiffHTML(pairs: DiffPair[]): string {
   let html = '';
 
   for (const pair of pairs) {
-    switch (pair.type) {
-      case 'changed': {
-        const charDiff = generateCharDiffHTML(pair.removed, pair.added);
+    if (pair.type === 'changed') {
+      const charDiff = generateCharDiffHTML(pair.removed, pair.added);
 
-        html += `
+      html += `
           <li class="changed">
             <div class="char-diff-container">
               <div class="char-diff-removed">${charDiff.removedHTML}</div>
@@ -66,19 +65,10 @@ export function generateDiffHTML(pairs: DiffPair[]): string {
               <div class="char-diff-added">${charDiff.addedHTML}</div>
             </div>
           </li>`;
-
-        break;
-      }
-      case 'removed': {
-        html += `<li class="removed">${escapeHtml(pair.removed)}</li>`;
-
-        break;
-      }
-      case 'added': {
-        html += `<li class="added">${escapeHtml(pair.added)}</li>`;
-
-        break;
-      }
+    } else if (pair.type === 'removed') {
+      html += `<li class="removed">${escapeHtml(pair.removed)}</li>`;
+    } else {
+      html += `<li class="added">${escapeHtml(pair.added)}</li>`;
     }
   }
 

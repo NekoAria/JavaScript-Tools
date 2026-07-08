@@ -38,9 +38,9 @@ export function toggleDifferenceInvert(): void {
   if (!cont || !btn) {
     return;
   }
-  const on = cont.classList.toggle('is-inverted');
+  const isOn = cont.classList.toggle('is-inverted');
 
-  btn.textContent = on ? 'Normal' : 'Invert';
+  btn.textContent = isOn ? 'Normal' : 'Invert';
 }
 
 export function updateBackground(): void {

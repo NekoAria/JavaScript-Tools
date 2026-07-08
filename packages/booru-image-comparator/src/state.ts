@@ -6,7 +6,7 @@ import { detectSite, extractPostIdFromPath } from './utils';
 /** Create the initial application state by inspecting the current page. */
 export function createAppState(): StateManager {
   const site = detectSite();
-  const { pathname, search } = globalThis.location;
+  const { pathname, search } = location;
 
   let isUpload: boolean | undefined;
   let isIqdb: boolean | undefined;

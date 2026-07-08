@@ -270,56 +270,60 @@ export function optimizedDiff(removedUrls: string[], addedUrls: string[]): DiffP
   const normalizedRemoved = removedUrls.map((url) => normalizeUrlForComparison(url));
   const normalizedAdded = addedUrls.map((url) => normalizeUrlForComparison(url));
 
+  const addChangedPair = (removedIndex: number, addedIndex: number): void => {
+    pairs.push({
+      removed: removedUrls[removedIndex],
+      added: addedUrls[addedIndex],
+      type: 'changed',
+    });
+    usedRemoved.add(removedIndex);
+    usedAdded.add(addedIndex);
+  };
+
+  const findMatchingAddedIndex = (
+    isMatchingAddedIndex: (addedIndex: number) => boolean,
+  ): number | null => {
+    for (const addedIndex of addedUrls.keys()) {
+      if (!usedAdded.has(addedIndex) && isMatchingAddedIndex(addedIndex)) {
+        return addedIndex;
+      }
+    }
+
+    return null;
+  };
+
   // Phase 1: Exact negation matching (URL ↔ -URL)
   for (const [i, removedUrl] of removedUrls.entries()) {
     if (usedRemoved.has(i)) {
       continue;
     }
 
-    for (const [j, addedUrl] of addedUrls.entries()) {
-      if (usedAdded.has(j)) {
-        continue;
-      }
+    const addedIndex = findMatchingAddedIndex(
+      (j) => addedUrls[j] === `-${removedUrl}` || removedUrl === `-${addedUrls[j]}`,
+    );
 
-      if (addedUrl === `-${removedUrl}` || removedUrl === `-${addedUrl}`) {
-        pairs.push({
-          removed: removedUrl,
-          added: addedUrl,
-          type: 'changed',
-        });
-        usedRemoved.add(i);
-        usedAdded.add(j);
-        break;
-      }
+    if (addedIndex !== null) {
+      addChangedPair(i, addedIndex);
     }
   }
 
   // Phase 2: Identical after normalization
-  for (const [i, removedUrl] of removedUrls.entries()) {
+  for (const i of removedUrls.keys()) {
     if (usedRemoved.has(i)) {
       continue;
     }
 
-    for (const [j, addedUrl] of addedUrls.entries()) {
-      if (usedAdded.has(j)) {
-        continue;
-      }
+    const addedIndex = findMatchingAddedIndex(
+      (j) => normalizedRemoved[i].normalized === normalizedAdded[j].normalized,
+    );
 
-      if (normalizedRemoved[i].normalized === normalizedAdded[j].normalized) {
-        pairs.push({
-          removed: removedUrl,
-          added: addedUrl,
-          type: 'changed',
-        });
-        usedRemoved.add(i);
-        usedAdded.add(j);
-        break;
-      }
+    if (addedIndex !== null) {
+      addChangedPair(i, addedIndex);
     }
   }
 
   // Phase 3: Identical path (domain migration)
-  for (const [i, removedUrl] of removedUrls.entries()) {
+  for (const i of removedUrls.keys()) {
     if (usedRemoved.has(i)) {
       continue;
     }
@@ -330,23 +334,10 @@ export function optimizedDiff(removedUrls: string[], addedUrls: string[]): DiffP
       continue;
     }
 
-    for (const [j, addedUrl] of addedUrls.entries()) {
-      if (usedAdded.has(j)) {
-        continue;
-      }
+    const addedIndex = findMatchingAddedIndex((j) => removedPath === normalizedAdded[j].path);
 
-      const addedPath = normalizedAdded[j].path;
-
-      if (removedPath === addedPath) {
-        pairs.push({
-          removed: removedUrl,
-          added: addedUrl,
-          type: 'changed',
-        });
-        usedRemoved.add(i);
-        usedAdded.add(j);
-        break;
-      }
+    if (addedIndex !== null) {
+      addChangedPair(i, addedIndex);
     }
   }
 
@@ -360,39 +351,24 @@ export function optimizedDiff(removedUrls: string[], addedUrls: string[]): DiffP
   const removedIds = removedUrls.map((url) => extractSignificantIds(url));
   const addedIds = addedUrls.map((url) => extractSignificantIds(url));
 
-  for (const [i, removedUrl] of removedUrls.entries()) {
+  for (const i of removedUrls.keys()) {
     if (usedRemoved.has(i) || removedIds[i].length === 0) {
       continue;
     }
 
-    for (const [j, addedUrl] of addedUrls.entries()) {
-      if (usedAdded.has(j) || addedIds[j].length === 0) {
-        continue;
-      }
+    const addedIndex = findMatchingAddedIndex(
+      (j) => addedIds[j].length > 0 && removedIds[i].some((id) => addedIds[j].includes(id)),
+    );
 
-      const hasSharedId = removedIds[i].some((id) => addedIds[j].includes(id));
-
-      if (hasSharedId) {
-        pairs.push({
-          removed: removedUrl,
-          added: addedUrl,
-          type: 'changed',
-        });
-        usedRemoved.add(i);
-        usedAdded.add(j);
-        break;
-      }
+    if (addedIndex !== null) {
+      addChangedPair(i, addedIndex);
     }
   }
 
   // Phase 5: Similarity matching (global sort-then-greedy)
   const candidates: { i: number; j: number; similarity: number }[] = [];
 
-  for (let i = 0; i < removedUrls.length; i++) {
-    if (usedRemoved.has(i)) {
-      continue;
-    }
-
+  const collectSimilarityCandidates = (i: number): void => {
     for (let j = 0; j < addedUrls.length; j++) {
       if (usedAdded.has(j)) {
         continue;
@@ -402,10 +378,10 @@ export function optimizedDiff(removedUrls: string[], addedUrls: string[]): DiffP
       // This is a performance/recall trade-off: pairs with different domains and
       // very short path prefix overlap are unlikely to match, but may occasionally
       // skip valid matches (e.g. domain migration with completely different paths).
-      const sameDomain = normalizedRemoved[i].host === normalizedAdded[j].host;
+      const isSameDomain = normalizedRemoved[i].host === normalizedAdded[j].host;
       const pathPrefixLen = longestCommonPrefix(normalizedRemoved[i].path, normalizedAdded[j].path);
 
-      if (!sameDomain && pathPrefixLen < 3) {
+      if (!isSameDomain && pathPrefixLen < 3) {
         continue;
       }
 
@@ -414,26 +390,28 @@ export function optimizedDiff(removedUrls: string[], addedUrls: string[]): DiffP
         normalizedAdded[j].normalized,
       );
 
-      const threshold = sameDomain ? 0.5 : 0.6;
+      const threshold = isSameDomain ? 0.5 : 0.6;
 
       if (similarity > threshold) {
         candidates.push({ i, j, similarity });
       }
+    }
+  };
+
+  for (let i = 0; i < removedUrls.length; i++) {
+    if (!usedRemoved.has(i)) {
+      collectSimilarityCandidates(i);
     }
   }
 
   candidates.sort((a, b) => b.similarity - a.similarity);
 
   for (const { i, j } of candidates) {
-    if (!usedRemoved.has(i) && !usedAdded.has(j)) {
-      pairs.push({
-        removed: removedUrls[i],
-        added: addedUrls[j],
-        type: 'changed',
-      });
-      usedRemoved.add(i);
-      usedAdded.add(j);
+    if (usedRemoved.has(i) || usedAdded.has(j)) {
+      continue;
     }
+
+    addChangedPair(i, j);
   }
 
   // Phase 6: Unmatched items

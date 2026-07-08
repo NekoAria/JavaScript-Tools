@@ -40,7 +40,7 @@ const createCopyButton = (tagName) => {
 };
 
 const createWikiLinkElement = (tagName) => {
-  const { hostname } = globalThis.location;
+  const { hostname } = location;
   const link = document.createElement('a');
 
   link.id = 'create-wiki-link';
@@ -67,7 +67,7 @@ const replaceWikiLinksWithBulkUpdateRequests = () => {
 };
 
 const fetchPendingBURs = async (tagName) => {
-  const { origin } = globalThis.location;
+  const { origin } = location;
   const url = `${origin}/bulk_update_requests.json?search[status]=pending&search[tags_include_any]=${tagName}`;
 
   try {
@@ -92,7 +92,7 @@ const renderPendingBURs = (burs) => {
     return;
   }
 
-  const { origin } = globalThis.location;
+  const { origin } = location;
 
   const section = document.createElement('div');
 
@@ -185,13 +185,13 @@ const addCreateWikiLink = () => {
 };
 
 const getArtistIdFromURL = () => {
-  const params = new URLSearchParams(globalThis.location.search);
+  const params = new URLSearchParams(location.search);
 
   return params.get('search[artist_id]');
 };
 
 const fetchArtistUnrecognizedHostnames = async (artistId) => {
-  const { origin } = globalThis.location;
+  const { origin } = location;
   const url = `${origin}/artists/${artistId}`;
 
   try {
@@ -269,7 +269,7 @@ const highlightUnrecognizedHostnamesInVersions = (hostnameSet) => {
 };
 
 const fetchTagAliases = async (antecedentName) => {
-  const { origin } = globalThis.location;
+  const { origin } = location;
   const params = new URLSearchParams({
     'search[antecedent_name_matches]': antecedentName,
   });
@@ -305,7 +305,7 @@ const hasActiveTagAliasBetweenNames = async (oldName, newName) => {
 };
 
 const fetchActiveArtistByName = async (name) => {
-  const { origin } = globalThis.location;
+  const { origin } = location;
   const params = new URLSearchParams({
     'search[name]': name,
     'search[is_deleted]': 'false',
@@ -352,7 +352,7 @@ const checkUnmigratedPostsOnRename = async (artistId) => {
     return;
   }
 
-  const { origin } = globalThis.location;
+  const { origin } = location;
   const url = `${origin}/artist_versions.json?search[artist_id]=${artistId}`;
 
   try {
@@ -411,7 +411,7 @@ const checkUnmigratedPostsOnRename = async (artistId) => {
 const renderUnmigratedPostsWarning = (oldName) => {
   document.querySelector('#unmigrated-posts-warning')?.remove();
 
-  const { origin } = globalThis.location;
+  const { origin } = location;
 
   const section = document.createElement('div');
 
@@ -482,10 +482,12 @@ const createOtherNamesTextarea = (current, form) => {
   textarea.value = lines.join('\n');
   textarea.rows = Math.min(20, Math.max(4, lines.length + 1));
   textarea.addEventListener('keydown', (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-      e.preventDefault();
-      form?.requestSubmit();
+    if (!((e.ctrlKey || e.metaKey) && e.key === 'Enter')) {
+      return;
     }
+
+    e.preventDefault();
+    form?.requestSubmit();
   });
 
   return textarea;
@@ -549,16 +551,18 @@ const addOtherNamesToggleButton = () => {
   );
 };
 
-const init = () => {
+const init = async () => {
   addStyles();
 
   // Artist versions page
-  if (globalThis.location.pathname.startsWith('/artist_versions')) {
+  if (location.pathname.startsWith('/artist_versions')) {
     const artistId = getArtistIdFromURL();
 
     if (artistId) {
-      fetchArtistUnrecognizedHostnames(artistId).then(highlightUnrecognizedHostnamesInVersions);
+      const unrecognizedHostnames = fetchArtistUnrecognizedHostnames(artistId);
+
       checkUnmigratedPostsOnRename(artistId);
+      highlightUnrecognizedHostnamesInVersions(await unrecognizedHostnames);
     }
 
     return;

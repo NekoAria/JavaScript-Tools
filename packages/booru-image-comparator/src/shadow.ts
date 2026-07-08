@@ -1,17 +1,17 @@
 import cssText from './style.css?raw';
 
 /** Module-level singleton — only one comparator overlay is open at a time. */
-let root: ShadowRoot | null = null;
+const shadowState: { root: ShadowRoot | null } = { root: null };
 
 /** Query inside the shadow root */
 export const $ = <T extends Element>(selector: string): T | null =>
-  root?.querySelector<T>(selector) ?? null;
+  shadowState.root?.querySelector<T>(selector) ?? null;
 
 export function createShadowHost(): { host: HTMLDivElement; shadow: ShadowRoot } {
   const host = document.createElement('div');
   const shadow = host.attachShadow({ mode: 'open' });
 
-  root = shadow;
+  shadowState.root = shadow;
 
   const style = document.createElement('style');
 
@@ -22,8 +22,10 @@ export function createShadowHost(): { host: HTMLDivElement; shadow: ShadowRoot }
 }
 
 export function destroyShadow(): void {
-  if (root) {
-    root.host.remove();
-    root = null;
+  if (!shadowState.root) {
+    return;
   }
+
+  shadowState.root.host.remove();
+  shadowState.root = null;
 }

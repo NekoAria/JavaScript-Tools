@@ -42,7 +42,7 @@
 		return button;
 	};
 	var createWikiLinkElement = (tagName) => {
-		const { hostname } = globalThis.location;
+		const { hostname } = location;
 		const link = document.createElement("a");
 		link.id = "create-wiki-link";
 		link.href = `https://${hostname}/wiki_pages/new?wiki_page[title]=${tagName}`;
@@ -60,7 +60,7 @@
 		}
 	};
 	var fetchPendingBURs = async (tagName) => {
-		const { origin } = globalThis.location;
+		const { origin } = location;
 		const url = `${origin}/bulk_update_requests.json?search[status]=pending&search[tags_include_any]=${tagName}`;
 		try {
 			const response = await fetch(url);
@@ -74,7 +74,7 @@
 	var renderPendingBURs = (burs) => {
 		document.querySelector("#pending-bur-section")?.remove();
 		if (burs.length === 0) return;
-		const { origin } = globalThis.location;
+		const { origin } = location;
 		const section = document.createElement("div");
 		section.id = "pending-bur-section";
 		for (const bur of burs) {
@@ -126,10 +126,10 @@
 		editArtistLink.before(separator);
 	};
 	var getArtistIdFromURL = () => {
-		return new URLSearchParams(globalThis.location.search).get("search[artist_id]");
+		return new URLSearchParams(location.search).get("search[artist_id]");
 	};
 	var fetchArtistUnrecognizedHostnames = async (artistId) => {
-		const { origin } = globalThis.location;
+		const { origin } = location;
 		const url = `${origin}/artists/${artistId}`;
 		try {
 			const response = await fetch(url);
@@ -163,7 +163,7 @@
 		else prependGlobeIfUnrecognized(li, hostnameSet, { inside: true });
 	};
 	var fetchTagAliases = async (antecedentName) => {
-		const { origin } = globalThis.location;
+		const { origin } = location;
 		const url = `${origin}/tag_aliases.json?${new URLSearchParams({ "search[antecedent_name_matches]": antecedentName })}`;
 		const response = await fetch(url);
 		if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -175,7 +175,7 @@
 		return hasActiveTagAlias(await fetchTagAliases(newName), newName, oldName);
 	};
 	var fetchActiveArtistByName = async (name) => {
-		const { origin } = globalThis.location;
+		const { origin } = location;
 		const url = `${origin}/artists.json?${new URLSearchParams({
 			"search[name]": name,
 			"search[is_deleted]": "false",
@@ -198,7 +198,7 @@
 			break;
 		}
 		if (renameIndex === -1) return;
-		const { origin } = globalThis.location;
+		const { origin } = location;
 		const url = `${origin}/artist_versions.json?search[artist_id]=${artistId}`;
 		try {
 			const response = await fetch(url);
@@ -222,7 +222,7 @@
 	};
 	var renderUnmigratedPostsWarning = (oldName) => {
 		document.querySelector("#unmigrated-posts-warning")?.remove();
-		const { origin } = globalThis.location;
+		const { origin } = location;
 		const section = document.createElement("div");
 		section.id = "unmigrated-posts-warning";
 		section.className = "notice notice-info flex text-center items-center justify-center gap-2";
@@ -269,10 +269,9 @@
 		textarea.value = lines.join("\n");
 		textarea.rows = Math.min(20, Math.max(4, lines.length + 1));
 		textarea.addEventListener("keydown", (e) => {
-			if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-				e.preventDefault();
-				form?.requestSubmit();
-			}
+			if (!((e.ctrlKey || e.metaKey) && e.key === "Enter")) return;
+			e.preventDefault();
+			form?.requestSubmit();
 		});
 		return textarea;
 	};
@@ -308,13 +307,14 @@
 			normalizeOtherNamesField(wrapper.querySelector("#artist_other_names_string"));
 		}, { capture: true });
 	};
-	var init = () => {
+	var init = async () => {
 		addStyles();
-		if (globalThis.location.pathname.startsWith("/artist_versions")) {
+		if (location.pathname.startsWith("/artist_versions")) {
 			const artistId = getArtistIdFromURL();
 			if (artistId) {
-				fetchArtistUnrecognizedHostnames(artistId).then(highlightUnrecognizedHostnamesInVersions);
+				const unrecognizedHostnames = fetchArtistUnrecognizedHostnames(artistId);
 				checkUnmigratedPostsOnRename(artistId);
+				highlightUnrecognizedHostnamesInVersions(await unrecognizedHostnames);
 			}
 			return;
 		}

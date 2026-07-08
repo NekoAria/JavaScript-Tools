@@ -3,6 +3,7 @@ import { mkdir, readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const IGNORED_DIRS = new Set(['.git', '.cache', 'dist', 'node_modules']);
+const compareStrings = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 
 /**
  * Recursively collect all file paths under a directory, skipping ignored
@@ -29,7 +30,7 @@ export async function collectFiles(dir) {
     }
   }
 
-  return files.toSorted();
+  return files.toSorted(compareStrings);
 }
 
 /**
@@ -70,7 +71,9 @@ export async function fileExists(file) {
 export async function hashFiles(files, rootDir) {
   const hash = createHash('sha256');
 
-  for (const file of files.toSorted()) {
+  const sortedFiles = files.toSorted(compareStrings);
+
+  for (const file of sortedFiles) {
     if (!(await fileExists(file))) {
       continue;
     }

@@ -1,3 +1,5 @@
+verifyDepsBeforeRun: warn
+
 packages:
   - packages/*
 

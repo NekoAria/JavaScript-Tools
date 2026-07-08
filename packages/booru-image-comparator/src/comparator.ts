@@ -18,17 +18,20 @@ import { restoreBackground, restoreMode } from './storage';
 import { resetTransforms } from './transform';
 import { bindEvents, updateMode } from './view';
 
-/** Debounce timer for delayed overlay image loading. */
-let pendingLoadTimer: ReturnType<typeof setTimeout> | null = null;
-
-/** Original body overflow value saved before opening the comparator. */
-let originalBodyOverflow: string | null = null;
+/** Module-level comparator lifecycle state. */
+const comparatorState: {
+  originalBodyOverflow: string | null;
+  pendingLoadTimer: ReturnType<typeof setTimeout> | null;
+} = {
+  originalBodyOverflow: null,
+  pendingLoadTimer: null,
+};
 
 /** Close the comparator and clean up all resources. */
 function closeComparator(state: StateManager): void {
-  if (pendingLoadTimer) {
-    clearTimeout(pendingLoadTimer);
-    pendingLoadTimer = null;
+  if (comparatorState.pendingLoadTimer) {
+    clearTimeout(comparatorState.pendingLoadTimer);
+    comparatorState.pendingLoadTimer = null;
   }
   invalidatePendingLoads();
   unbindSlider();
@@ -39,9 +42,9 @@ function closeComparator(state: StateManager): void {
     fn();
   }
   state.update('eventCleanup', []);
-  if (originalBodyOverflow !== null) {
-    document.body.style.overflow = originalBodyOverflow;
-    originalBodyOverflow = null;
+  if (comparatorState.originalBodyOverflow !== null) {
+    document.body.style.overflow = comparatorState.originalBodyOverflow;
+    comparatorState.originalBodyOverflow = null;
   }
   destroyShadow();
 }
@@ -53,7 +56,7 @@ export async function openComparator(postId: string | null, state: StateManager)
 
   shadow.append(container);
   document.body.append(host);
-  originalBodyOverflow = document.body.style.overflow;
+  comparatorState.originalBodyOverflow = document.body.style.overflow;
   document.body.style.overflow = 'hidden';
 
   const { originalImageUrl } = state.get();
@@ -70,7 +73,10 @@ export async function openComparator(postId: string | null, state: StateManager)
   await setupComparator(state);
   if (postId) {
     // Allow DOM and Panzoom to initialize before loading the overlay image
-    pendingLoadTimer = setTimeout(() => loadImage(state, postId), OVERLAY_INIT_DELAY_MS);
+    comparatorState.pendingLoadTimer = setTimeout(
+      () => loadImage(state, postId),
+      OVERLAY_INIT_DELAY_MS,
+    );
   }
 }
 

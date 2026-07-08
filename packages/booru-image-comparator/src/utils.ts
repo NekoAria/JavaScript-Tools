@@ -12,7 +12,7 @@ const SITE_MAP: Record<string, SiteType> = {
 
 /** Detect the current booru site from window.location. */
 export function detectSite(): SiteType | null {
-  return detectSiteFromHostname(globalThis.location.hostname);
+  return detectSiteFromHostname(location.hostname);
 }
 
 /** Map a hostname to a known booru site identifier. */
@@ -48,7 +48,7 @@ export function extractPostIdFromUrl(url: string): string | null {
 
 /** Check if the current page is one the comparator should activate on. */
 export function isValidPage(): boolean {
-  const { hostname, pathname, href } = globalThis.location;
+  const { hostname, pathname, href } = location;
 
   if (hostname.endsWith('.donmai.us')) {
     return /\/posts\/\d+/.test(href) || /\/uploads\/\d+/.test(href) || /\/iqdb_queries/.test(href);

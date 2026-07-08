@@ -139,99 +139,63 @@
 		const usedRemoved = new Set();
 		const normalizedRemoved = removedUrls.map((url) => normalizeUrlForComparison(url));
 		const normalizedAdded = addedUrls.map((url) => normalizeUrlForComparison(url));
+		const addChangedPair = (removedIndex, addedIndex) => {
+			pairs.push({
+				removed: removedUrls[removedIndex],
+				added: addedUrls[addedIndex],
+				type: "changed"
+			});
+			usedRemoved.add(removedIndex);
+			usedAdded.add(addedIndex);
+		};
+		const findMatchingAddedIndex = (isMatchingAddedIndex) => {
+			for (const addedIndex of addedUrls.keys()) if (!usedAdded.has(addedIndex) && isMatchingAddedIndex(addedIndex)) return addedIndex;
+			return null;
+		};
 		for (const [i, removedUrl] of removedUrls.entries()) {
 			if (usedRemoved.has(i)) continue;
-			for (const [j, addedUrl] of addedUrls.entries()) {
-				if (usedAdded.has(j)) continue;
-				if (addedUrl === `-${removedUrl}` || removedUrl === `-${addedUrl}`) {
-					pairs.push({
-						removed: removedUrl,
-						added: addedUrl,
-						type: "changed"
-					});
-					usedRemoved.add(i);
-					usedAdded.add(j);
-					break;
-				}
-			}
+			const addedIndex = findMatchingAddedIndex((j) => addedUrls[j] === `-${removedUrl}` || removedUrl === `-${addedUrls[j]}`);
+			if (addedIndex !== null) addChangedPair(i, addedIndex);
 		}
-		for (const [i, removedUrl] of removedUrls.entries()) {
+		for (const i of removedUrls.keys()) {
 			if (usedRemoved.has(i)) continue;
-			for (const [j, addedUrl] of addedUrls.entries()) {
-				if (usedAdded.has(j)) continue;
-				if (normalizedRemoved[i].normalized === normalizedAdded[j].normalized) {
-					pairs.push({
-						removed: removedUrl,
-						added: addedUrl,
-						type: "changed"
-					});
-					usedRemoved.add(i);
-					usedAdded.add(j);
-					break;
-				}
-			}
+			const addedIndex = findMatchingAddedIndex((j) => normalizedRemoved[i].normalized === normalizedAdded[j].normalized);
+			if (addedIndex !== null) addChangedPair(i, addedIndex);
 		}
-		for (const [i, removedUrl] of removedUrls.entries()) {
+		for (const i of removedUrls.keys()) {
 			if (usedRemoved.has(i)) continue;
 			const removedPath = normalizedRemoved[i].path;
 			if (!removedPath) continue;
-			for (const [j, addedUrl] of addedUrls.entries()) {
-				if (usedAdded.has(j)) continue;
-				if (removedPath === normalizedAdded[j].path) {
-					pairs.push({
-						removed: removedUrl,
-						added: addedUrl,
-						type: "changed"
-					});
-					usedRemoved.add(i);
-					usedAdded.add(j);
-					break;
-				}
-			}
+			const addedIndex = findMatchingAddedIndex((j) => removedPath === normalizedAdded[j].path);
+			if (addedIndex !== null) addChangedPair(i, addedIndex);
 		}
 		const removedIds = removedUrls.map((url) => extractSignificantIds(url));
 		const addedIds = addedUrls.map((url) => extractSignificantIds(url));
-		for (const [i, removedUrl] of removedUrls.entries()) {
+		for (const i of removedUrls.keys()) {
 			if (usedRemoved.has(i) || removedIds[i].length === 0) continue;
-			for (const [j, addedUrl] of addedUrls.entries()) {
-				if (usedAdded.has(j) || addedIds[j].length === 0) continue;
-				if (removedIds[i].some((id) => addedIds[j].includes(id))) {
-					pairs.push({
-						removed: removedUrl,
-						added: addedUrl,
-						type: "changed"
-					});
-					usedRemoved.add(i);
-					usedAdded.add(j);
-					break;
-				}
-			}
+			const addedIndex = findMatchingAddedIndex((j) => addedIds[j].length > 0 && removedIds[i].some((id) => addedIds[j].includes(id)));
+			if (addedIndex !== null) addChangedPair(i, addedIndex);
 		}
 		const candidates = [];
-		for (let i = 0; i < removedUrls.length; i++) {
-			if (usedRemoved.has(i)) continue;
+		const collectSimilarityCandidates = (i) => {
 			for (let j = 0; j < addedUrls.length; j++) {
 				if (usedAdded.has(j)) continue;
-				const sameDomain = normalizedRemoved[i].host === normalizedAdded[j].host;
+				const isSameDomain = normalizedRemoved[i].host === normalizedAdded[j].host;
 				const pathPrefixLen = longestCommonPrefix(normalizedRemoved[i].path, normalizedAdded[j].path);
-				if (!sameDomain && pathPrefixLen < 3) continue;
+				if (!isSameDomain && pathPrefixLen < 3) continue;
 				const similarity = calculateSimilarity(normalizedRemoved[i].normalized, normalizedAdded[j].normalized);
-				if (similarity > (sameDomain ? .5 : .6)) candidates.push({
+				if (similarity > (isSameDomain ? .5 : .6)) candidates.push({
 					i,
 					j,
 					similarity
 				});
 			}
-		}
+		};
+		for (let i = 0; i < removedUrls.length; i++) if (!usedRemoved.has(i)) collectSimilarityCandidates(i);
 		candidates.sort((a, b) => b.similarity - a.similarity);
-		for (const { i, j } of candidates) if (!usedRemoved.has(i) && !usedAdded.has(j)) {
-			pairs.push({
-				removed: removedUrls[i],
-				added: addedUrls[j],
-				type: "changed"
-			});
-			usedRemoved.add(i);
-			usedAdded.add(j);
+		for (const { i, j } of candidates) {
+			if (usedRemoved.has(i) || usedAdded.has(j)) continue;
+			addChangedPair(i, j);
 		}
 		for (const [i, removedUrl] of removedUrls.entries()) if (!usedRemoved.has(i)) pairs.push({
 			removed: removedUrl,
@@ -284,10 +248,9 @@
 	}
 	function generateDiffHTML(pairs) {
 		let html = "";
-		for (const pair of pairs) switch (pair.type) {
-			case "changed": {
-				const charDiff = generateCharDiffHTML(pair.removed, pair.added);
-				html += `
+		for (const pair of pairs) if (pair.type === "changed") {
+			const charDiff = generateCharDiffHTML(pair.removed, pair.added);
+			html += `
           <li class="changed">
             <div class="char-diff-container">
               <div class="char-diff-removed">${charDiff.removedHTML}</div>
@@ -295,15 +258,8 @@
               <div class="char-diff-added">${charDiff.addedHTML}</div>
             </div>
           </li>`;
-				break;
-			}
-			case "removed":
-				html += `<li class="removed">${escapeHtml(pair.removed)}</li>`;
-				break;
-			case "added":
-				html += `<li class="added">${escapeHtml(pair.added)}</li>`;
-				break;
-		}
+		} else if (pair.type === "removed") html += `<li class="removed">${escapeHtml(pair.removed)}</li>`;
+		else html += `<li class="added">${escapeHtml(pair.added)}</li>`;
 		return html;
 	}
 	var style_default = "/* Styles for the Danbooru artist URL diff enhancer. Supports light and dark themes via data attribute. */\nbody {\n  --color-red-50: oklch(97.1% 0.013 17.38);\n  --color-red-100: oklch(93.6% 0.032 17.717);\n  --color-red-200: oklch(88.5% 0.062 18.334);\n  --color-red-300: oklch(80.8% 0.114 19.571);\n  --color-red-400: oklch(70.4% 0.191 22.216);\n  --color-red-500: oklch(63.7% 0.237 25.331);\n  --color-red-600: oklch(57.7% 0.245 27.325);\n  --color-red-700: oklch(50.5% 0.213 27.518);\n  --color-red-800: oklch(44.4% 0.177 26.899);\n  --color-red-900: oklch(39.6% 0.141 25.723);\n  --color-red-950: oklch(25.8% 0.092 26.042);\n\n  --color-amber-50: oklch(98.7% 0.022 95.277);\n  --color-amber-100: oklch(96.2% 0.059 95.617);\n  --color-amber-200: oklch(92.4% 0.12 95.746);\n  --color-amber-300: oklch(87.9% 0.169 91.605);\n  --color-amber-400: oklch(82.8% 0.189 84.429);\n  --color-amber-500: oklch(76.9% 0.188 70.08);\n  --color-amber-600: oklch(66.6% 0.179 58.318);\n  --color-amber-700: oklch(55.5% 0.163 48.998);\n  --color-amber-800: oklch(47.3% 0.137 46.201);\n  --color-amber-900: oklch(41.4% 0.112 45.904);\n  --color-amber-950: oklch(27.9% 0.077 45.635);\n\n  --color-green-50: oklch(98.2% 0.018 155.826);\n  --color-green-100: oklch(96.2% 0.044 156.743);\n  --color-green-200: oklch(92.5% 0.084 155.995);\n  --color-green-300: oklch(87.1% 0.15 154.449);\n  --color-green-400: oklch(79.2% 0.209 151.711);\n  --color-green-500: oklch(72.3% 0.219 149.579);\n  --color-green-600: oklch(62.7% 0.194 149.214);\n  --color-green-700: oklch(52.7% 0.154 150.069);\n  --color-green-800: oklch(44.8% 0.119 151.328);\n  --color-green-900: oklch(39.3% 0.095 152.535);\n  --color-green-950: oklch(26.6% 0.065 152.934);\n\n  --diff-bg-removed: var(--color-red-100);\n  --diff-border-removed: var(--color-red-500);\n  --diff-bg-added: var(--color-green-100);\n  --diff-border-added: var(--color-green-500);\n  --diff-bg-changed: var(--color-amber-100);\n  --diff-border-changed: var(--color-amber-500);\n  --diff-char-removed-bg: var(--color-red-500);\n  --diff-char-added-bg: var(--color-green-500);\n}\n\n/* Dark theme overrides */\nbody[data-current-user-theme='dark'] {\n  --diff-bg-removed: var(--color-red-900);\n  --diff-border-removed: var(--color-red-700);\n  --diff-bg-added: var(--color-green-900);\n  --diff-border-added: var(--color-green-700);\n  --diff-bg-changed: var(--color-amber-900);\n  --diff-border-changed: var(--color-amber-700);\n  --diff-char-removed-bg: var(--color-red-700);\n  --diff-char-added-bg: var(--color-green-700);\n}\n\ntd.urls-column .diff-list li {\n  padding: 5px;\n  margin: 2px 0;\n  color: unset;\n  word-break: break-all;\n  border-left: 3px solid transparent;\n  border-radius: 4px;\n}\n\ntd.urls-column .diff-list li.removed {\n  background-color: var(--diff-bg-removed);\n  border-left-color: var(--diff-border-removed);\n}\n\ntd.urls-column .diff-list li.added {\n  background-color: var(--diff-bg-added);\n  border-left-color: var(--diff-border-added);\n}\n\ntd.urls-column .diff-list li.changed {\n  background-color: var(--diff-bg-changed);\n  border-left-color: var(--diff-border-changed);\n}\n\n.char-diff-container {\n  display: flex;\n  flex-direction: column;\n  gap: 3px;\n  line-height: 1.4;\n}\n\n.char-diff-removed,\n.char-diff-added {\n  padding: 2px 0;\n  word-break: break-all;\n}\n\n.char-diff-arrow {\n  align-self: flex-start;\n  margin: 2px 0;\n  font-weight: bold;\n  color: unset;\n}\n\n.char-common {\n  background-color: transparent;\n}\n\n.char-removed {\n  padding: 1px 2px;\n  color: white;\n  background-color: var(--diff-char-removed-bg);\n  border-radius: 2px;\n}\n\n.char-added {\n  padding: 1px 2px;\n  font-weight: bold;\n  color: white;\n  background-color: var(--diff-char-added-bg);\n  border-radius: 2px;\n}\n\n@media (min-width: 768px) {\n  .char-diff-container {\n    flex-direction: row;\n    gap: 8px;\n    align-items: center;\n  }\n\n  .char-diff-arrow {\n    margin: 0 5px;\n  }\n}\n";
@@ -312,24 +268,26 @@
 		style.textContent = style_default;
 		document.head.append(style);
 	}
+	var DIFF_LIST_SELECTOR = "ul.diff-list:not([data-enhanced])";
+	var URLS_COLUMN_SELECTOR = "td.urls-column";
+	function hasUnenhancedDiffList(node) {
+		if (node.nodeType !== Node.ELEMENT_NODE) return false;
+		const el = node;
+		return el.matches(DIFF_LIST_SELECTOR) && el.closest(URLS_COLUMN_SELECTOR) !== null || el.matches(URLS_COLUMN_SELECTOR) && el.querySelector(`:scope ${DIFF_LIST_SELECTOR}`) !== null || el.querySelector(`:scope ${URLS_COLUMN_SELECTOR} ${DIFF_LIST_SELECTOR}`) !== null;
+	}
 	function init() {
 		addCustomStyles();
 		processDiffLists();
 		let debounceTimer = null;
+		const scheduleProcessDiffLists = () => {
+			if (debounceTimer !== null) clearTimeout(debounceTimer);
+			debounceTimer = setTimeout(() => {
+				debounceTimer = null;
+				processDiffLists();
+			}, 100);
+		};
 		new MutationObserver((mutations) => {
-			for (const mutation of mutations) {
-				if (mutation.type !== "childList") continue;
-				for (const node of mutation.addedNodes) {
-					if (node.nodeType !== Node.ELEMENT_NODE) continue;
-					if (node.querySelectorAll("td.urls-column ul.diff-list:not([data-enhanced])").length > 0) {
-						if (debounceTimer !== null) clearTimeout(debounceTimer);
-						debounceTimer = globalThis.setTimeout(() => {
-							debounceTimer = null;
-							processDiffLists();
-						}, 100);
-					}
-				}
-			}
+			for (const mutation of mutations) if (mutation.type === "childList" && [...mutation.addedNodes].some((node) => hasUnenhancedDiffList(node))) scheduleProcessDiffLists();
 		}).observe(document.body, {
 			childList: true,
 			subtree: true

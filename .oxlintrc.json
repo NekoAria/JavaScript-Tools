@@ -10,16 +10,6 @@
     "es2026": true,
     "greasemonkey": true
   },
-  "settings": {
-    "import-x/extensions": [".ts", ".tsx", ".cts", ".mts", ".js", ".jsx", ".cjs", ".mjs"],
-    "import-x/external-module-folders": ["node_modules", "node_modules/@types"],
-    "import-x/parsers": {
-      "@typescript-eslint/parser": [".ts", ".tsx", ".cts", ".mts"]
-    },
-    "import-x/resolver": {
-      "typescript": true
-    }
-  },
   "ignorePatterns": ["**/*.min.js", "**/*.d.ts", "**/userscripts/**", "**/dist/**"],
   "rules": {
     "constructor-super": "error",
@@ -93,12 +83,16 @@
     "unicorn/error-message": "error",
     "unicorn/escape-case": "error",
     "unicorn/explicit-length-check": "error",
+    "unicorn/explicit-timer-delay": "error",
     "unicorn/filename-case": "error",
+    "unicorn/import-style": "error",
+    "unicorn/max-nested-calls": "error",
     "unicorn/new-for-builtins": "error",
     "unicorn/no-abusive-eslint-disable": "error",
     "unicorn/no-accessor-recursion": "error",
     "unicorn/no-anonymous-default-export": "error",
     "unicorn/no-array-callback-reference": "error",
+    "unicorn/no-array-fill-with-reference-type": "error",
     "unicorn/no-array-for-each": "error",
     "unicorn/no-array-method-this-argument": "error",
     "unicorn/no-array-reduce": "error",
@@ -106,6 +100,7 @@
     "unicorn/no-array-sort": "error",
     "unicorn/no-await-expression-member": "error",
     "unicorn/no-await-in-promise-methods": "error",
+    "unicorn/no-confusing-array-with": "error",
     "unicorn/no-console-spaces": "error",
     "unicorn/no-document-cookie": "error",
     "unicorn/no-empty-file": "error",
@@ -163,6 +158,7 @@
     "unicorn/prefer-dom-node-remove": "error",
     "unicorn/prefer-dom-node-text-content": "error",
     "unicorn/prefer-event-target": "error",
+    "unicorn/prefer-export-from": "error",
     "unicorn/prefer-global-this": "error",
     "unicorn/prefer-includes": "error",
     "unicorn/prefer-keyboard-event-key": "error",
@@ -175,6 +171,7 @@
     "unicorn/prefer-native-coercion-functions": "error",
     "unicorn/prefer-negative-index": "error",
     "unicorn/prefer-node-protocol": "error",
+    "unicorn/prefer-number-coercion": "error",
     "unicorn/prefer-number-properties": "error",
     "unicorn/prefer-object-from-entries": "error",
     "unicorn/prefer-optional-catch-binding": "error",
@@ -185,6 +182,7 @@
     "unicorn/prefer-response-static-json": "error",
     "unicorn/prefer-set-has": "error",
     "unicorn/prefer-set-size": "error",
+    "unicorn/prefer-single-call": "error",
     "unicorn/prefer-spread": "error",
     "unicorn/prefer-string-raw": "error",
     "unicorn/prefer-string-replace-all": "error",
@@ -206,6 +204,8 @@
     "unicorn/throw-new-error": "error",
     "import/namespace": "error",
     "import/default": "error",
+    "import/export": "error",
+    "import/named": "error",
     "import/no-named-as-default": "warn",
     "import/no-named-as-default-member": "warn",
     "import/no-duplicates": "warn",

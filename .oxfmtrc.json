@@ -6,5 +6,21 @@
   "tabWidth": 2,
   "trailingComma": "all",
   "sortPackageJson": false,
+  "sortImports": {
+    "groups": [
+      "type-import",
+      "value-builtin",
+      "value-external",
+      "value-internal",
+      "value-parent",
+      "value-sibling",
+      "value-index",
+      "unknown"
+    ],
+    "newlinesBetween": true,
+    "order": "asc",
+    "ignoreCase": true,
+    "sortSideEffects": false
+  },
   "ignorePatterns": ["pnpm-lock.yaml", "*.min.js", "userscripts/"]
 }

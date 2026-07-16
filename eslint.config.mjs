@@ -1,13 +1,12 @@
 import js from '@eslint/js';
 import stylistic from '@stylistic/eslint-plugin';
-import { defineConfig, globalIgnores } from 'eslint/config';
 import eslintConfigPrettier from 'eslint-config-prettier';
-import { importX } from 'eslint-plugin-import-x';
 import nodePlugin from 'eslint-plugin-n';
 import oxlint from 'eslint-plugin-oxlint';
 import perfectionist from 'eslint-plugin-perfectionist';
 import unicorn from 'eslint-plugin-unicorn';
 import unusedImports from 'eslint-plugin-unused-imports';
+import { defineConfig, globalIgnores } from 'eslint/config';
 import globals from 'globals';
 import * as tseslint from 'typescript-eslint';
 
@@ -18,8 +17,6 @@ export default defineConfig([
   // ━━ Presets ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   js.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
-  importX.flatConfigs.recommended,
-  importX.flatConfigs.typescript,
   unicorn.configs.recommended,
   eslintConfigPrettier,
 
@@ -47,7 +44,6 @@ export default defineConfig([
       },
     },
     rules: {
-      'import-x/no-unresolved': 'off', // pnpm workspace: sub-package deps not resolvable from shared/
       'n/no-missing-import': 'off',
       'n/no-process-exit': 'warn',
       'n/no-unpublished-import': 'off',
@@ -64,7 +60,6 @@ export default defineConfig([
       perfectionist,
       'unused-imports': unusedImports,
     },
-    settings: { 'import-x/resolver': { typescript: true, node: true } },
     rules: {
       // ── Formatting / consistency ──────────
       curly: ['error', 'all'],
@@ -90,31 +85,6 @@ export default defineConfig([
       // ── Unused Imports ────────────────────
       'unused-imports/no-unused-imports': 'warn',
       'unused-imports/no-unused-vars': 'off',
-
-      // ── Import ordering (import-x) ────────
-      'import-x/no-anonymous-default-export': 'error',
-      'import-x/no-cycle': 'error',
-      'import-x/no-duplicates': 'error',
-      'import-x/no-self-import': 'error',
-      'import-x/no-useless-path-segments': ['error', { noUselessIndex: true }],
-      'import-x/order': [
-        'warn',
-        {
-          alphabetize: { caseInsensitive: true, order: 'asc' },
-          groups: [
-            'type',
-            'builtin',
-            'external',
-            'internal',
-            'parent',
-            'sibling',
-            'index',
-            'object',
-          ],
-          named: true,
-          'newlines-between': 'always',
-        },
-      ],
 
       // ── Perfectionist ─────────────────────
       'perfectionist/sort-modules': [

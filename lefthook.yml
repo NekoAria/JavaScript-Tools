@@ -22,7 +22,7 @@ pre-commit:
       exclude:
         - 'pnpm-lock.yaml'
       stage_fixed: true
-      run: pnpm exec prettier --write {staged_files}
+      run: pnpm exec oxfmt --no-error-on-unmatched-pattern {staged_files}
 
 pre-push:
   commands:

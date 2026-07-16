@@ -9,8 +9,8 @@
   "scripts": {
     "build:bookmarklets": "node scripts/build-bookmarklets.js",
     "build:packages": "node scripts/build-packages.js",
-    "format": "stylelint \"packages/**/*.css\" --fix && oxfmt . && prettier --write \"**/*.{md,yml,yaml}\" \"!pnpm-lock.yaml\"",
-    "format:check": "stylelint \"packages/**/*.css\" && oxfmt --check . && prettier --check \"**/*.{md,yml,yaml}\" \"!pnpm-lock.yaml\"",
+    "format": "stylelint \"packages/**/*.css\" --fix && oxfmt .",
+    "format:check": "stylelint \"packages/**/*.css\" && oxfmt --check .",
     "lint": "oxlint . && eslint .",
     "lint:fix": "oxlint --fix . && eslint --fix .",
     "knip": "knip",
@@ -35,7 +35,6 @@
     "lefthook": "^2.1.9",
     "oxfmt": "^0.58.0",
     "oxlint": "^1.73.0",
-    "prettier": "^3.8.4",
     "stylelint": "^17.13.0",
     "stylelint-config-recess-order": "^7.7.0",
     "stylelint-order": "^8.1.1",

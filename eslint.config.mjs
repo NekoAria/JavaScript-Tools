@@ -87,6 +87,14 @@ export default defineConfig([
       'unused-imports/no-unused-vars': 'off',
 
       // ── Perfectionist ─────────────────────
+      'perfectionist/sort-named-exports': [
+        'warn',
+        { type: 'alphabetical', order: 'asc', ignoreCase: true, ignoreAlias: true },
+      ],
+      'perfectionist/sort-named-imports': [
+        'warn',
+        { type: 'alphabetical', order: 'asc', ignoreCase: true, ignoreAlias: true },
+      ],
       'perfectionist/sort-modules': [
         'warn',
         {

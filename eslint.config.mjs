@@ -1,7 +1,6 @@
 import js from '@eslint/js';
 import stylistic from '@stylistic/eslint-plugin';
 import eslintConfigPrettier from 'eslint-config-prettier';
-import nodePlugin from 'eslint-plugin-n';
 import oxlint from 'eslint-plugin-oxlint';
 import perfectionist from 'eslint-plugin-perfectionist';
 import unicorn from 'eslint-plugin-unicorn';
@@ -44,7 +43,6 @@ export default defineConfig([
   // ━━ Build tooling (Node.js context) ━━━━━
   {
     files: ['shared/**/*.js', 'scripts/**/*.js', '**/vite.config.{js,ts}'],
-    plugins: { n: nodePlugin },
     languageOptions: {
       globals: {
         ...globals.node,
@@ -52,9 +50,6 @@ export default defineConfig([
       },
     },
     rules: {
-      'n/no-missing-import': 'off',
-      'n/no-unpublished-import': 'off',
-      'n/no-unsupported-features/es-syntax': 'off',
       'no-console': 'off',
     },
   },

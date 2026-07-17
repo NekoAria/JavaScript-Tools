@@ -23,6 +23,14 @@ export default defineConfig([
   // Disable type-checked rules for plain JS/MJS and build config TS files
   { files: ['**/*.{js,mjs}', '**/vite.config.ts'], ...tseslint.configs.disableTypeChecked },
 
+  // Covered by equivalent Oxlint Unicorn rules
+  {
+    rules: {
+      '@typescript-eslint/no-this-alias': 'off',
+      'no-new-native-nonconstructor': 'off',
+    },
+  },
+
   // ━━ Node environment ━━━━━━━━━━━━━━━━━━━━
   {
     languageOptions: {
@@ -45,7 +53,6 @@ export default defineConfig([
     },
     rules: {
       'n/no-missing-import': 'off',
-      'n/no-process-exit': 'warn',
       'n/no-unpublished-import': 'off',
       'n/no-unsupported-features/es-syntax': 'off',
       'no-console': 'off',
@@ -174,7 +181,7 @@ export default defineConfig([
   },
 
   // Disable ESLint rules already covered by Oxlint; keep ESLint for unsupported/plugin/type-aware rules.
-  ...oxlint.buildFromOxlintConfigFile('./.oxlintrc.json'),
+  ...oxlint.buildFromOxlintConfigFile('./.oxlintrc.json', { withNursery: true }),
 
   // Keep ESLint's no-console checks because existing eslint-disable comments document debug logging.
   {

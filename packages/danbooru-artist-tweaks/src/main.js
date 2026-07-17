@@ -139,7 +139,7 @@ const renderPendingBURs = (burs) => {
       ? fineprintParagraphs.at(-1)
       : document.querySelector('#view-artist-link')?.closest('p');
 
-  insertAfter?.insertAdjacentElement('afterend', section);
+  insertAfter?.after(section);
 };
 
 const addPendingBURs = async (tagName) => {

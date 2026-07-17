@@ -102,7 +102,7 @@
 			section.append(p);
 		}
 		const fineprintParagraphs = document.querySelectorAll("p.fineprint");
-		(fineprintParagraphs.length > 0 ? fineprintParagraphs.at(-1) : document.querySelector("#view-artist-link")?.closest("p"))?.insertAdjacentElement("afterend", section);
+		(fineprintParagraphs.length > 0 ? fineprintParagraphs.at(-1) : document.querySelector("#view-artist-link")?.closest("p"))?.after(section);
 	};
 	var addPendingBURs = async (tagName) => {
 		renderPendingBURs(await fetchPendingBURs(tagName));

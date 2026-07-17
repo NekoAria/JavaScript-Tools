@@ -6,7 +6,6 @@ packages:
 allowBuilds:
   esbuild: true
   lefthook: true
-  unrs-resolver: true
 
 catalog:
   typescript: 6.0.3

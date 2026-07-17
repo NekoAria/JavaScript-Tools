@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Danbooru Artist Tweaks
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      1.0.5
+// @version      1.0.6
 // @author       Neko_Aria
 // @description  Add Create wiki link for artist pages without wiki page, copy artist name button, replace wiki links with bulk update request links for tag aliases, show pending BURs, highlight unrecognized external hostnames in artist versions, provide an expandable multi-line editor for the artist "Other Names" field, and warn about unmigrated posts on artist rename
 // @homepageURL  https://github.com/NekoAria/JavaScript-Tools/tree/main/packages/danbooru-artist-tweaks
@@ -102,7 +102,7 @@
 			section.append(p);
 		}
 		const fineprintParagraphs = document.querySelectorAll("p.fineprint");
-		(fineprintParagraphs.length > 0 ? fineprintParagraphs.at(-1) : document.querySelector("#view-artist-link")?.closest("p"))?.after(section);
+		(fineprintParagraphs.length > 0 ? fineprintParagraphs.item(fineprintParagraphs.length - 1) : document.querySelector("#view-artist-link")?.closest("p"))?.after(section);
 	};
 	var addPendingBURs = async (tagName) => {
 		renderPendingBURs(await fetchPendingBURs(tagName));

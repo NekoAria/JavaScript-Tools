@@ -136,7 +136,7 @@ const renderPendingBURs = (burs) => {
   const fineprintParagraphs = document.querySelectorAll('p.fineprint');
   const insertAfter =
     fineprintParagraphs.length > 0
-      ? fineprintParagraphs.at(-1)
+      ? fineprintParagraphs.item(fineprintParagraphs.length - 1)
       : document.querySelector('#view-artist-link')?.closest('p');
 
   insertAfter?.after(section);

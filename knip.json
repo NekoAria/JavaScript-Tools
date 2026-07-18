@@ -4,10 +4,6 @@
       "entry": ["scripts/*.js", "bookmarklets/*.js"],
       "ignore": ["userscripts/**/*.user.js"]
     },
-    "shared": {
-      "entry": ["*.js"],
-      "ignoreDependencies": ["vite", "vite-plugin-monkey"]
-    },
     "packages/*": {
       "entry": ["src/main.{js,ts}", "vite.config.{js,ts}"]
     }

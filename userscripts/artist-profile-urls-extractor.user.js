@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Artist Profile URLs Extractor
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      1.0.7
+// @version      1.0.8
 // @author       Neko_Aria
 // @description  Add a draggable floating button on supported artist profile pages that opens a modal with canonical profile URLs and copy actions
 // @homepageURL  https://github.com/NekoAria/JavaScript-Tools/tree/main/packages/artist-profile-urls-extractor
@@ -14,6 +14,38 @@
 
 (function() {
 	"use strict";
+	var isRecord = (value) => typeof value === "object" && value !== null && !Array.isArray(value);
+	var asRecord = (value) => isRecord(value) ? value : null;
+	var getRecord = (value, key) => {
+		const record = asRecord(value);
+		return record ? asRecord(record[key]) : null;
+	};
+	var getRecordAt = (value, ...path) => {
+		let current = value;
+		for (const key of path) {
+			const next = getRecord(current, key);
+			if (!next) return null;
+			current = next;
+		}
+		return asRecord(current);
+	};
+	var getValueAt = (value, ...path) => {
+		let current = value;
+		for (const key of path) {
+			const record = asRecord(current);
+			if (!record) return;
+			current = record[key];
+		}
+		return current;
+	};
+	var getString = (value, key) => {
+		const candidate = asRecord(value)?.[key];
+		return typeof candidate === "string" && candidate ? candidate : null;
+	};
+	var getArrayAt = (value, ...path) => {
+		const candidate = getValueAt(value, ...path);
+		return Array.isArray(candidate) ? candidate : [];
+	};
 	var createProfileResult = (primaryUrl, secondaryUrl = null) => ({
 		primaryUrl,
 		secondaryUrl
@@ -40,6 +72,7 @@
 	var TUMBLR_API_AUTHORIZATION = "Bearer aIcXSOoTtqrzR8L8YEIOmBeW94c3FmbSNSWAUbxsny9KKx5VFh";
 	var utils = {
 		safeJsonParse(text) {
+			if (!text) return null;
 			try {
 				return JSON.parse(text);
 			} catch {
@@ -69,6 +102,7 @@
 		}
 	};
 	var ProfileExtractionError = class extends Error {
+		details;
 		constructor(message, details) {
 			super(message);
 			this.name = "ProfileExtractionError";
@@ -87,20 +121,20 @@
 		if (identifier.startsWith("did:")) {
 			const profileResponse = await utils.safeFetch(`https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${identifier}`);
 			if (profileResponse) {
-				const profileData = await profileResponse.json();
-				if (profileData?.handle) primaryUrl = `https://bsky.app/profile/${profileData.handle}`;
+				const handle = getString(await profileResponse.json(), "handle");
+				if (handle) primaryUrl = `https://bsky.app/profile/${handle}`;
 			}
 			secondaryUrl = `https://bsky.app/profile/${identifier}`;
 		} else {
-			const didResponse = await utils.safeFetch(`https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=${identifier}`);
-			if (didResponse) {
-				const didData = await didResponse.json();
-				secondaryUrl = didData?.did ? `https://bsky.app/profile/${didData.did}` : null;
+			const identityResponse = await utils.safeFetch(`https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=${identifier}`);
+			if (identityResponse) {
+				const did = getString(await identityResponse.json(), "did");
+				secondaryUrl = did ? `https://bsky.app/profile/${did}` : null;
 			} else secondaryUrl = null;
 		}
 		return createProfileResult(primaryUrl, secondaryUrl);
 	};
-	var handleFacebook = async () => {
+	var handleFacebook = () => {
 		const androidUrl = utils.getMetaContent("al:android:url", "property");
 		const ogUrl = utils.getMetaContent("og:url", "property");
 		if (!androidUrl || !ogUrl) return fail(utils.userNotFoundError("Facebook"));
@@ -108,7 +142,7 @@
 		if (!profileIdMatch?.[0]) return fail(utils.userNotFoundError("Facebook"));
 		return createProfileResult(ogUrl, `https://www.facebook.com/profile.php?id=${profileIdMatch[0]}`);
 	};
-	var handleFantia = async () => {
+	var handleFantia = () => {
 		const creatorProfileLink = document.querySelector(".fanclub-header a");
 		if (!creatorProfileLink) return fail(utils.userNotFoundError("Fantia"));
 		const creatorPath = creatorProfileLink.getAttribute("href");
@@ -117,14 +151,17 @@
 		const nicknameValue = document.querySelector("#nickname")?.getAttribute("value");
 		return createProfileResult(primaryUrl, nicknameValue ? `https://fantia.jp/${nicknameValue}` : null);
 	};
-	var handleGumroad = async () => {
+	var handleGumroad = () => {
 		const rawPageData = document.querySelector("#app")?.dataset.page;
 		if (!rawPageData) return fail(utils.userNotFoundError("Gumroad"));
-		const creatorProfile = utils.safeJsonParse(rawPageData)?.props?.creator_profile;
-		if (!creatorProfile?.subdomain) return fail(utils.userNotFoundError("Gumroad"));
-		return createProfileResult(`https://${creatorProfile.subdomain}`, creatorProfile.external_id ? `https://${creatorProfile.external_id}.gumroad.com` : null);
+		const creatorProfile = getRecordAt(utils.safeJsonParse(rawPageData), "props", "creator_profile");
+		const subdomain = getString(creatorProfile, "subdomain");
+		if (!subdomain) return fail(utils.userNotFoundError("Gumroad"));
+		const primaryUrl = `https://${subdomain}`;
+		const externalId = getString(creatorProfile, "external_id");
+		return createProfileResult(primaryUrl, externalId ? `https://${externalId}.gumroad.com` : null);
 	};
-	var handleInkbunny = async () => {
+	var handleInkbunny = () => {
 		const watchListLink = document.querySelector("a[href^=\"watchlist_process.php\"]")?.getAttribute("href");
 		if (watchListLink) {
 			const userId = new URL(watchListLink, location.origin).searchParams.get("user_id");
@@ -134,7 +171,7 @@
 		}
 		return fail(utils.userNotFoundError("Inkbunny"));
 	};
-	var handleKoFi = async () => {
+	var handleKoFi = () => {
 		const pageId = document.querySelector("[data-page-id]")?.dataset.pageId;
 		if (pageId) {
 			const primaryUrl = location.href;
@@ -142,7 +179,7 @@
 		}
 		return fail(utils.userNotFoundError("KoFi"));
 	};
-	var handleLofter = async () => {
+	var handleLofter = () => {
 		const controlFrame = document.querySelector("#control_frame");
 		if (!controlFrame) return fail(utils.userNotFoundError("Lofter"));
 		const primaryUrl = controlFrame.baseURI.replace(/\/$/, "");
@@ -157,7 +194,7 @@
 		const clonedElement = usernameElement.cloneNode(true);
 		const spanElement = clonedElement.querySelector("span");
 		if (spanElement) spanElement.remove();
-		const username = clonedElement.textContent.trim();
+		const username = clonedElement.textContent?.trim() ?? "";
 		if (!username) return fail(utils.userNotFoundError("Mihuashi"));
 		const userUrl = `https://www.mihuashi.com/users/${username}`;
 		if (pathname.startsWith("/profiles/")) {
@@ -168,9 +205,9 @@
 		if (pathname.startsWith("/users/")) {
 			const apiResponse = await utils.safeFetch(`https://www.mihuashi.com/api/v1/users/${username}/?by=name`);
 			if (!apiResponse) return fail(utils.userNotFoundError("Mihuashi"));
-			const apiData = await apiResponse.json();
-			if (!apiData?.user?.id) return fail("Invalid user data returned from API");
-			return createProfileResult(`https://www.mihuashi.com/profiles/${apiData.user.id}`, userUrl);
+			const profileIdValue = getValueAt(await apiResponse.json(), "user", "id");
+			if (typeof profileIdValue !== "string" && typeof profileIdValue !== "number") return fail("Invalid user data returned from API");
+			return createProfileResult(`https://www.mihuashi.com/profiles/${String(profileIdValue)}`, userUrl);
 		}
 		return fail(utils.userNotFoundError("Mihuashi"));
 	};
@@ -193,10 +230,11 @@
 		"user"
 	]);
 	var toPatreonNumericId = (value) => {
-		const id = String(value ?? "").trim();
+		if (typeof value !== "string" && typeof value !== "number") return null;
+		const id = String(value).trim();
 		return /^\d+$/.test(id) ? id : null;
 	};
-	var getPatreonRelationshipId = (resource, relationshipName) => toPatreonNumericId(resource?.relationships?.[relationshipName]?.data?.id);
+	var getPatreonRelationshipId = (resource, relationshipName) => toPatreonNumericId(getValueAt(resource, "relationships", relationshipName, "data", "id"));
 	var getPatreonUserProfileUrl = (userId) => `${PATREON_BASE_URL}/user?u=${userId}`;
 	var getPatreonVanityPath = (value) => {
 		const path = typeof value === "string" ? value.trim() : "";
@@ -210,10 +248,11 @@
 		return getPatreonVanityPath(firstSegment);
 	};
 	var getPatreonCampaignVanityPath = (campaign) => {
-		const vanityPath = getPatreonVanityPath(campaign?.attributes?.vanity);
+		const vanityPath = getPatreonVanityPath(getValueAt(campaign, "attributes", "vanity"));
 		if (vanityPath) return vanityPath;
+		const campaignUrl = getValueAt(campaign, "attributes", "url");
 		try {
-			return campaign?.attributes?.url ? getPatreonVanityPathFromUrl(new URL(campaign.attributes.url, PATREON_BASE_URL)) : null;
+			return typeof campaignUrl === "string" ? getPatreonVanityPathFromUrl(new URL(campaignUrl, PATREON_BASE_URL)) : null;
 		} catch {
 			return null;
 		}
@@ -221,16 +260,16 @@
 	var getPatreonHtmlUserId = () => {
 		return toPatreonNumericId(document.documentElement.outerHTML.replaceAll(String.raw`\/`, "/").match(/https:\/\/www\.patreon\.com\/api\/user\/(\d+)/)?.[1]);
 	};
-	var handlePatreon = async () => {
+	var handlePatreon = () => {
 		const currentUrl = new URL(location.href);
 		const explicitUserId = /^\/(?:user|profile\/creators)(?:\/|$)/.test(currentUrl.pathname) ? toPatreonNumericId(currentUrl.searchParams.get("u")) : null;
 		if (explicitUserId) return createProfileResult(getPatreonUserProfileUrl(explicitUserId));
-		const nextData = globalThis.__NEXT_DATA__ ?? utils.safeJsonParse(document.querySelector("#__NEXT_DATA__")?.textContent) ?? null;
-		const pageProps = nextData?.props?.pageProps;
-		const bootstrap = pageProps?.bootstrapEnvelope ?? pageProps;
+		const nextData = asRecord(globalThis.__NEXT_DATA__) ?? asRecord(utils.safeJsonParse(document.querySelector("#__NEXT_DATA__")?.textContent));
+		const pageProps = getRecordAt(nextData, "props", "pageProps");
+		const bootstrap = getRecord(pageProps, "bootstrapEnvelope") ?? pageProps;
 		const routeVanityPath = getPatreonVanityPathFromUrl(currentUrl);
 		const routeVanityKey = routeVanityPath?.toLowerCase();
-		const campaignCandidates = [bootstrap?.pageBootstrap?.campaign?.data, bootstrap?.commonBootstrap?.campaign?.data].filter(Boolean).map((campaign) => {
+		const campaignCandidates = [getRecordAt(bootstrap, "pageBootstrap", "campaign", "data"), getRecordAt(bootstrap, "commonBootstrap", "campaign", "data")].filter((campaign) => campaign !== null).map((campaign) => {
 			const vanityPath = getPatreonCampaignVanityPath(campaign);
 			return {
 				creatorUserId: getPatreonRelationshipId(campaign, "creator"),
@@ -244,19 +283,19 @@
 			if (membershipCampaignId) return id === membershipCampaignId;
 			return Boolean(routeVanityKey && vanityKey === routeVanityKey);
 		});
-		const currentPost = bootstrap?.pageBootstrap?.post?.data;
+		const currentPost = getRecordAt(bootstrap, "pageBootstrap", "post", "data");
 		const postId = toPatreonNumericId(currentUrl.pathname.startsWith("/creation") ? currentUrl.searchParams.get("hid") : /^\/posts\/(?:[^/]*-)?(\d+)\/?$/.exec(currentUrl.pathname)?.[1]);
-		const queryVanityKey = getPatreonVanityPath(nextData?.query?.vanity)?.toLowerCase();
+		const queryVanityKey = getPatreonVanityPath(getValueAt(nextData, "query", "vanity"))?.toLowerCase();
 		const isCurrentBootstrapPost = postId ? toPatreonNumericId(currentPost?.id) === postId : Boolean(routeVanityKey && queryVanityKey === routeVanityKey);
 		const hasCreatorRouteContext = Boolean(routeVanityPath || membershipCampaignId || postId);
-		const pageUserId = hasCreatorRouteContext ? toPatreonNumericId(bootstrap?.pageBootstrap?.pageUser?.data?.id) : null;
+		const pageUserId = hasCreatorRouteContext ? toPatreonNumericId(getValueAt(bootstrap, "pageBootstrap", "pageUser", "data", "id")) : null;
 		const creatorUserId = (isCurrentBootstrapPost ? getPatreonRelationshipId(currentPost, "user") : null) ?? matchedCampaign?.creatorUserId ?? pageUserId ?? (hasCreatorRouteContext ? getPatreonHtmlUserId() : null);
 		if (!creatorUserId) return fail(utils.userNotFoundError("Patreon"));
 		const creatorVanityPath = matchedCampaign?.vanityPath ?? campaignCandidates.find(({ creatorUserId: campaignCreatorUserId }) => campaignCreatorUserId === creatorUserId)?.vanityPath ?? routeVanityPath;
 		const userProfileUrl = getPatreonUserProfileUrl(creatorUserId);
 		return createProfileResult(creatorVanityPath ? `${PATREON_BASE_URL}/${creatorVanityPath}` : userProfileUrl, creatorVanityPath ? userProfileUrl : null);
 	};
-	var handleRule34 = async () => {
+	var handleRule34 = () => {
 		const username = document.querySelector("#content > h2")?.textContent?.trim();
 		const userId = document.querySelector("a[href*=\"s=tag_edits\"][href*=\"id=\"], a[href*=\"page=favorites\"][href*=\"id=\"], a[href*=\"s=report\"][href*=\"user_id=\"]")?.getAttribute("href")?.match(/(?:user_)?id=(\d+)/)?.[1];
 		if (!username || !userId) return fail(utils.userNotFoundError("Rule34"));
@@ -269,14 +308,18 @@
 		if (!profileName || !/^[a-zA-Z0-9_]{1,15}$/.test(profileName) || TWITTER_RESERVED_PATHS.has(profileName.toLowerCase()) || !TWITTER_PROFILE_TAB_PATHS.has(profileSubpath) && !TWITTER_STATUS_PATH_PATTERN.test(profileSubpath)) return fail("Please open the profile page");
 		return profileName;
 	};
-	var normalizeTwitterProfileName = (profileName) => profileName?.replace(/^@/, "").toLowerCase();
+	var normalizeTwitterProfileName = (profileName) => profileName.replace(/^@/, "").toLowerCase();
 	var findTwitterUserEntity = (root, expectedProfileName) => {
 		const expectedName = normalizeTwitterProfileName(expectedProfileName);
 		const scriptTags = root.querySelectorAll("script[type='application/ld+json']");
 		for (const scriptTag of scriptTags) {
-			const userEntity = utils.safeJsonParse(scriptTag.textContent)?.mainEntity;
-			const entityName = normalizeTwitterProfileName(userEntity?.additionalName);
-			if (userEntity?.identifier && entityName === expectedName) return userEntity;
+			const userEntity = getRecord(utils.safeJsonParse(scriptTag.textContent), "mainEntity");
+			const additionalName = getString(userEntity, "additionalName");
+			const identifier = userEntity?.identifier;
+			if (additionalName && (typeof identifier === "string" || typeof identifier === "number") && normalizeTwitterProfileName(additionalName) === expectedName) return {
+				additionalName,
+				identifier
+			};
 		}
 		return null;
 	};
@@ -302,10 +345,10 @@
 		} else username = host.split(".", 1)[0];
 		const apiResponse = await utils.safeFetch(`https://api.fanbox.cc/creator.get?creatorId=${username}`);
 		if (!apiResponse) return fail(utils.userNotFoundError("Fanbox"));
-		const apiData = await apiResponse.json();
-		if (!apiData?.body?.user) return fail("Invalid user data returned from API");
+		const userIdValue = getValueAt(await apiResponse.json(), "body", "user", "userId");
+		if (typeof userIdValue !== "string" && typeof userIdValue !== "number") return fail("Invalid user data returned from API");
 		const primaryUrl = location.href;
-		return createProfileResult(primaryUrl, `https://www.pixiv.net/fanbox/creator/${apiData.body.user.userId}`);
+		return createProfileResult(primaryUrl, `https://www.pixiv.net/fanbox/creator/${String(userIdValue)}`);
 	};
 	var handlePixiv = async () => {
 		let primaryUrl;
@@ -328,7 +371,7 @@
 			return null;
 		}
 	};
-	var handleTieba = async () => {
+	var handleTieba = () => {
 		const username = document.querySelector(".user-information-wrapper .head-name")?.textContent?.trim() || null;
 		const avatarImage = document.querySelector(".user-information-wrapper .user-avatar img");
 		const portraitId = extractTiebaPortraitId(avatarImage?.dataset.src || avatarImage?.getAttribute("src"));
@@ -343,32 +386,52 @@
 	var handleTumblr = async () => {
 		const blogIdentifier = getTumblrBlogIdentifier();
 		if (!blogIdentifier) return fail(utils.userNotFoundError("Tumblr"));
-		let blog = utils.safeJsonParse(document.querySelector("#___INITIAL_STATE___")?.textContent)?.queries?.queries?.find((query) => query?.state?.data?.name === blogIdentifier)?.state?.data;
+		const initialState = utils.safeJsonParse(document.querySelector("#___INITIAL_STATE___")?.textContent);
+		let blog = null;
+		for (const query of getArrayAt(initialState, "queries", "queries")) {
+			const data = getRecordAt(query, "state", "data");
+			if (getString(data, "name") === blogIdentifier) {
+				blog = {
+					blogViewUrl: getString(data, "blogViewUrl") ?? void 0,
+					blog_view_url: getString(data, "blog_view_url") ?? void 0,
+					url: getString(data, "url") ?? void 0,
+					uuid: getString(data, "uuid") ?? void 0
+				};
+				break;
+			}
+		}
 		if (!blog) {
 			const apiResponse = await utils.safeFetch(`https://api.tumblr.com/v2/blog/${encodeURIComponent(blogIdentifier)}/info`, { headers: { Authorization: TUMBLR_API_AUTHORIZATION } });
 			if (!apiResponse) return fail(utils.userNotFoundError("Tumblr"));
-			blog = (await apiResponse.json())?.response?.blog;
+			const apiBlog = getRecordAt(await apiResponse.json(), "response", "blog");
+			blog = apiBlog ? {
+				blogViewUrl: getString(apiBlog, "blogViewUrl") ?? void 0,
+				blog_view_url: getString(apiBlog, "blog_view_url") ?? void 0,
+				url: getString(apiBlog, "url") ?? void 0,
+				uuid: getString(apiBlog, "uuid") ?? void 0
+			} : null;
 		}
 		const blogUrl = blog?.url || blog?.blogViewUrl || blog?.blog_view_url;
 		const primaryUrl = typeof blogUrl === "string" ? blogUrl.replace(/^http:/, "https:").replace(/\/$/, "") : null;
 		if (!blog?.uuid || !primaryUrl) return fail(utils.userNotFoundError("Tumblr"));
 		return createProfileResult(primaryUrl, `https://www.tumblr.com/blog/view/${blog.uuid}`);
 	};
-	var handleWeibo = async () => {
+	var handleWeibo = () => {
 		const username = document.querySelector("[class^=\"_name_\"]")?.textContent?.trim();
 		const followHref = document.querySelector("a[href*=\"/u/page/follow/\"]")?.getAttribute("href");
 		const userId = (followHref ? /\/u\/page\/follow\/(\d+)/.exec(followHref) : null)?.[1];
 		if (!username || !userId) return fail(utils.userNotFoundError("Weibo"));
 		return createProfileResult(`https://www.weibo.com/n/${username}`, `https://www.weibo.com/u/${userId}`);
 	};
-	var handleYouTube = async () => {
+	var handleYouTube = () => {
 		const path = location.pathname;
 		if (path.startsWith("/watch") || path.startsWith("/playlist")) return fail("Please open the channel page");
-		const initialData = globalThis.ytInitialData;
-		if (!initialData?.metadata) return fail("Metadata not found");
-		const metadataRenderer = initialData?.metadata?.channelMetadataRenderer;
+		const initialData = asRecord(globalThis.ytInitialData);
+		if (!getRecord(initialData, "metadata")) return fail("Metadata not found");
+		const metadataRenderer = getRecordAt(initialData, "metadata", "channelMetadataRenderer");
 		if (!metadataRenderer) return fail("Channel metadata renderer not found");
-		let { vanityChannelUrl, channelUrl } = metadataRenderer;
+		let vanityChannelUrl = getString(metadataRenderer, "vanityChannelUrl");
+		const channelUrl = getString(metadataRenderer, "channelUrl");
 		if (vanityChannelUrl) {
 			const urlObj = new URL(vanityChannelUrl);
 			if (urlObj.protocol === "http:") urlObj.protocol = "https:";
@@ -401,7 +464,7 @@
 		if (!ogUrl) return fail(utils.userNotFoundError("Misskey"));
 		return createProfileResult(ogUrl, `https://${host}/users/${userId}`);
 	};
-	var handleOtherPlatforms = async (host) => {
+	var handleOtherPlatforms = (host) => {
 		const ogUrl = utils.getMetaContent("og:url", "property");
 		if (!ogUrl) return fail(`Unsupported site: ${host}`);
 		const pageUrl = new URL(ogUrl);
@@ -471,7 +534,7 @@
 		const { host, href: sourceUrl } = location;
 		try {
 			const handler = getHandlerForHost(host);
-			const profileUrls = handler ? await handler() : await handleOtherPlatforms(host);
+			const profileUrls = handler ? await handler() : handleOtherPlatforms(host);
 			if (!profileUrls) return null;
 			return normalizeProfileUrls(profileUrls, sourceUrl, host, { requireAdditionalUrl });
 		} catch (error) {
@@ -515,7 +578,7 @@
 		button.addEventListener("click", onClick);
 		return button;
 	};
-	var areProfileUrlsEqual = (left, right) => left?.primaryUrl === right?.primaryUrl && left?.secondaryUrl === right?.secondaryUrl;
+	var areProfileUrlsEqual = (left, right) => left?.primaryUrl === right.primaryUrl && left?.secondaryUrl === right.secondaryUrl;
 	var copyToClipboard = async (text, button) => {
 		const originalText = button.textContent;
 		button.disabled = true;
@@ -542,7 +605,9 @@
 		const row = createElement("div", "url-row");
 		const labelElement = createElement("label", "url-label");
 		const input = createElement("input", "url-input");
-		const copyButton = createButton("modal-button copy-button", "Copy", () => copyToClipboard(value, copyButton));
+		const copyButton = createButton("modal-button copy-button", "Copy", () => {
+			copyToClipboard(value, copyButton);
+		});
 		labelElement.textContent = label;
 		input.readOnly = true;
 		input.type = "text";
@@ -552,7 +617,9 @@
 	};
 	var createModalActions = (output) => {
 		const actions = createElement("div", "actions");
-		const copyAllButton = createButton("modal-button copy-all-button", "Copy All", () => copyToClipboard(output, copyAllButton));
+		const copyAllButton = createButton("modal-button copy-all-button", "Copy All", () => {
+			copyToClipboard(output, copyAllButton);
+		});
 		const closeButton = createButton("modal-button close-button", "Close", closeModal);
 		actions.append(copyAllButton, closeButton);
 		return {
@@ -566,7 +633,7 @@
 		const modal = createElement("section", "modal");
 		const title = createElement("h2", "modal-title");
 		const { actions, closeButton } = createModalActions([profileUrls.primaryUrl, profileUrls.secondaryUrl].filter(Boolean).join("\n"));
-		const rows = [["Primary URL", profileUrls.primaryUrl], ["Secondary URL", profileUrls.secondaryUrl]].filter(([, value]) => value);
+		const visibleRows = [["Primary URL", profileUrls.primaryUrl], ["Secondary URL", profileUrls.secondaryUrl]].filter((row) => Boolean(row[1]));
 		modal.setAttribute("aria-label", "Profile URLs");
 		modal.setAttribute("aria-modal", "true");
 		modal.setAttribute("role", "dialog");
@@ -574,9 +641,9 @@
 		backdrop.addEventListener("click", (event) => {
 			if (event.target === backdrop) closeModal();
 		});
-		modal.append(title, ...rows.map(([label, value]) => createUrlRow(label, value)), actions);
+		modal.append(title, ...visibleRows.map(([label, value]) => createUrlRow(label, value)), actions);
 		backdrop.append(modal);
-		uiState.shadowRoot.append(backdrop);
+		uiState.shadowRoot?.append(backdrop);
 		uiState.modalElement = backdrop;
 		document.addEventListener("keydown", handleModalEscape);
 		closeButton.focus();
@@ -585,7 +652,8 @@
 		let dragState = null;
 		button.addEventListener("pointerdown", (event) => {
 			if (event.button !== 0) return;
-			const rect = uiState.hostElement.getBoundingClientRect();
+			const rect = uiState.hostElement?.getBoundingClientRect();
+			if (!rect) return;
 			dragState = {
 				height: rect.height,
 				initialLeft: rect.left,
@@ -603,9 +671,11 @@
 			const deltaY = event.clientY - dragState.startY;
 			if (Math.abs(deltaX) > DRAG_THRESHOLD || Math.abs(deltaY) > DRAG_THRESHOLD) dragState.moved = true;
 			if (!dragState.moved) return;
-			uiState.hostElement.style.left = `${clamp(dragState.initialLeft + deltaX, 0, innerWidth - dragState.width)}px`;
-			uiState.hostElement.style.right = "auto";
-			uiState.hostElement.style.top = `${clamp(dragState.initialTop + deltaY, 0, innerHeight - dragState.height)}px`;
+			const { hostElement } = uiState;
+			if (!hostElement) return;
+			hostElement.style.left = `${clamp(dragState.initialLeft + deltaX, 0, innerWidth - dragState.width)}px`;
+			hostElement.style.right = "auto";
+			hostElement.style.top = `${clamp(dragState.initialTop + deltaY, 0, innerHeight - dragState.height)}px`;
 			event.preventDefault();
 		});
 		button.addEventListener("pointerup", () => {
@@ -644,18 +714,20 @@
 	var createFloatingUi = (profileUrls, sourceUrl) => {
 		destroyFloatingUi();
 		document.querySelector(`#${UI_ROOT_ID}`)?.remove();
-		uiState.hostElement = document.createElement("div");
-		uiState.hostElement.id = UI_ROOT_ID;
-		uiState.shadowRoot = uiState.hostElement.attachShadow({ mode: "open" });
+		const hostElement = document.createElement("div");
+		const shadowRoot = hostElement.attachShadow({ mode: "open" });
+		hostElement.id = UI_ROOT_ID;
 		const style = createElement("style");
 		style.textContent = style_default;
-		uiState.shadowRoot.append(style, createFloatingButton());
-		document.documentElement.append(uiState.hostElement);
+		shadowRoot.append(style, createFloatingButton());
+		document.documentElement.append(hostElement);
+		uiState.hostElement = hostElement;
+		uiState.shadowRoot = shadowRoot;
 		uiState.displayedProfileUrls = profileUrls;
 		uiState.displayedSourceUrl = sourceUrl;
 	};
 	var scheduleFloatingUiRefresh = (delay = INITIAL_REFRESH_DELAY, retriesLeft = MAX_REFRESH_RETRIES) => {
-		clearTimeout(uiState.refreshTimer);
+		if (uiState.refreshTimer !== null) clearTimeout(uiState.refreshTimer);
 		uiState.refreshTimer = setTimeout(() => refreshFloatingUi(retriesLeft), delay);
 	};
 	var refreshFloatingUi = async (retriesLeft = MAX_REFRESH_RETRIES) => {

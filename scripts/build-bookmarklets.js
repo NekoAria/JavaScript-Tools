@@ -62,7 +62,7 @@ const sharedInputs = [
  */
 const bookmarkletImportMap = {
   'artist-profile-urls-extractor.js': [
-    path.join(rootDir, 'packages/artist-profile-urls-extractor/src/extractor.js'),
+    path.join(rootDir, 'packages/artist-profile-urls-extractor/src/extractor.ts'),
   ],
 };
 

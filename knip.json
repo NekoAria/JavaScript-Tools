@@ -2,7 +2,7 @@
   "workspaces": {
     ".": {
       "entry": ["scripts/*.js", "bookmarklets/*.js"],
-      "ignore": ["userscripts/**/*.user.js"]
+      "ignore": ["shared/vite-config.d.ts", "userscripts/**/*.user.js"]
     },
     "packages/*": {
       "entry": ["src/main.{js,ts}", "vite.config.{js,ts}"]

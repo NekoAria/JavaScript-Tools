@@ -1,6 +1,8 @@
 // Based on TypeA2's original bookmarklet: https://gist.github.com/TypeA2/dc1bb0ba549369dd079f15e44e5623eb
 
-import { extractProfileUrls, utils } from './extractor.js';
+import type { ProfileUrls } from './extractor';
+
+import { extractProfileUrls, utils } from './extractor';
 import cssText from './style.css?raw';
 
 const UI_ROOT_ID = 'artist-profile-urls-extractor-ui';
@@ -12,7 +14,30 @@ const MAX_REFRESH_RETRIES = 3;
 const REFRESH_RETRY_DELAY = 1000;
 const SPA_REFRESH_DELAY = 700;
 
-const uiState = {
+interface DragState {
+  height: number;
+  initialLeft: number;
+  initialTop: number;
+  moved: boolean;
+  startX: number;
+  startY: number;
+  width: number;
+}
+
+interface UiState {
+  displayedProfileUrls: ProfileUrls | null;
+  displayedSourceUrl: string | null;
+  hostElement: HTMLDivElement | null;
+  isSuppressNextClick: boolean;
+  isWatchingNavigation: boolean;
+  lastUrl: string;
+  modalElement: HTMLDivElement | null;
+  refreshTimer: ReturnType<typeof setTimeout> | null;
+  refreshToken: number;
+  shadowRoot: ShadowRoot | null;
+}
+
+const uiState: UiState = {
   displayedProfileUrls: null,
   displayedSourceUrl: null,
   hostElement: null,
@@ -25,9 +50,13 @@ const uiState = {
   shadowRoot: null,
 };
 
-const clamp = (value, minimum, maximum) => Math.min(Math.max(value, minimum), maximum);
+const clamp = (value: number, minimum: number, maximum: number): number =>
+  Math.min(Math.max(value, minimum), maximum);
 
-const createElement = (tagName, className) => {
+const createElement = <K extends keyof HTMLElementTagNameMap>(
+  tagName: K,
+  className?: string,
+): HTMLElementTagNameMap[K] => {
   const element = document.createElement(tagName);
 
   if (className) {
@@ -37,7 +66,11 @@ const createElement = (tagName, className) => {
   return element;
 };
 
-const createButton = (className, textContent, onClick) => {
+const createButton = (
+  className: string,
+  textContent: string,
+  onClick: (event: MouseEvent) => void,
+): HTMLButtonElement => {
   const button = createElement('button', className);
 
   button.type = 'button';
@@ -47,10 +80,10 @@ const createButton = (className, textContent, onClick) => {
   return button;
 };
 
-const areProfileUrlsEqual = (left, right) =>
-  left?.primaryUrl === right?.primaryUrl && left?.secondaryUrl === right?.secondaryUrl;
+const areProfileUrlsEqual = (left: ProfileUrls | null, right: ProfileUrls): boolean =>
+  left?.primaryUrl === right.primaryUrl && left?.secondaryUrl === right.secondaryUrl;
 
-const copyToClipboard = async (text, button) => {
+const copyToClipboard = async (text: string, button: HTMLButtonElement): Promise<void> => {
   const originalText = button.textContent;
 
   button.disabled = true;
@@ -68,25 +101,25 @@ const copyToClipboard = async (text, button) => {
   }, COPY_FEEDBACK_DELAY);
 };
 
-const handleModalEscape = (event) => {
+const handleModalEscape = (event: KeyboardEvent): void => {
   if (event.key === 'Escape') {
     closeModal();
   }
 };
 
-const closeModal = () => {
+const closeModal = (): void => {
   document.removeEventListener('keydown', handleModalEscape);
   uiState.modalElement?.remove();
   uiState.modalElement = null;
 };
 
-const createUrlRow = (label, value) => {
+const createUrlRow = (label: string, value: string): HTMLDivElement => {
   const row = createElement('div', 'url-row');
   const labelElement = createElement('label', 'url-label');
   const input = createElement('input', 'url-input');
-  const copyButton = createButton('modal-button copy-button', 'Copy', () =>
-    copyToClipboard(value, copyButton),
-  );
+  const copyButton = createButton('modal-button copy-button', 'Copy', () => {
+    void copyToClipboard(value, copyButton);
+  });
 
   labelElement.textContent = label;
   input.readOnly = true;
@@ -97,11 +130,13 @@ const createUrlRow = (label, value) => {
   return row;
 };
 
-const createModalActions = (output) => {
+const createModalActions = (
+  output: string,
+): { actions: HTMLDivElement; closeButton: HTMLButtonElement } => {
   const actions = createElement('div', 'actions');
-  const copyAllButton = createButton('modal-button copy-all-button', 'Copy All', () =>
-    copyToClipboard(output, copyAllButton),
-  );
+  const copyAllButton = createButton('modal-button copy-all-button', 'Copy All', () => {
+    void copyToClipboard(output, copyAllButton);
+  });
   const closeButton = createButton('modal-button close-button', 'Close', closeModal);
 
   actions.append(copyAllButton, closeButton);
@@ -109,7 +144,7 @@ const createModalActions = (output) => {
   return { actions, closeButton };
 };
 
-const showModal = (profileUrls) => {
+const showModal = (profileUrls: ProfileUrls): void => {
   closeModal();
 
   const backdrop = createElement('div', 'backdrop');
@@ -117,38 +152,43 @@ const showModal = (profileUrls) => {
   const title = createElement('h2', 'modal-title');
   const output = [profileUrls.primaryUrl, profileUrls.secondaryUrl].filter(Boolean).join('\n');
   const { actions, closeButton } = createModalActions(output);
-  const rows = [
+  const rows: Array<[string, string | null]> = [
     ['Primary URL', profileUrls.primaryUrl],
     ['Secondary URL', profileUrls.secondaryUrl],
-  ].filter(([, value]) => value);
+  ];
+  const visibleRows = rows.filter((row): row is [string, string] => Boolean(row[1]));
 
   modal.setAttribute('aria-label', 'Profile URLs');
   modal.setAttribute('aria-modal', 'true');
   modal.setAttribute('role', 'dialog');
   title.textContent = 'Profile URLs';
-  backdrop.addEventListener('click', (event) => {
+  backdrop.addEventListener('click', (event: MouseEvent) => {
     if (event.target === backdrop) {
       closeModal();
     }
   });
 
-  modal.append(title, ...rows.map(([label, value]) => createUrlRow(label, value)), actions);
+  modal.append(title, ...visibleRows.map(([label, value]) => createUrlRow(label, value)), actions);
   backdrop.append(modal);
-  uiState.shadowRoot.append(backdrop);
+  uiState.shadowRoot?.append(backdrop);
   uiState.modalElement = backdrop;
   document.addEventListener('keydown', handleModalEscape);
   closeButton.focus();
 };
 
-const enableDrag = (button) => {
-  let dragState = null;
+const enableDrag = (button: HTMLButtonElement): void => {
+  let dragState: DragState | null = null;
 
-  button.addEventListener('pointerdown', (event) => {
+  button.addEventListener('pointerdown', (event: PointerEvent) => {
     if (event.button !== 0) {
       return;
     }
 
-    const rect = uiState.hostElement.getBoundingClientRect();
+    const rect = uiState.hostElement?.getBoundingClientRect();
+
+    if (!rect) {
+      return;
+    }
 
     dragState = {
       height: rect.height,
@@ -162,7 +202,7 @@ const enableDrag = (button) => {
     button.setPointerCapture(event.pointerId);
   });
 
-  button.addEventListener('pointermove', (event) => {
+  button.addEventListener('pointermove', (event: PointerEvent) => {
     if (!dragState) {
       return;
     }
@@ -178,13 +218,19 @@ const enableDrag = (button) => {
       return;
     }
 
-    uiState.hostElement.style.left = `${clamp(
+    const { hostElement } = uiState;
+
+    if (!hostElement) {
+      return;
+    }
+
+    hostElement.style.left = `${clamp(
       dragState.initialLeft + deltaX,
       0,
       innerWidth - dragState.width,
     )}px`;
-    uiState.hostElement.style.right = 'auto';
-    uiState.hostElement.style.top = `${clamp(
+    hostElement.style.right = 'auto';
+    hostElement.style.top = `${clamp(
       dragState.initialTop + deltaY,
       0,
       innerHeight - dragState.height,
@@ -209,7 +255,7 @@ const enableDrag = (button) => {
   });
 };
 
-const createFloatingButton = () => {
+const createFloatingButton = (): HTMLButtonElement => {
   const button = createButton('floating-button', '🔗', () => {
     if (uiState.isSuppressNextClick) {
       uiState.isSuppressNextClick = false;
@@ -229,7 +275,7 @@ const createFloatingButton = () => {
   return button;
 };
 
-const destroyFloatingUi = () => {
+const destroyFloatingUi = (): void => {
   closeModal();
   uiState.hostElement?.remove();
   uiState.displayedProfileUrls = null;
@@ -238,19 +284,22 @@ const destroyFloatingUi = () => {
   uiState.shadowRoot = null;
 };
 
-const createFloatingUi = (profileUrls, sourceUrl) => {
+const createFloatingUi = (profileUrls: ProfileUrls, sourceUrl: string): void => {
   destroyFloatingUi();
   document.querySelector(`#${UI_ROOT_ID}`)?.remove();
 
-  uiState.hostElement = document.createElement('div');
-  uiState.hostElement.id = UI_ROOT_ID;
-  uiState.shadowRoot = uiState.hostElement.attachShadow({ mode: 'open' });
+  const hostElement = document.createElement('div');
+  const shadowRoot = hostElement.attachShadow({ mode: 'open' });
+
+  hostElement.id = UI_ROOT_ID;
 
   const style = createElement('style');
 
   style.textContent = cssText;
-  uiState.shadowRoot.append(style, createFloatingButton());
-  document.documentElement.append(uiState.hostElement);
+  shadowRoot.append(style, createFloatingButton());
+  document.documentElement.append(hostElement);
+  uiState.hostElement = hostElement;
+  uiState.shadowRoot = shadowRoot;
   uiState.displayedProfileUrls = profileUrls;
   uiState.displayedSourceUrl = sourceUrl;
 };
@@ -258,12 +307,14 @@ const createFloatingUi = (profileUrls, sourceUrl) => {
 const scheduleFloatingUiRefresh = (
   delay = INITIAL_REFRESH_DELAY,
   retriesLeft = MAX_REFRESH_RETRIES,
-) => {
-  clearTimeout(uiState.refreshTimer);
+): void => {
+  if (uiState.refreshTimer !== null) {
+    clearTimeout(uiState.refreshTimer);
+  }
   uiState.refreshTimer = setTimeout(() => refreshFloatingUi(retriesLeft), delay);
 };
 
-const refreshFloatingUi = async (retriesLeft = MAX_REFRESH_RETRIES) => {
+const refreshFloatingUi = async (retriesLeft = MAX_REFRESH_RETRIES): Promise<void> => {
   const currentToken = ++uiState.refreshToken;
   const refreshUrl = location.href;
 
@@ -308,7 +359,7 @@ const refreshFloatingUi = async (retriesLeft = MAX_REFRESH_RETRIES) => {
   }
 };
 
-const handlePotentialNavigation = () => {
+const handlePotentialNavigation = (): void => {
   if (location.href === uiState.lastUrl) {
     return;
   }
@@ -320,7 +371,7 @@ const handlePotentialNavigation = () => {
   scheduleFloatingUiRefresh(SPA_REFRESH_DELAY);
 };
 
-const watchSpaNavigation = () => {
+const watchSpaNavigation = (): void => {
   if (uiState.isWatchingNavigation) {
     return;
   }
@@ -331,7 +382,7 @@ const watchSpaNavigation = () => {
   setInterval(handlePotentialNavigation, LOCATION_POLL_INTERVAL);
 };
 
-const initializeProfileUrlsExtractor = () => {
+const initializeProfileUrlsExtractor = (): void => {
   watchSpaNavigation();
 
   if (document.readyState === 'loading') {

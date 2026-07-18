@@ -16,7 +16,7 @@ const displayResult = (result, host) => {
 
 (async () => {
   const { extractProfileUrls } =
-    await import('../packages/artist-profile-urls-extractor/src/extractor.js');
+    await import('../packages/artist-profile-urls-extractor/src/extractor.ts');
 
   const main = async () => {
     const { host } = location;

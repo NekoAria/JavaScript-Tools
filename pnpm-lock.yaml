@@ -83,6 +83,9 @@ importers:
 
   packages/artist-profile-urls-extractor:
     devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
       vite:
         specifier: 'catalog:'
         version: 8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)

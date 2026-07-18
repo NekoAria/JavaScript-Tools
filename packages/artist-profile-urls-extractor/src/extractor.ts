@@ -1,4 +1,91 @@
-const createProfileResult = (primaryUrl, secondaryUrl = null) => ({ primaryUrl, secondaryUrl });
+export interface ProfileUrls {
+  primaryUrl: string;
+  secondaryUrl: string | null;
+}
+
+interface ExtractProfileUrlsOptions {
+  requireAdditionalUrl?: boolean;
+  throwOnFailure?: boolean;
+}
+
+type JsonRecord = Record<string, unknown>;
+type PlatformHandler = () => ProfileUrls | null | Promise<ProfileUrls | null>;
+
+interface TumblrBlog {
+  blogViewUrl?: string;
+  blog_view_url?: string;
+  url?: string;
+  uuid?: string;
+}
+
+interface TwitterUserEntity {
+  additionalName: string;
+  identifier: string | number;
+}
+
+declare global {
+  // External pages expose these values before the userscript runs.
+  var __NEXT_DATA__: unknown;
+  var ytInitialData: unknown;
+}
+
+const isRecord = (value: unknown): value is JsonRecord =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const asRecord = (value: unknown): JsonRecord | null => (isRecord(value) ? value : null);
+
+const getRecord = (value: unknown, key: string): JsonRecord | null => {
+  const record = asRecord(value);
+
+  return record ? asRecord(record[key]) : null;
+};
+
+const getRecordAt = (value: unknown, ...path: string[]): JsonRecord | null => {
+  let current: unknown = value;
+
+  for (const key of path) {
+    const next = getRecord(current, key);
+
+    if (!next) {
+      return null;
+    }
+    current = next;
+  }
+
+  return asRecord(current);
+};
+
+const getValueAt = (value: unknown, ...path: string[]): unknown => {
+  let current: unknown = value;
+
+  for (const key of path) {
+    const record = asRecord(current);
+
+    if (!record) {
+      return undefined;
+    }
+    current = record[key];
+  }
+
+  return current;
+};
+
+const getString = (value: unknown, key: string): string | null => {
+  const candidate = asRecord(value)?.[key];
+
+  return typeof candidate === 'string' && candidate ? candidate : null;
+};
+
+const getArrayAt = (value: unknown, ...path: string[]): unknown[] => {
+  const candidate = getValueAt(value, ...path);
+
+  return Array.isArray(candidate) ? candidate : [];
+};
+
+const createProfileResult = (
+  primaryUrl: string,
+  secondaryUrl: string | null = null,
+): ProfileUrls => ({ primaryUrl, secondaryUrl });
 const LOG_PREFIX = '[artist-profile-urls-extractor]';
 const TWITTER_RESERVED_PATHS = new Set([
   'compose',
@@ -15,15 +102,19 @@ const TWITTER_STATUS_PATH_PATTERN = /^status\/\d+(?:\/(?:photo|video)\/\d+)?$/;
 const TUMBLR_API_AUTHORIZATION = 'Bearer aIcXSOoTtqrzR8L8YEIOmBeW94c3FmbSNSWAUbxsny9KKx5VFh';
 
 const utils = {
-  safeJsonParse(text) {
+  safeJsonParse(text: string | null | undefined): unknown {
+    if (!text) {
+      return null;
+    }
+
     try {
-      return JSON.parse(text);
+      return JSON.parse(text) as unknown;
     } catch {
       return null;
     }
   },
 
-  async safeFetch(url, options) {
+  async safeFetch(url: RequestInfo | URL, options?: RequestInit): Promise<Response | null> {
     try {
       const response = await fetch(url, options);
 
@@ -33,16 +124,16 @@ const utils = {
     }
   },
 
-  getMetaContent(name, property = 'name') {
+  getMetaContent(name: string, property = 'name'): string | undefined {
     // eslint-disable-next-line unicorn/require-css-escape -- Callers only pass static meta names.
-    return document.querySelector(`meta[${property}='${name}']`)?.content;
+    return document.querySelector<HTMLMetaElement>(`meta[${property}='${name}']`)?.content;
   },
 
-  userNotFoundError(platform) {
+  userNotFoundError(platform: string): string {
     return `Unable to retrieve user information from ${platform}`;
   },
 
-  debugInfo(message, details) {
+  debugInfo(message: string, details?: unknown): void {
     if (details === undefined) {
       // eslint-disable-next-line no-console -- Debug logs are intentionally hidden by default.
       console.debug(LOG_PREFIX, message);
@@ -52,20 +143,22 @@ const utils = {
     }
   },
 
-  warnUnexpectedError(message, error) {
+  warnUnexpectedError(message: string, error: unknown): void {
     console.warn(LOG_PREFIX, message, error);
   },
 };
 
 class ProfileExtractionError extends Error {
-  constructor(message, details) {
+  readonly details: unknown;
+
+  constructor(message: string, details?: unknown) {
     super(message);
     this.name = 'ProfileExtractionError';
     this.details = details;
   }
 }
 
-const fail = (message, details) => {
+const fail = (message: string, details?: unknown): never => {
   throw new ProfileExtractionError(message, details);
 };
 
@@ -87,22 +180,24 @@ const handleBluesky = async () => {
     );
 
     if (profileResponse) {
-      const profileData = await profileResponse.json();
+      const profileData: unknown = await profileResponse.json();
+      const handle = getString(profileData, 'handle');
 
-      if (profileData?.handle) {
-        primaryUrl = `https://bsky.app/profile/${profileData.handle}`;
+      if (handle) {
+        primaryUrl = `https://bsky.app/profile/${handle}`;
       }
     }
     secondaryUrl = `https://bsky.app/profile/${identifier}`;
   } else {
-    const didResponse = await utils.safeFetch(
+    const identityResponse = await utils.safeFetch(
       `https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=${identifier}`,
     );
 
-    if (didResponse) {
-      const didData = await didResponse.json();
+    if (identityResponse) {
+      const identityData: unknown = await identityResponse.json();
+      const did = getString(identityData, 'did');
 
-      secondaryUrl = didData?.did ? `https://bsky.app/profile/${didData.did}` : null;
+      secondaryUrl = did ? `https://bsky.app/profile/${did}` : null;
     } else {
       secondaryUrl = null;
     }
@@ -111,7 +206,7 @@ const handleBluesky = async () => {
   return createProfileResult(primaryUrl, secondaryUrl);
 };
 
-const handleFacebook = async () => {
+const handleFacebook = () => {
   const androidUrl = utils.getMetaContent('al:android:url', 'property');
   const ogUrl = utils.getMetaContent('og:url', 'property');
 
@@ -131,8 +226,8 @@ const handleFacebook = async () => {
   return createProfileResult(primaryUrl, secondaryUrl);
 };
 
-const handleFantia = async () => {
-  const creatorProfileLink = document.querySelector('.fanclub-header a');
+const handleFantia = () => {
+  const creatorProfileLink = document.querySelector<HTMLAnchorElement>('.fanclub-header a');
 
   if (!creatorProfileLink) {
     return fail(utils.userNotFoundError('Fantia'));
@@ -153,29 +248,29 @@ const handleFantia = async () => {
   return createProfileResult(primaryUrl, secondaryUrl);
 };
 
-const handleGumroad = async () => {
-  const rawPageData = document.querySelector('#app')?.dataset.page;
+const handleGumroad = () => {
+  const rawPageData = document.querySelector<HTMLElement>('#app')?.dataset.page;
 
   if (!rawPageData) {
     return fail(utils.userNotFoundError('Gumroad'));
   }
 
   const pageData = utils.safeJsonParse(rawPageData);
-  const creatorProfile = pageData?.props?.creator_profile;
+  const creatorProfile = getRecordAt(pageData, 'props', 'creator_profile');
+  const subdomain = getString(creatorProfile, 'subdomain');
 
-  if (!creatorProfile?.subdomain) {
+  if (!subdomain) {
     return fail(utils.userNotFoundError('Gumroad'));
   }
 
-  const primaryUrl = `https://${creatorProfile.subdomain}`;
-  const secondaryUrl = creatorProfile.external_id
-    ? `https://${creatorProfile.external_id}.gumroad.com`
-    : null;
+  const primaryUrl = `https://${subdomain}`;
+  const externalId = getString(creatorProfile, 'external_id');
+  const secondaryUrl = externalId ? `https://${externalId}.gumroad.com` : null;
 
   return createProfileResult(primaryUrl, secondaryUrl);
 };
 
-const handleInkbunny = async () => {
+const handleInkbunny = () => {
   const watchListLink = document
     .querySelector('a[href^="watchlist_process.php"]')
     ?.getAttribute('href');
@@ -197,8 +292,8 @@ const handleInkbunny = async () => {
   return fail(utils.userNotFoundError('Inkbunny'));
 };
 
-const handleKoFi = async () => {
-  const pageId = document.querySelector('[data-page-id]')?.dataset.pageId;
+const handleKoFi = () => {
+  const pageId = document.querySelector<HTMLElement>('[data-page-id]')?.dataset.pageId;
 
   if (pageId) {
     const primaryUrl = location.href;
@@ -210,8 +305,8 @@ const handleKoFi = async () => {
   return fail(utils.userNotFoundError('KoFi'));
 };
 
-const handleLofter = async () => {
-  const controlFrame = document.querySelector('#control_frame');
+const handleLofter = () => {
+  const controlFrame = document.querySelector<HTMLIFrameElement>('#control_frame');
 
   if (!controlFrame) {
     return fail(utils.userNotFoundError('Lofter'));
@@ -232,20 +327,20 @@ const handleLofter = async () => {
 
 const handleMihuashi = async () => {
   const { pathname } = location;
-  const usernameElement = document.querySelector('h2.user-profile__name');
+  const usernameElement = document.querySelector<HTMLElement>('h2.user-profile__name');
 
   if (!usernameElement) {
     return fail(utils.userNotFoundError('Mihuashi'));
   }
 
   // The name element includes a nested badge; clone it so the live DOM stays untouched.
-  const clonedElement = usernameElement.cloneNode(true);
+  const clonedElement = usernameElement.cloneNode(true) as HTMLElement;
   const spanElement = clonedElement.querySelector('span');
 
   if (spanElement) {
     spanElement.remove();
   }
-  const username = clonedElement.textContent.trim();
+  const username = clonedElement.textContent?.trim() ?? '';
 
   if (!username) {
     return fail(utils.userNotFoundError('Mihuashi'));
@@ -275,13 +370,14 @@ const handleMihuashi = async () => {
       return fail(utils.userNotFoundError('Mihuashi'));
     }
 
-    const apiData = await apiResponse.json();
+    const apiData: unknown = await apiResponse.json();
+    const profileIdValue = getValueAt(apiData, 'user', 'id');
 
-    if (!apiData?.user?.id) {
+    if (typeof profileIdValue !== 'string' && typeof profileIdValue !== 'number') {
       return fail('Invalid user data returned from API');
     }
 
-    const profileId = apiData.user.id;
+    const profileId = String(profileIdValue);
     const profileUrl = `https://www.mihuashi.com/profiles/${profileId}`;
 
     return createProfileResult(profileUrl, userUrl);
@@ -309,23 +405,27 @@ const PATREON_NON_VANITY_PATHS = new Set([
   'user',
 ]);
 
-const toPatreonNumericId = (value) => {
-  const id = String(value ?? '').trim();
+const toPatreonNumericId = (value: unknown): string | null => {
+  if (typeof value !== 'string' && typeof value !== 'number') {
+    return null;
+  }
+
+  const id = String(value).trim();
 
   return /^\d+$/.test(id) ? id : null;
 };
 
-const getPatreonRelationshipId = (resource, relationshipName) =>
-  toPatreonNumericId(resource?.relationships?.[relationshipName]?.data?.id);
-const getPatreonUserProfileUrl = (userId) => `${PATREON_BASE_URL}/user?u=${userId}`;
+const getPatreonRelationshipId = (resource: unknown, relationshipName: string): string | null =>
+  toPatreonNumericId(getValueAt(resource, 'relationships', relationshipName, 'data', 'id'));
+const getPatreonUserProfileUrl = (userId: string): string => `${PATREON_BASE_URL}/user?u=${userId}`;
 
-const getPatreonVanityPath = (value) => {
+const getPatreonVanityPath = (value: unknown): string | null => {
   const path = typeof value === 'string' ? value.trim() : '';
 
   return path && !/[/?#]/.test(path) ? path : null;
 };
 
-const getPatreonVanityPathFromUrl = ({ pathname }) => {
+const getPatreonVanityPathFromUrl = ({ pathname }: URL): string | null => {
   const [firstSegment, secondSegment] = pathname.split('/').filter(Boolean);
   const topLevelPath = firstSegment?.toLowerCase();
 
@@ -340,23 +440,25 @@ const getPatreonVanityPathFromUrl = ({ pathname }) => {
   return getPatreonVanityPath(firstSegment);
 };
 
-const getPatreonCampaignVanityPath = (campaign) => {
-  const vanityPath = getPatreonVanityPath(campaign?.attributes?.vanity);
+const getPatreonCampaignVanityPath = (campaign: unknown): string | null => {
+  const vanityPath = getPatreonVanityPath(getValueAt(campaign, 'attributes', 'vanity'));
 
   if (vanityPath) {
     return vanityPath;
   }
 
+  const campaignUrl = getValueAt(campaign, 'attributes', 'url');
+
   try {
-    return campaign?.attributes?.url
-      ? getPatreonVanityPathFromUrl(new URL(campaign.attributes.url, PATREON_BASE_URL))
+    return typeof campaignUrl === 'string'
+      ? getPatreonVanityPathFromUrl(new URL(campaignUrl, PATREON_BASE_URL))
       : null;
   } catch {
     return null;
   }
 };
 
-const getPatreonHtmlUserId = () => {
+const getPatreonHtmlUserId = (): string | null => {
   const normalizedHtml = document.documentElement.outerHTML.replaceAll(String.raw`\/`, '/');
 
   return toPatreonNumericId(
@@ -364,7 +466,7 @@ const getPatreonHtmlUserId = () => {
   );
 };
 
-const handlePatreon = async () => {
+const handlePatreon = () => {
   const currentUrl = new URL(location.href);
   const explicitUserId = /^\/(?:user|profile\/creators)(?:\/|$)/.test(currentUrl.pathname)
     ? toPatreonNumericId(currentUrl.searchParams.get('u'))
@@ -375,18 +477,17 @@ const handlePatreon = async () => {
   }
 
   const nextData =
-    globalThis.__NEXT_DATA__ ??
-    utils.safeJsonParse(document.querySelector('#__NEXT_DATA__')?.textContent) ??
-    null;
-  const pageProps = nextData?.props?.pageProps;
-  const bootstrap = pageProps?.bootstrapEnvelope ?? pageProps;
+    asRecord(globalThis.__NEXT_DATA__) ??
+    asRecord(utils.safeJsonParse(document.querySelector('#__NEXT_DATA__')?.textContent));
+  const pageProps = getRecordAt(nextData, 'props', 'pageProps');
+  const bootstrap = getRecord(pageProps, 'bootstrapEnvelope') ?? pageProps;
   const routeVanityPath = getPatreonVanityPathFromUrl(currentUrl);
   const routeVanityKey = routeVanityPath?.toLowerCase();
   const campaignCandidates = [
-    bootstrap?.pageBootstrap?.campaign?.data,
-    bootstrap?.commonBootstrap?.campaign?.data,
+    getRecordAt(bootstrap, 'pageBootstrap', 'campaign', 'data'),
+    getRecordAt(bootstrap, 'commonBootstrap', 'campaign', 'data'),
   ]
-    .filter(Boolean)
+    .filter((campaign): campaign is JsonRecord => campaign !== null)
     .map((campaign) => {
       const vanityPath = getPatreonCampaignVanityPath(campaign);
 
@@ -407,19 +508,21 @@ const handlePatreon = async () => {
 
     return Boolean(routeVanityKey && vanityKey === routeVanityKey);
   });
-  const currentPost = bootstrap?.pageBootstrap?.post?.data;
+  const currentPost = getRecordAt(bootstrap, 'pageBootstrap', 'post', 'data');
   const postId = toPatreonNumericId(
     currentUrl.pathname.startsWith('/creation')
       ? currentUrl.searchParams.get('hid')
       : /^\/posts\/(?:[^/]*-)?(\d+)\/?$/.exec(currentUrl.pathname)?.[1],
   );
-  const queryVanityKey = getPatreonVanityPath(nextData?.query?.vanity)?.toLowerCase();
+  const queryVanityKey = getPatreonVanityPath(
+    getValueAt(nextData, 'query', 'vanity'),
+  )?.toLowerCase();
   const isCurrentBootstrapPost = postId
     ? toPatreonNumericId(currentPost?.id) === postId
     : Boolean(routeVanityKey && queryVanityKey === routeVanityKey);
   const hasCreatorRouteContext = Boolean(routeVanityPath || membershipCampaignId || postId);
   const pageUserId = hasCreatorRouteContext
-    ? toPatreonNumericId(bootstrap?.pageBootstrap?.pageUser?.data?.id)
+    ? toPatreonNumericId(getValueAt(bootstrap, 'pageBootstrap', 'pageUser', 'data', 'id'))
     : null;
   const creatorUserId =
     (isCurrentBootstrapPost ? getPatreonRelationshipId(currentPost, 'user') : null) ??
@@ -446,7 +549,7 @@ const handlePatreon = async () => {
   return createProfileResult(primaryUrl, secondaryUrl);
 };
 
-const handleRule34 = async () => {
+const handleRule34 = () => {
   const usernameElement = document.querySelector('#content > h2');
   const username = usernameElement?.textContent?.trim();
 
@@ -467,7 +570,7 @@ const handleRule34 = async () => {
   return createProfileResult(primaryUrl, secondaryUrl);
 };
 
-const getTwitterProfileName = () => {
+const getTwitterProfileName = (): string => {
   const profileMatch = /^\/([^/]+)(?:\/(.+?))?\/?$/.exec(location.pathname);
   const profileName = profileMatch?.[1];
   const profileSubpath = profileMatch?.[2]?.toLowerCase() ?? '';
@@ -485,19 +588,28 @@ const getTwitterProfileName = () => {
   return profileName;
 };
 
-const normalizeTwitterProfileName = (profileName) => profileName?.replace(/^@/, '').toLowerCase();
+const normalizeTwitterProfileName = (profileName: string): string =>
+  profileName.replace(/^@/, '').toLowerCase();
 
-const findTwitterUserEntity = (root, expectedProfileName) => {
+const findTwitterUserEntity = (
+  root: ParentNode,
+  expectedProfileName: string,
+): TwitterUserEntity | null => {
   const expectedName = normalizeTwitterProfileName(expectedProfileName);
-  const scriptTags = root.querySelectorAll("script[type='application/ld+json']");
+  const scriptTags = root.querySelectorAll<HTMLScriptElement>("script[type='application/ld+json']");
 
   for (const scriptTag of scriptTags) {
     const structuredData = utils.safeJsonParse(scriptTag.textContent);
-    const userEntity = structuredData?.mainEntity;
-    const entityName = normalizeTwitterProfileName(userEntity?.additionalName);
+    const userEntity = getRecord(structuredData, 'mainEntity');
+    const additionalName = getString(userEntity, 'additionalName');
+    const identifier = userEntity?.identifier;
 
-    if (userEntity?.identifier && entityName === expectedName) {
-      return userEntity;
+    if (
+      additionalName &&
+      (typeof identifier === 'string' || typeof identifier === 'number') &&
+      normalizeTwitterProfileName(additionalName) === expectedName
+    ) {
+      return { additionalName, identifier };
     }
   }
 
@@ -558,14 +670,15 @@ const handleFanbox = async () => {
     return fail(utils.userNotFoundError('Fanbox'));
   }
 
-  const apiData = await apiResponse.json();
+  const apiData: unknown = await apiResponse.json();
+  const userIdValue = getValueAt(apiData, 'body', 'user', 'userId');
 
-  if (!apiData?.body?.user) {
+  if (typeof userIdValue !== 'string' && typeof userIdValue !== 'number') {
     return fail('Invalid user data returned from API');
   }
 
   const primaryUrl = location.href;
-  const secondaryUrl = `https://www.pixiv.net/fanbox/creator/${apiData.body.user.userId}`;
+  const secondaryUrl = `https://www.pixiv.net/fanbox/creator/${String(userIdValue)}`;
 
   return createProfileResult(primaryUrl, secondaryUrl);
 };
@@ -576,7 +689,7 @@ const handlePixiv = async () => {
   if (location.pathname.includes('users')) {
     primaryUrl = location.toString().replace('en/', '');
   } else {
-    const userLink = document.querySelector("a[href*='/users/']");
+    const userLink = document.querySelector<HTMLAnchorElement>("a[href*='/users/']");
     const userId = userLink?.dataset.gtmValue;
 
     if (!userId) {
@@ -592,7 +705,7 @@ const handlePixiv = async () => {
   return createProfileResult(primaryUrl, secondaryUrl);
 };
 
-const extractTiebaPortraitId = (avatarUrl) => {
+const extractTiebaPortraitId = (avatarUrl: string | null | undefined): string | null => {
   if (!avatarUrl) {
     return null;
   }
@@ -606,11 +719,13 @@ const extractTiebaPortraitId = (avatarUrl) => {
   }
 };
 
-const handleTieba = async () => {
+const handleTieba = () => {
   const username =
     document.querySelector('.user-information-wrapper .head-name')?.textContent?.trim() || null;
 
-  const avatarImage = document.querySelector('.user-information-wrapper .user-avatar img');
+  const avatarImage = document.querySelector<HTMLImageElement>(
+    '.user-information-wrapper .user-avatar img',
+  );
   const avatarUrl = avatarImage?.dataset.src || avatarImage?.getAttribute('src');
   const portraitId = extractTiebaPortraitId(avatarUrl);
 
@@ -644,9 +759,21 @@ const handleTumblr = async () => {
   const initialState = utils.safeJsonParse(
     document.querySelector('#___INITIAL_STATE___')?.textContent,
   );
-  let blog = initialState?.queries?.queries?.find(
-    (query) => query?.state?.data?.name === blogIdentifier,
-  )?.state?.data;
+  let blog: TumblrBlog | null = null;
+
+  for (const query of getArrayAt(initialState, 'queries', 'queries')) {
+    const data = getRecordAt(query, 'state', 'data');
+
+    if (getString(data, 'name') === blogIdentifier) {
+      blog = {
+        blogViewUrl: getString(data, 'blogViewUrl') ?? undefined,
+        blog_view_url: getString(data, 'blog_view_url') ?? undefined,
+        url: getString(data, 'url') ?? undefined,
+        uuid: getString(data, 'uuid') ?? undefined,
+      };
+      break;
+    }
+  }
 
   if (!blog) {
     const apiResponse = await utils.safeFetch(
@@ -658,9 +785,17 @@ const handleTumblr = async () => {
       return fail(utils.userNotFoundError('Tumblr'));
     }
 
-    const apiData = await apiResponse.json();
+    const apiData: unknown = await apiResponse.json();
+    const apiBlog = getRecordAt(apiData, 'response', 'blog');
 
-    blog = apiData?.response?.blog;
+    blog = apiBlog
+      ? {
+          blogViewUrl: getString(apiBlog, 'blogViewUrl') ?? undefined,
+          blog_view_url: getString(apiBlog, 'blog_view_url') ?? undefined,
+          url: getString(apiBlog, 'url') ?? undefined,
+          uuid: getString(apiBlog, 'uuid') ?? undefined,
+        }
+      : null;
   }
 
   const blogUrl = blog?.url || blog?.blogViewUrl || blog?.blog_view_url;
@@ -674,7 +809,7 @@ const handleTumblr = async () => {
   return createProfileResult(primaryUrl, `https://www.tumblr.com/blog/view/${blog.uuid}`);
 };
 
-const handleWeibo = async () => {
+const handleWeibo = () => {
   const nameElement = document.querySelector('[class^="_name_"]');
   const username = nameElement?.textContent?.trim();
 
@@ -693,26 +828,27 @@ const handleWeibo = async () => {
   return createProfileResult(primaryUrl, secondaryUrl);
 };
 
-const handleYouTube = async () => {
+const handleYouTube = () => {
   const path = location.pathname;
 
   if (path.startsWith('/watch') || path.startsWith('/playlist')) {
     return fail('Please open the channel page');
   }
 
-  const initialData = globalThis.ytInitialData;
+  const initialData = asRecord(globalThis.ytInitialData);
 
-  if (!initialData?.metadata) {
+  if (!getRecord(initialData, 'metadata')) {
     return fail('Metadata not found');
   }
 
-  const metadataRenderer = initialData?.metadata?.channelMetadataRenderer;
+  const metadataRenderer = getRecordAt(initialData, 'metadata', 'channelMetadataRenderer');
 
   if (!metadataRenderer) {
     return fail('Channel metadata renderer not found');
   }
 
-  let { vanityChannelUrl, channelUrl } = metadataRenderer;
+  let vanityChannelUrl = getString(metadataRenderer, 'vanityChannelUrl');
+  const channelUrl = getString(metadataRenderer, 'channelUrl');
 
   if (vanityChannelUrl) {
     const urlObj = new URL(vanityChannelUrl);
@@ -730,8 +866,8 @@ const handleYouTube = async () => {
   return createProfileResult(vanityChannelUrl, channelUrl);
 };
 
-const handleXfolio = (pageUrl, ogUrl) => {
-  const creatorInfo = document.querySelector('div.creatorInfo');
+const handleXfolio = (pageUrl: URL, ogUrl: string): ProfileUrls => {
+  const creatorInfo = document.querySelector<HTMLElement>('div.creatorInfo');
 
   if (creatorInfo) {
     const primaryUrl = creatorInfo.dataset.creatorPortfolioTopUrl;
@@ -746,7 +882,7 @@ const handleXfolio = (pageUrl, ogUrl) => {
   }
 
   if (pageUrl.pathname.startsWith('/users/')) {
-    const profileLink = document.querySelector('div.userProfile__btn a');
+    const profileLink = document.querySelector<HTMLAnchorElement>('div.userProfile__btn a');
 
     if (!profileLink?.href) {
       return fail(utils.userNotFoundError('Xfolio'));
@@ -770,7 +906,7 @@ const handleXfolio = (pageUrl, ogUrl) => {
   return fail(utils.userNotFoundError('Xfolio'));
 };
 
-const handleMisskey = (host, userId) => {
+const handleMisskey = (host: string, userId: string): ProfileUrls => {
   const ogUrl = utils.getMetaContent('og:url', 'property');
 
   if (!ogUrl) {
@@ -783,7 +919,7 @@ const handleMisskey = (host, userId) => {
   return createProfileResult(primaryUrl, secondaryUrl);
 };
 
-const handleOtherPlatforms = async (host) => {
+const handleOtherPlatforms = (host: string): ProfileUrls => {
   const ogUrl = utils.getMetaContent('og:url', 'property');
 
   if (!ogUrl) {
@@ -797,7 +933,7 @@ const handleOtherPlatforms = async (host) => {
   }
 
   // Some creator portfolio domains are backed by xfolio but keep their own host in og:url.
-  const stylesheets = document.querySelectorAll('link[rel="stylesheet"][href]');
+  const stylesheets = document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"][href]');
   const isXfolio = [...stylesheets].some((link) => {
     try {
       return new URL(link.href).host === 'xfolio.jp';
@@ -819,7 +955,7 @@ const handleOtherPlatforms = async (host) => {
   return fail(`Unsupported site: ${host}`);
 };
 
-const PLATFORM_HANDLERS = {
+const PLATFORM_HANDLERS: Record<string, PlatformHandler> = {
   'bsky.app': handleBluesky,
   'fantia.jp': handleFantia,
   'inkbunny.net': handleInkbunny,
@@ -833,7 +969,7 @@ const PLATFORM_HANDLERS = {
   'x.com': handleTwitter,
 };
 
-const SUBDOMAIN_HANDLERS = [
+const SUBDOMAIN_HANDLERS: ReadonlyArray<readonly [string, PlatformHandler]> = [
   ['fanbox.cc', handleFanbox],
   ['gumroad.com', handleGumroad],
   ['lofter.com', handleLofter],
@@ -842,9 +978,10 @@ const SUBDOMAIN_HANDLERS = [
   ['weibo.com', handleWeibo],
 ];
 
-const isHostWithinDomain = (host, domain) => host === domain || host.endsWith(`.${domain}`);
+const isHostWithinDomain = (host: string, domain: string): boolean =>
+  host === domain || host.endsWith(`.${domain}`);
 
-const getHandlerForHost = (host) => {
+const getHandlerForHost = (host: string): PlatformHandler | null => {
   if (Object.hasOwn(PLATFORM_HANDLERS, host)) {
     return PLATFORM_HANDLERS[host];
   }
@@ -858,7 +995,7 @@ const getHandlerForHost = (host) => {
   return null;
 };
 
-const getComparableUrl = (url) => {
+const getComparableUrl = (url: string | null): string | null => {
   if (!url) {
     return null;
   }
@@ -870,7 +1007,12 @@ const getComparableUrl = (url) => {
   }
 };
 
-const normalizeProfileUrls = (profileUrls, sourceUrl, host, options = {}) => {
+const normalizeProfileUrls = (
+  profileUrls: ProfileUrls,
+  sourceUrl: string,
+  host: string,
+  options: Pick<ExtractProfileUrlsOptions, 'requireAdditionalUrl'> = {},
+): ProfileUrls => {
   const { requireAdditionalUrl = true } = options;
 
   if (!profileUrls?.primaryUrl) {
@@ -904,13 +1046,15 @@ const normalizeProfileUrls = (profileUrls, sourceUrl, host, options = {}) => {
   return normalizedProfileUrls;
 };
 
-const extractProfileUrls = async (options = {}) => {
+const extractProfileUrls = async (
+  options: ExtractProfileUrlsOptions = {},
+): Promise<ProfileUrls | null> => {
   const { requireAdditionalUrl = true, throwOnFailure = false } = options;
   const { host, href: sourceUrl } = location;
 
   try {
     const handler = getHandlerForHost(host);
-    const profileUrls = handler ? await handler() : await handleOtherPlatforms(host);
+    const profileUrls = handler ? await handler() : handleOtherPlatforms(host);
 
     if (!profileUrls) {
       return null;

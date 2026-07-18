@@ -29,7 +29,7 @@
     "eslint-plugin-unused-imports": "^4.4.1",
     "globals": "^17.7.0",
     "knip": "^6.27.0",
-    "lefthook": "^2.1.9",
+    "lefthook": "^2.1.10",
     "oxfmt": "^0.59.0",
     "oxlint": "^1.73.0",
     "stylelint": "^17.14.0",

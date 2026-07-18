@@ -85,7 +85,57 @@ const fetchPendingBURs = async (tagName) => {
   }
 };
 
-const renderPendingBURs = (burs) => {
+const getBURScriptLines = (script) => script.split(/\r?\n/).filter((line) => line.trim());
+
+const artistTagPairPattern =
+  /^(\s*)((?:(?:create|remove)\s+)?alias|rename)(\s+)(\S+)(\s+->\s+)(\S+)(\s*)$/;
+
+const createArtistTagLink = (tagName) => {
+  const link = document.createElement('a');
+
+  link.className = 'wiki-link artist-tag-link';
+  link.href = `${location.origin}/artists/show_or_new?${new URLSearchParams({ name: tagName })}`;
+  link.textContent = tagName;
+
+  return link;
+};
+
+const createArtistTagNode = (tagName, currentTagName) =>
+  tagName === currentTagName ? document.createTextNode(tagName) : createArtistTagLink(tagName);
+
+const createBURScriptCode = (line, currentTagName) => {
+  const code = document.createElement('code');
+  const match = line.match(artistTagPairPattern);
+
+  if (!match) {
+    code.textContent = line;
+
+    return code;
+  }
+
+  const [
+    ,
+    leadingSpacing,
+    command,
+    commandSpacing,
+    sourceTag,
+    arrowSpacing,
+    targetTag,
+    trailingSpacing,
+  ] = match;
+
+  code.append(
+    `${leadingSpacing}${command}${commandSpacing}`,
+    createArtistTagNode(sourceTag, currentTagName),
+    arrowSpacing,
+    createArtistTagNode(targetTag, currentTagName),
+    trailingSpacing,
+  );
+
+  return code;
+};
+
+const renderPendingBURs = (burs, currentTagName) => {
   document.querySelector('#pending-bur-section')?.remove();
 
   if (burs.length === 0) {
@@ -99,9 +149,18 @@ const renderPendingBURs = (burs) => {
   section.id = 'pending-bur-section';
 
   for (const bur of burs) {
-    const p = document.createElement('p');
+    const pendingBur = document.createElement('div');
 
-    p.className = 'fineprint pending-bur';
+    pendingBur.className = 'fineprint pending-bur';
+
+    const header = document.createElement('div');
+
+    header.className = 'pending-bur-header';
+
+    const icon = document.createElement('span');
+
+    icon.setAttribute('aria-hidden', 'true');
+    icon.textContent = '⏳';
 
     const burLink = document.createElement('a');
 
@@ -109,28 +168,37 @@ const renderPendingBURs = (burs) => {
     burLink.href = `${origin}/bulk_update_requests/${bur.id}`;
     burLink.textContent = `BUR #${bur.id}`;
 
-    const forumLink = bur.forum_post_id
-      ? (() => {
-          const a = document.createElement('a');
+    header.append(icon, ' Pending ', burLink);
 
-          a.className = 'wiki-link';
-          a.href = `${origin}/forum_posts/${bur.forum_post_id}`;
-          a.textContent = `forum #${bur.forum_post_id}`;
+    if (bur.forum_post_id) {
+      const forumLink = document.createElement('a');
 
-          return a;
-        })()
-      : null;
-
-    p.append(document.createTextNode('⏳ Pending '));
-    p.append(burLink);
-    p.append(document.createTextNode(`: ${bur.script}`));
-    if (forumLink) {
-      p.append(document.createTextNode(' ('));
-      p.append(forumLink);
-      p.append(document.createTextNode(')'));
+      forumLink.className = 'wiki-link';
+      forumLink.href = `${origin}/forum_posts/${bur.forum_post_id}`;
+      forumLink.textContent = `forum #${bur.forum_post_id}`;
+      header.append(' (', forumLink, ')');
     }
 
-    section.append(p);
+    pendingBur.append(header);
+
+    const scriptLines = getBURScriptLines(bur.script);
+
+    if (scriptLines.length > 0) {
+      const scriptList = document.createElement('ul');
+
+      scriptList.className = 'pending-bur-script';
+
+      for (const line of scriptLines) {
+        const listItem = document.createElement('li');
+
+        listItem.append(createBURScriptCode(line, currentTagName));
+        scriptList.append(listItem);
+      }
+
+      pendingBur.append(scriptList);
+    }
+
+    section.append(pendingBur);
   }
 
   const fineprintParagraphs = document.querySelectorAll('p.fineprint');
@@ -145,7 +213,7 @@ const renderPendingBURs = (burs) => {
 const addPendingBURs = async (tagName) => {
   const burs = await fetchPendingBURs(tagName);
 
-  renderPendingBURs(burs);
+  renderPendingBURs(burs, tagName);
 };
 
 const addStyles = () => {

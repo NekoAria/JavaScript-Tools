@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Danbooru Artist Tweaks
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      1.0.6
+// @version      1.0.7
 // @author       Neko_Aria
 // @description  Add Create wiki link for artist pages without wiki page, copy artist name button, replace wiki links with bulk update request links for tag aliases, show pending BURs, highlight unrecognized external hostnames in artist versions, provide an expandable multi-line editor for the artist "Other Names" field, and warn about unmigrated posts on artist rename
 // @homepageURL  https://github.com/NekoAria/JavaScript-Tools/tree/main/packages/danbooru-artist-tweaks
@@ -13,7 +13,7 @@
 
 (function() {
 	"use strict";
-	var style_default = ".artist-copy-btn,\n.other-names-toggle-btn {\n  font-size: var(--text-sm);\n  color: white;\n  cursor: pointer;\n  background-color: var(--link-color);\n  border: none;\n  transition: background-color 0.2s;\n}\n\n.artist-copy-btn:hover,\n.other-names-toggle-btn:hover {\n  background-color: var(--link-hover-color) !important;\n}\n\n.artist-copy-btn.copied {\n  background-color: var(--success-color);\n}\n\n#pending-bur-section .pending-bur {\n  color: var(--warning-color);\n}\n\n.other-names-wrapper {\n  display: flex;\n  gap: 0.5rem;\n}\n\n.other-names-wrapper > #artist_other_names_string {\n  flex: 1;\n}\n\n.other-names-toggle-btn {\n  flex-shrink: 0;\n  max-height: 2.25em;\n  padding: 0 0.75rem;\n}\n\nform.simple_form div.input .hint {\n  padding-left: 0 !important;\n}\n";
+	var style_default = ".artist-copy-btn,\n.other-names-toggle-btn {\n  font-size: var(--text-sm);\n  color: white;\n  cursor: pointer;\n  background-color: var(--link-color);\n  border: none;\n  transition: background-color 0.2s;\n}\n\n.artist-copy-btn:hover,\n.other-names-toggle-btn:hover {\n  background-color: var(--link-hover-color) !important;\n}\n\n.artist-copy-btn.copied {\n  background-color: var(--success-color);\n}\n\n#pending-bur-section {\n  display: grid;\n  gap: 0.5rem;\n}\n\n#pending-bur-section .pending-bur {\n  padding-inline-start: 0.625rem;\n  border-inline-start: 0.2rem solid var(--warning-color);\n}\n\n#pending-bur-section .pending-bur-header {\n  color: var(--warning-color);\n}\n\n#pending-bur-section .pending-bur-script {\n  padding: 0;\n  margin: 0.25rem 0 0;\n  list-style: none;\n}\n\n#pending-bur-section .pending-bur-script li + li {\n  margin-top: 0.125rem;\n}\n\n#pending-bur-section .pending-bur-script code {\n  display: block;\n  overflow-wrap: anywhere;\n  white-space: pre-wrap;\n}\n\n.other-names-wrapper {\n  display: flex;\n  gap: 0.5rem;\n}\n\n.other-names-wrapper > #artist_other_names_string {\n  flex: 1;\n}\n\n.other-names-toggle-btn {\n  flex-shrink: 0;\n  max-height: 2.25em;\n  padding: 0 0.75rem;\n}\n\nform.simple_form div.input .hint {\n  padding-left: 0 !important;\n}\n";
 	var getArtistTagName = () => {
 		const tagElement = document.querySelector(".tag-type-1.heading.text-xl");
 		if (tagElement) return tagElement.textContent.trim().replaceAll(/\s+/g, "_");
@@ -71,41 +71,72 @@
 			return [];
 		}
 	};
-	var renderPendingBURs = (burs) => {
+	var getBURScriptLines = (script) => script.split(/\r?\n/).filter((line) => line.trim());
+	var artistTagPairPattern = /^(\s*)((?:(?:create|remove)\s+)?alias|rename)(\s+)(\S+)(\s+->\s+)(\S+)(\s*)$/;
+	var createArtistTagLink = (tagName) => {
+		const link = document.createElement("a");
+		link.className = "wiki-link artist-tag-link";
+		link.href = `${location.origin}/artists/show_or_new?${new URLSearchParams({ name: tagName })}`;
+		link.textContent = tagName;
+		return link;
+	};
+	var createArtistTagNode = (tagName, currentTagName) => tagName === currentTagName ? document.createTextNode(tagName) : createArtistTagLink(tagName);
+	var createBURScriptCode = (line, currentTagName) => {
+		const code = document.createElement("code");
+		const match = line.match(artistTagPairPattern);
+		if (!match) {
+			code.textContent = line;
+			return code;
+		}
+		const [, leadingSpacing, command, commandSpacing, sourceTag, arrowSpacing, targetTag, trailingSpacing] = match;
+		code.append(`${leadingSpacing}${command}${commandSpacing}`, createArtistTagNode(sourceTag, currentTagName), arrowSpacing, createArtistTagNode(targetTag, currentTagName), trailingSpacing);
+		return code;
+	};
+	var renderPendingBURs = (burs, currentTagName) => {
 		document.querySelector("#pending-bur-section")?.remove();
 		if (burs.length === 0) return;
 		const { origin } = location;
 		const section = document.createElement("div");
 		section.id = "pending-bur-section";
 		for (const bur of burs) {
-			const p = document.createElement("p");
-			p.className = "fineprint pending-bur";
+			const pendingBur = document.createElement("div");
+			pendingBur.className = "fineprint pending-bur";
+			const header = document.createElement("div");
+			header.className = "pending-bur-header";
+			const icon = document.createElement("span");
+			icon.setAttribute("aria-hidden", "true");
+			icon.textContent = "⏳";
 			const burLink = document.createElement("a");
 			burLink.className = "wiki-link";
 			burLink.href = `${origin}/bulk_update_requests/${bur.id}`;
 			burLink.textContent = `BUR #${bur.id}`;
-			const forumLink = bur.forum_post_id ? (() => {
-				const a = document.createElement("a");
-				a.className = "wiki-link";
-				a.href = `${origin}/forum_posts/${bur.forum_post_id}`;
-				a.textContent = `forum #${bur.forum_post_id}`;
-				return a;
-			})() : null;
-			p.append(document.createTextNode("⏳ Pending "));
-			p.append(burLink);
-			p.append(document.createTextNode(`: ${bur.script}`));
-			if (forumLink) {
-				p.append(document.createTextNode(" ("));
-				p.append(forumLink);
-				p.append(document.createTextNode(")"));
+			header.append(icon, " Pending ", burLink);
+			if (bur.forum_post_id) {
+				const forumLink = document.createElement("a");
+				forumLink.className = "wiki-link";
+				forumLink.href = `${origin}/forum_posts/${bur.forum_post_id}`;
+				forumLink.textContent = `forum #${bur.forum_post_id}`;
+				header.append(" (", forumLink, ")");
 			}
-			section.append(p);
+			pendingBur.append(header);
+			const scriptLines = getBURScriptLines(bur.script);
+			if (scriptLines.length > 0) {
+				const scriptList = document.createElement("ul");
+				scriptList.className = "pending-bur-script";
+				for (const line of scriptLines) {
+					const listItem = document.createElement("li");
+					listItem.append(createBURScriptCode(line, currentTagName));
+					scriptList.append(listItem);
+				}
+				pendingBur.append(scriptList);
+			}
+			section.append(pendingBur);
 		}
 		const fineprintParagraphs = document.querySelectorAll("p.fineprint");
 		(fineprintParagraphs.length > 0 ? fineprintParagraphs.item(fineprintParagraphs.length - 1) : document.querySelector("#view-artist-link")?.closest("p"))?.after(section);
 	};
 	var addPendingBURs = async (tagName) => {
-		renderPendingBURs(await fetchPendingBURs(tagName));
+		renderPendingBURs(await fetchPendingBURs(tagName), tagName);
 	};
 	var addStyles = () => {
 		const style = document.createElement("style");

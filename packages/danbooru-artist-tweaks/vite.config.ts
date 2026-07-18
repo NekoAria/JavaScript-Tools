@@ -2,11 +2,11 @@ import { defineMonkeyConfig } from '../../shared/vite-config.js';
 
 export default defineMonkeyConfig({
   name: 'danbooru-artist-tweaks',
-  entry: 'src/main.js',
+  entry: 'src/main.ts',
   userscript: {
     name: 'Danbooru Artist Tweaks',
     namespace: 'https://github.com/NekoAria/JavaScript-Tools',
-    version: '1.0.7',
+    version: '1.0.8',
     description:
       'Add Create wiki link for artist pages without wiki page, copy artist name button, replace wiki links with bulk update request links for tag aliases, show pending BURs, highlight unrecognized external hostnames in artist versions, provide an expandable multi-line editor for the artist "Other Names" field, and warn about unmigrated posts on artist rename',
     author: 'Neko_Aria',

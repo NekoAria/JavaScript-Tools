@@ -1,6 +1,48 @@
 import cssText from './style.css?raw';
 
-const CONFIG = {
+interface Attachment {
+  path?: string | null;
+}
+
+interface GalleryState {
+  debounceTimer: ReturnType<typeof setTimeout> | null;
+  isPendingInitialization: boolean;
+  isProcessing: boolean;
+  lastUrl: string;
+}
+
+type HistoryMethodName = 'pushState' | 'replaceState';
+type JsonRecord = Record<string, unknown>;
+
+interface Post {
+  attachments?: Attachment[];
+  file?: PostFile | null;
+  id?: number | string | null;
+}
+
+interface PostFile {
+  path?: string | null;
+}
+
+interface SiteConfig {
+  API_BASE_URL: string;
+  IMAGE_BASE_URL: string;
+}
+
+interface UserPath {
+  service: string;
+  userId: string;
+}
+
+const CONFIG: {
+  SELECTORS: {
+    GRID: string;
+    POST_CARD: string;
+    POST_IMAGE: string;
+  };
+  SITES: Readonly<Record<string, SiteConfig>>;
+  SUPPORTED_IMAGES: ReadonlySet<string>;
+} = {
   SELECTORS: {
     GRID: '.card-list__items',
     POST_CARD: '.post-card',
@@ -26,14 +68,69 @@ const CONFIG = {
 const URL_CHANGE_DEBOUNCE_MS = 200;
 const STYLE_ELEMENT_ID = 'kemono-grid-gallery-style';
 
-const galleryState = {
-  debounceTimer: undefined,
+const galleryState: GalleryState = {
+  debounceTimer: null,
   isPendingInitialization: false,
   isProcessing: false,
   lastUrl: location.href,
 };
 
-function addStyles() {
+const isRecord = (value: unknown): value is JsonRecord =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const getOptionalPath = (value: unknown): string | null | undefined => {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  const { path } = value;
+
+  return typeof path === 'string' || path === null ? path : undefined;
+};
+
+const parsePost = (value: unknown): Post | null => {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const post: Post = {};
+
+  if (typeof value.id === 'string' || typeof value.id === 'number' || value.id === null) {
+    post.id = value.id;
+  }
+
+  if (Array.isArray(value.attachments)) {
+    post.attachments = value.attachments.flatMap((attachment) => {
+      if (!isRecord(attachment)) {
+        return [];
+      }
+
+      return [{ path: getOptionalPath(attachment) }];
+    });
+  }
+
+  if (value.file === null) {
+    post.file = null;
+  } else if (isRecord(value.file)) {
+    post.file = { path: getOptionalPath(value.file) };
+  }
+
+  return post;
+};
+
+const parsePosts = (value: unknown): Post[] => {
+  if (!Array.isArray(value)) {
+    throw new TypeError('Invalid posts response: expected an array');
+  }
+
+  return value.flatMap((post) => {
+    const parsedPost = parsePost(post);
+
+    return parsedPost ? [parsedPost] : [];
+  });
+};
+
+function addStyles(): void {
   if (document.querySelector(`#${STYLE_ELEMENT_ID}`)) {
     return;
   }
@@ -45,8 +142,8 @@ function addStyles() {
   document.head.append(style);
 }
 
-function buildPostAttachmentMap(posts) {
-  const postAttachments = new Map();
+function buildPostAttachmentMap(posts: Post[]): Map<string, string> {
+  const postAttachments = new Map<string, string>();
 
   for (const post of posts) {
     const imagePath = getFirstImagePath(post);
@@ -59,7 +156,7 @@ function buildPostAttachmentMap(posts) {
   return postAttachments;
 }
 
-function createLoadingOverlay() {
+function createLoadingOverlay(): HTMLDivElement {
   const overlay = document.createElement('div');
 
   overlay.className = 'loading-overlay';
@@ -72,7 +169,7 @@ function createLoadingOverlay() {
   return overlay;
 }
 
-async function fetchPosts(siteConfig, { service, userId }) {
+async function fetchPosts(siteConfig: SiteConfig, { service, userId }: UserPath): Promise<Post[]> {
   const url = new URL(`${siteConfig.API_BASE_URL}/${service}/user/${userId}/posts`);
 
   url.search = location.search;
@@ -83,22 +180,24 @@ async function fetchPosts(siteConfig, { service, userId }) {
     throw new Error(`HTTP error! status: ${response.status}`);
   }
 
-  return response.json();
+  const data: unknown = await response.json();
+
+  return parsePosts(data);
 }
 
-function getCurrentSiteConfig() {
-  return CONFIG.SITES[location.hostname] || null;
+function getCurrentSiteConfig(): SiteConfig | null {
+  return CONFIG.SITES[location.hostname] ?? null;
 }
 
-function getFirstImagePath(post) {
-  const attachments = Array.isArray(post.attachments) ? post.attachments : [];
+function getFirstImagePath(post: Post): string | null {
+  const attachments = post.attachments ?? [];
   const firstImageAttachment = attachments.find((attachment) => isImageFile(attachment.path));
 
   return firstImageAttachment?.path || post.file?.path || null;
 }
 
-function getPostIdFromCard(card) {
-  const link = card.querySelector('a[href*="/user/"][href*="/post/"]');
+function getPostIdFromCard(card: Element): string | null {
+  const link = card.querySelector<HTMLAnchorElement>('a[href*="/user/"][href*="/post/"]');
 
   if (!link) {
     return null;
@@ -107,7 +206,7 @@ function getPostIdFromCard(card) {
   return new URL(link.href).pathname.split('/').findLast(Boolean) || null;
 }
 
-function handleUrlChange() {
+function handleUrlChange(): void {
   if (location.href === galleryState.lastUrl) {
     return;
   }
@@ -116,7 +215,7 @@ function handleUrlChange() {
   scheduleInitializeGallery();
 }
 
-async function initializeGallery() {
+async function initializeGallery(): Promise<void> {
   const siteConfig = getCurrentSiteConfig();
   const urlParams = parseUserPath();
 
@@ -124,7 +223,7 @@ async function initializeGallery() {
     return;
   }
 
-  const grid = await waitForElement(CONFIG.SELECTORS.GRID);
+  const grid = await waitForElement<HTMLElement>(CONFIG.SELECTORS.GRID);
 
   grid.style.removeProperty('--card-size');
 
@@ -142,7 +241,7 @@ async function initializeGallery() {
   }
 }
 
-async function initializeGallerySafely() {
+async function initializeGallerySafely(): Promise<void> {
   if (galleryState.isProcessing) {
     galleryState.isPendingInitialization = true;
 
@@ -163,7 +262,7 @@ async function initializeGallerySafely() {
   }
 }
 
-function isImageFile(path) {
+function isImageFile(path: string | null | undefined): boolean {
   if (!path) {
     return false;
   }
@@ -178,7 +277,7 @@ function isImageFile(path) {
   return CONFIG.SUPPORTED_IMAGES.has(cleanPath.slice(extensionStart));
 }
 
-function parseUserPath() {
+function parseUserPath(): UserPath | null {
   const match = location.pathname.match(/^\/([^/]+)\/user\/([^/]+)\/?$/);
 
   if (!match) {
@@ -190,7 +289,11 @@ function parseUserPath() {
   return { service, userId };
 }
 
-async function processCard(card, siteConfig, postAttachments) {
+async function processCard(
+  card: Element,
+  siteConfig: SiteConfig,
+  postAttachments: ReadonlyMap<string, string>,
+): Promise<void> {
   const postId = getPostIdFromCard(card);
 
   if (!postId) {
@@ -198,7 +301,7 @@ async function processCard(card, siteConfig, postAttachments) {
   }
 
   const imagePath = postAttachments.get(postId);
-  const imgElement = card.querySelector(CONFIG.SELECTORS.POST_IMAGE);
+  const imgElement = card.querySelector<HTMLImageElement>(CONFIG.SELECTORS.POST_IMAGE);
 
   if (!imgElement || !imagePath) {
     return;
@@ -209,31 +312,40 @@ async function processCard(card, siteConfig, postAttachments) {
   await updateImageSource(imgElement, imageUrl);
 }
 
-async function processCards(grid, siteConfig, postAttachments) {
-  const cards = [...grid.querySelectorAll(CONFIG.SELECTORS.POST_CARD)];
+async function processCards(
+  grid: Element,
+  siteConfig: SiteConfig,
+  postAttachments: ReadonlyMap<string, string>,
+): Promise<void> {
+  const cards = [...grid.querySelectorAll<HTMLElement>(CONFIG.SELECTORS.POST_CARD)];
 
   await Promise.all(cards.map((card) => processCard(card, siteConfig, postAttachments)));
 }
 
-function scheduleInitializeGallery() {
-  clearTimeout(galleryState.debounceTimer);
-  galleryState.debounceTimer = setTimeout(initializeGallerySafely, URL_CHANGE_DEBOUNCE_MS);
+function scheduleInitializeGallery(): void {
+  if (galleryState.debounceTimer !== null) {
+    clearTimeout(galleryState.debounceTimer);
+  }
+  galleryState.debounceTimer = setTimeout(() => {
+    void initializeGallerySafely();
+  }, URL_CHANGE_DEBOUNCE_MS);
 }
 
-function setupHistoryListener(methodName) {
-  const originalMethod = history[methodName];
-
-  history[methodName] = function (...args) {
+function setupHistoryListener(methodName: HistoryMethodName): void {
+  const originalMethod: History['pushState'] = history[methodName];
+  const wrappedMethod: History['pushState'] = function (...args) {
     const result = Reflect.apply(originalMethod, history, args);
 
     handleUrlChange();
 
     return result;
   };
+
+  history[methodName] = wrappedMethod;
 }
 
-function setupUrlChangeListener() {
-  const observer = new MutationObserver(handleUrlChange);
+function setupUrlChangeListener(): void {
+  const observer = new MutationObserver(() => handleUrlChange());
 
   observer.observe(document.body, { childList: true, subtree: true });
   addEventListener('popstate', handleUrlChange);
@@ -242,7 +354,7 @@ function setupUrlChangeListener() {
   setupHistoryListener('replaceState');
 }
 
-function start() {
+function start(): void {
   if (!document.body) {
     addEventListener('DOMContentLoaded', start, { once: true });
 
@@ -250,11 +362,11 @@ function start() {
   }
 
   addStyles();
-  initializeGallerySafely();
+  void initializeGallerySafely();
   setupUrlChangeListener();
 }
 
-async function updateImageSource(imgElement, imageUrl) {
+async function updateImageSource(imgElement: HTMLImageElement, imageUrl: string): Promise<void> {
   if (imgElement.src === imageUrl && imgElement.complete) {
     return;
   }
@@ -266,9 +378,9 @@ async function updateImageSource(imgElement, imageUrl) {
   await loadPromise;
 }
 
-function waitForElement(selector) {
+function waitForElement<T extends Element>(selector: string): Promise<T> {
   return new Promise((resolve) => {
-    const element = document.querySelector(selector);
+    const element = document.querySelector<T>(selector);
 
     if (element) {
       resolve(element);
@@ -277,7 +389,7 @@ function waitForElement(selector) {
     }
 
     const observer = new MutationObserver((_, currentObserver) => {
-      const nextElement = document.querySelector(selector);
+      const nextElement = document.querySelector<T>(selector);
 
       if (nextElement) {
         currentObserver.disconnect();
@@ -292,9 +404,9 @@ function waitForElement(selector) {
   });
 }
 
-function waitForNextImageLoad(imgElement) {
+function waitForNextImageLoad(imgElement: HTMLImageElement): Promise<void> {
   return new Promise((resolve) => {
-    const finish = () => {
+    const finish = (): void => {
       imgElement.removeEventListener('load', finish);
       imgElement.removeEventListener('error', finish);
       resolve();

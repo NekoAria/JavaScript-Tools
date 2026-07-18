@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Kemono/Coomer/Pawchive Grid Gallery Layout
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      1.1.0
+// @version      1.1.1
 // @author       Neko_Aria
 // @description  Add a responsive grid gallery layout for the Kemono/Coomer/Pawchive thumbnails, using the first attachment image file as the cover
 // @license      MIT
@@ -49,10 +49,35 @@
 	var URL_CHANGE_DEBOUNCE_MS = 200;
 	var STYLE_ELEMENT_ID = "kemono-grid-gallery-style";
 	var galleryState = {
-		debounceTimer: void 0,
+		debounceTimer: null,
 		isPendingInitialization: false,
 		isProcessing: false,
 		lastUrl: location.href
+	};
+	var isRecord = (value) => typeof value === "object" && value !== null && !Array.isArray(value);
+	var getOptionalPath = (value) => {
+		if (!isRecord(value)) return;
+		const { path } = value;
+		return typeof path === "string" || path === null ? path : void 0;
+	};
+	var parsePost = (value) => {
+		if (!isRecord(value)) return null;
+		const post = {};
+		if (typeof value.id === "string" || typeof value.id === "number" || value.id === null) post.id = value.id;
+		if (Array.isArray(value.attachments)) post.attachments = value.attachments.flatMap((attachment) => {
+			if (!isRecord(attachment)) return [];
+			return [{ path: getOptionalPath(attachment) }];
+		});
+		if (value.file === null) post.file = null;
+		else if (isRecord(value.file)) post.file = { path: getOptionalPath(value.file) };
+		return post;
+	};
+	var parsePosts = (value) => {
+		if (!Array.isArray(value)) throw new TypeError("Invalid posts response: expected an array");
+		return value.flatMap((post) => {
+			const parsedPost = parsePost(post);
+			return parsedPost ? [parsedPost] : [];
+		});
 	};
 	function addStyles() {
 		if (document.querySelector(`#${STYLE_ELEMENT_ID}`)) return;
@@ -84,13 +109,13 @@
 		url.search = location.search;
 		const response = await fetch(url.href);
 		if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-		return response.json();
+		return parsePosts(await response.json());
 	}
 	function getCurrentSiteConfig() {
-		return CONFIG.SITES[location.hostname] || null;
+		return CONFIG.SITES[location.hostname] ?? null;
 	}
 	function getFirstImagePath(post) {
-		return (Array.isArray(post.attachments) ? post.attachments : []).find((attachment) => isImageFile(attachment.path))?.path || post.file?.path || null;
+		return (post.attachments ?? []).find((attachment) => isImageFile(attachment.path))?.path || post.file?.path || null;
 	}
 	function getPostIdFromCard(card) {
 		const link = card.querySelector("a[href*=\"/user/\"][href*=\"/post/\"]");
@@ -163,19 +188,22 @@
 		await Promise.all(cards.map((card) => processCard(card, siteConfig, postAttachments)));
 	}
 	function scheduleInitializeGallery() {
-		clearTimeout(galleryState.debounceTimer);
-		galleryState.debounceTimer = setTimeout(initializeGallerySafely, URL_CHANGE_DEBOUNCE_MS);
+		if (galleryState.debounceTimer !== null) clearTimeout(galleryState.debounceTimer);
+		galleryState.debounceTimer = setTimeout(() => {
+			initializeGallerySafely();
+		}, URL_CHANGE_DEBOUNCE_MS);
 	}
 	function setupHistoryListener(methodName) {
 		const originalMethod = history[methodName];
-		history[methodName] = function(...args) {
+		const wrappedMethod = function(...args) {
 			const result = Reflect.apply(originalMethod, history, args);
 			handleUrlChange();
 			return result;
 		};
+		history[methodName] = wrappedMethod;
 	}
 	function setupUrlChangeListener() {
-		new MutationObserver(handleUrlChange).observe(document.body, {
+		new MutationObserver(() => handleUrlChange()).observe(document.body, {
 			childList: true,
 			subtree: true
 		});

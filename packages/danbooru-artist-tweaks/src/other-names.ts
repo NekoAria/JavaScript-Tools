@@ -4,7 +4,7 @@ const otherNamesAttributesToCopy = ['name', 'id', 'placeholder', 'required'] as 
 
 const normalizeOtherNamesValue = (value: string): string => value.replaceAll(/\s+/g, ' ').trim();
 
-const getOtherNamesLines = (value: string): string[] => value.trim().split(/\s+/).filter(Boolean);
+const getOtherNamesLines = (value: string): string[] => value.match(/\S+/g) ?? [];
 
 const isOtherNamesTextarea = (field: OtherNamesField): field is HTMLTextAreaElement =>
   field.tagName === 'TEXTAREA';

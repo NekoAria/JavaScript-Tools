@@ -275,34 +275,34 @@ const handleInkbunny = () => {
     .querySelector('a[href^="watchlist_process.php"]')
     ?.getAttribute('href');
 
-  if (watchListLink) {
-    const watchListUrl = new URL(watchListLink, location.origin);
-    const userId = watchListUrl.searchParams.get('user_id');
-
-    if (!userId) {
-      return fail(utils.userNotFoundError('Inkbunny'));
-    }
-
-    const primaryUrl = location.href;
-    const secondaryUrl = `https://inkbunny.net/user.php?user_id=${userId}`;
-
-    return createProfileResult(primaryUrl, secondaryUrl);
+  if (!watchListLink) {
+    return fail(utils.userNotFoundError('Inkbunny'));
   }
 
-  return fail(utils.userNotFoundError('Inkbunny'));
+  const watchListUrl = new URL(watchListLink, location.origin);
+  const userId = watchListUrl.searchParams.get('user_id');
+
+  if (!userId) {
+    return fail(utils.userNotFoundError('Inkbunny'));
+  }
+
+  const primaryUrl = location.href;
+  const secondaryUrl = `https://inkbunny.net/user.php?user_id=${userId}`;
+
+  return createProfileResult(primaryUrl, secondaryUrl);
 };
 
 const handleKoFi = () => {
   const pageId = document.querySelector<HTMLElement>('[data-page-id]')?.dataset.pageId;
 
-  if (pageId) {
-    const primaryUrl = location.href;
-    const secondaryUrl = `https://ko-fi.com/${pageId}`;
-
-    return createProfileResult(primaryUrl, secondaryUrl);
+  if (!pageId) {
+    return fail(utils.userNotFoundError('KoFi'));
   }
 
-  return fail(utils.userNotFoundError('KoFi'));
+  const primaryUrl = location.href;
+  const secondaryUrl = `https://ko-fi.com/${pageId}`;
+
+  return createProfileResult(primaryUrl, secondaryUrl);
 };
 
 const handleLofter = () => {
@@ -618,11 +618,6 @@ const findTwitterUserEntity = (
 
 const handleTwitter = async () => {
   const profileName = getTwitterProfileName();
-
-  if (!profileName) {
-    return null;
-  }
-
   let userEntity = findTwitterUserEntity(document, profileName);
 
   if (!userEntity) {
@@ -734,7 +729,7 @@ const handleTieba = () => {
   }
 
   const primaryUrl = `https://tieba.baidu.com/home/main?un=${username}`;
-  const secondaryUrl = portraitId ? `https://tieba.baidu.com/home/main?id=${portraitId}` : null;
+  const secondaryUrl = `https://tieba.baidu.com/home/main?id=${portraitId}`;
 
   return createProfileResult(primaryUrl, secondaryUrl);
 };

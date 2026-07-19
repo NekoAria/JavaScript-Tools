@@ -17,27 +17,22 @@ const displayResult = (result, host) => {
 (async () => {
   const { extractProfileUrls } =
     await import('../packages/artist-profile-urls-extractor/src/extractor.ts');
+  const { host } = location;
 
-  const main = async () => {
-    const { host } = location;
+  try {
+    const profileUrls = await extractProfileUrls({
+      requireAdditionalUrl: false,
+      throwOnFailure: true,
+    });
 
-    try {
-      const profileUrls = await extractProfileUrls({
-        requireAdditionalUrl: false,
-        throwOnFailure: true,
-      });
+    if (!profileUrls) {
+      showError(`Unable to extract profile URLs from ${host}`);
 
-      if (!profileUrls) {
-        showError(`Unable to extract profile URLs from ${host}`);
-
-        return;
-      }
-
-      displayResult(profileUrls, host);
-    } catch (error) {
-      showError(error.message);
+      return;
     }
-  };
 
-  await main();
+    displayResult(profileUrls, host);
+  } catch (error) {
+    showError(error.message);
+  }
 })();

@@ -39,6 +39,13 @@ function hideMainElements(): void {
   }
 }
 
+function prepareOverlay(state: StateManager): void {
+  hideMainElements();
+  $<HTMLElement>('#comparison-overlay-container')?.classList.remove('is-hidden');
+  createOverlayImages();
+  initOverlayPanzoom(state);
+}
+
 /** Reset all mode-specific DOM changes to the default side-by-side layout. */
 export function resetModeDisplay(): void {
   for (const id of ['left-side', 'right-side', 'comparison-divider'] as const) {
@@ -60,10 +67,7 @@ export function resetModeDisplay(): void {
 
 /** Activate difference comparison mode: hide side-by-side panels, build overlay with difference blend mode. */
 function setupDifference(state: StateManager): void {
-  hideMainElements();
-  showOverlay();
-  createOverlayImages();
-  initOverlayPanzoom(state);
+  prepareOverlay(state);
 
   const img = $<HTMLImageElement>('#overlay-image');
 
@@ -83,10 +87,7 @@ function setupDifference(state: StateManager): void {
 
 /** Activate fade comparison mode: hide side-by-side panels, build overlay with fade-opacity blending. */
 function setupFade(state: StateManager): void {
-  hideMainElements();
-  showOverlay();
-  createOverlayImages();
-  initOverlayPanzoom(state);
+  prepareOverlay(state);
 
   const img = $<HTMLImageElement>('#overlay-image');
 
@@ -121,13 +122,6 @@ export function setupMode(state: StateManager, mode: ModeType): void {
 
 /** Activate slider comparison mode: hide side-by-side panels, build overlay, init panzoom, then init the draggable slider. */
 function setupSlider(state: StateManager): void {
-  hideMainElements();
-  showOverlay();
-  createOverlayImages();
-  initOverlayPanzoom(state);
+  prepareOverlay(state);
   setTimeout(() => initSlider(state), LAYOUT_FLUSH_MS);
-}
-
-function showOverlay(): void {
-  $<HTMLElement>('#comparison-overlay-container')?.classList.remove('is-hidden');
 }

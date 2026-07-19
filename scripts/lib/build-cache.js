@@ -71,9 +71,7 @@ export async function fileExists(file) {
 export async function hashFiles(files, rootDir) {
   const hash = createHash('sha256');
 
-  const sortedFiles = files.toSorted(compareStrings);
-
-  for (const file of sortedFiles) {
+  for (const file of files.toSorted(compareStrings)) {
     if (!(await fileExists(file))) {
       continue;
     }

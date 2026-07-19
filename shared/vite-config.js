@@ -1,13 +1,10 @@
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
-import { defineConfig } from 'vite';
 import monkey from 'vite-plugin-monkey';
 
 import { ISSUE_URL, REPOSITORY_URL } from './constants.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const userscriptsDir = path.resolve(__dirname, '..', 'userscripts');
+const userscriptsDir = path.resolve(import.meta.dirname, '..', 'userscripts');
 
 /**
  * Generate a shared vite config for userscript projects.
@@ -19,7 +16,7 @@ const userscriptsDir = path.resolve(__dirname, '..', 'userscripts');
  * @returns {import('vite').UserConfig}
  */
 export function defineMonkeyConfig({ name, entry = 'src/main.js', userscript }) {
-  return defineConfig({
+  return {
     build: {
       outDir: userscriptsDir,
       emptyOutDir: false,
@@ -34,5 +31,5 @@ export function defineMonkeyConfig({ name, entry = 'src/main.js', userscript }) 
         },
       }),
     ],
-  });
+  };
 }

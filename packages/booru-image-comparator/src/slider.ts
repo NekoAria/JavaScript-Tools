@@ -4,7 +4,7 @@ import { LAYOUT_FLUSH_MS, MODES } from './constants';
 import { $ } from './shadow';
 
 /** Cleanup array for slider DOM listeners. */
-const sliderState: { cleanup: Array<() => void> } = { cleanup: [] };
+const sliderCleanup: Array<() => void> = [];
 
 function bindSliderEvents(
   state: StateManager,
@@ -23,15 +23,7 @@ function bindSliderEvents(
 
   // Recompute clip-path after zoom or pan gestures since the image's on-screen position changed
   const onPanzoomChange = () => {
-    const raw = Number.parseInt(sliderEl.style.left);
-
-    updateSlider(
-      state,
-      sliderEl,
-      rightImg,
-      Number.isNaN(raw) ? container.clientWidth / 2 : raw,
-      container,
-    );
+    updateSlider(state, sliderEl, rightImg, getSliderPosition(sliderEl, container), container);
   };
 
   const onSliderMouseDown = (e: MouseEvent) => {
@@ -76,7 +68,13 @@ function bindSliderEvents(
     }
   }
 
-  sliderState.cleanup = newCleanup;
+  sliderCleanup.push(...newCleanup);
+}
+
+function getSliderPosition(sliderEl: HTMLElement, container: HTMLElement): number {
+  const position = Number.parseInt(sliderEl.style.left);
+
+  return Number.isNaN(position) ? container.clientWidth / 2 : position;
 }
 
 /** Create and initialize the slider element in overlay mode. */
@@ -118,10 +116,10 @@ export function subscribeSliderUpdater(state: StateManager): () => void {
 
 /** Remove all slider event listeners. */
 export function unbindSlider(): void {
-  for (const fn of sliderState.cleanup) {
+  for (const fn of sliderCleanup) {
     fn();
   }
-  sliderState.cleanup = [];
+  sliderCleanup.length = 0;
 }
 
 /** Position the slider divider and update the right image's clip-path. When panzoom is active,
@@ -164,9 +162,6 @@ function updateSliderIfNeeded(state: StateManager): void {
   const container = $<HTMLElement>('#comparison-overlay-container');
 
   if (sliderEl && rightImg && container) {
-    const raw = Number.parseInt(sliderEl.style.left);
-    const x = Number.isNaN(raw) ? container.clientWidth / 2 : raw;
-
-    updateSlider(state, sliderEl, rightImg, x, container);
+    updateSlider(state, sliderEl, rightImg, getSliderPosition(sliderEl, container), container);
   }
 }

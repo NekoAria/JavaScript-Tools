@@ -18,10 +18,13 @@ const init = (): void => {
   // Register slider updater once for the page lifetime.
   subscribeSliderUpdater(state);
 
-  const onCompare = (postId: string | null) => openComparator(postId, state);
+  const onCompare = (postId: string | null): void => {
+    void openComparator(postId, state);
+  };
+  const refreshCompareLinks = () => addCompareLinks(state, onCompare);
 
-  addCompareLinks(state, (id) => void onCompare(id));
-  addMainMenuLink(state, () => void onCompare(null));
+  refreshCompareLinks();
+  addMainMenuLink(state, () => onCompare(null));
 
   const target =
     document.querySelector('.posts-container, .iqdb-posts, #post-list-posts') ?? document.body;
@@ -33,7 +36,7 @@ const init = (): void => {
     }
     pendingRaf = requestAnimationFrame(() => {
       pendingRaf = null;
-      addCompareLinks(state, (id) => void onCompare(id));
+      refreshCompareLinks();
     });
   });
 

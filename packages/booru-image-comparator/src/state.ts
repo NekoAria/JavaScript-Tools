@@ -42,7 +42,7 @@ export function createAppState(): StateManager {
       : null;
   }
 
-  const state = createReactiveState({
+  return createReactiveState({
     site,
     isUpload,
     isIqdb,
@@ -59,8 +59,6 @@ export function createAppState(): StateManager {
     eventCleanup: [],
     originalImageUrl: null,
   });
-
-  return state;
 }
 
 /** Create a reactive state container with get/update/subscribe. */

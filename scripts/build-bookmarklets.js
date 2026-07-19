@@ -11,6 +11,7 @@ import {
   readCache,
   writeCache,
 } from './lib/build-cache.js';
+import { getArgValue } from './lib/cli-args.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, '..');
@@ -23,34 +24,13 @@ const args = process.argv.slice(2);
 const isWatch = args.includes('--watch');
 const isForce = args.includes('--force');
 const isVerbose = args.includes('--verbose');
-const argState = { hasError: false };
-
-function getArgValue(flag) {
-  const index = args.indexOf(flag);
-
-  if (index === -1) {
-    return null;
-  }
-
-  const value = args[index + 1];
-
-  if (!value || value.startsWith('--')) {
-    console.error(`${flag} requires a value.`);
-    process.exitCode = 1;
-    argState.hasError = true;
-
-    return null;
-  }
-
-  return value;
-}
-
-const fileFilter = getArgValue('--file');
+const { hasError: hasArgError, value: fileFilter } = getArgValue(args, '--file');
 
 /** Base input files shared by all bookmarklets (resolved to absolute paths). */
 const sharedInputs = [
   path.join(rootDir, 'scripts', 'build-bookmarklets.js'),
   path.join(rootDir, 'scripts', 'lib', 'build-cache.js'),
+  path.join(rootDir, 'scripts', 'lib', 'cli-args.js'),
   path.join(rootDir, 'package.json'),
   path.join(rootDir, 'pnpm-lock.yaml'),
 ];
@@ -181,7 +161,7 @@ async function buildSingle(file) {
  *
  * The hash includes:
  * - The bookmarklet source file (path + content)
- * - All shared input files (build script, cache lib, package.json, lockfile)
+ * - All shared input files (build scripts and helpers, package.json, lockfile)
  * - Extra dependency files such as imported modules
  * - The serialized esbuild options
  *
@@ -197,7 +177,7 @@ async function computeHash(sourceFile, extraFiles = []) {
 }
 
 async function main() {
-  if (argState.hasError) {
+  if (hasArgError) {
     return;
   }
 
@@ -306,7 +286,8 @@ async function getSourceFiles() {
   const entries = await readdir(bookmarkletsDir, { withFileTypes: true });
 
   return entries
-    .filter((e) => e.isFile())
-    .map((e) => e.name)
-    .filter((f) => f.endsWith('.js') && !f.endsWith('.min.js'));
+    .filter(
+      (entry) => entry.isFile() && entry.name.endsWith('.js') && !entry.name.endsWith('.min.js'),
+    )
+    .map((entry) => entry.name);
 }

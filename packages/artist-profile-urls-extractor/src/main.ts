@@ -34,7 +34,6 @@ interface UiState {
   modalElement: HTMLDivElement | null;
   refreshTimer: ReturnType<typeof setTimeout> | null;
   refreshToken: number;
-  shadowRoot: ShadowRoot | null;
 }
 
 const uiState: UiState = {
@@ -47,7 +46,6 @@ const uiState: UiState = {
   modalElement: null,
   refreshTimer: null,
   refreshToken: 0,
-  shadowRoot: null,
 };
 
 const clamp = (value: number, minimum: number, maximum: number): number =>
@@ -170,7 +168,7 @@ const showModal = (profileUrls: ProfileUrls): void => {
 
   modal.append(title, ...visibleRows.map(([label, value]) => createUrlRow(label, value)), actions);
   backdrop.append(modal);
-  uiState.shadowRoot?.append(backdrop);
+  uiState.hostElement?.shadowRoot?.append(backdrop);
   uiState.modalElement = backdrop;
   document.addEventListener('keydown', handleModalEscape);
   closeButton.focus();
@@ -281,7 +279,6 @@ const destroyFloatingUi = (): void => {
   uiState.displayedProfileUrls = null;
   uiState.displayedSourceUrl = null;
   uiState.hostElement = null;
-  uiState.shadowRoot = null;
 };
 
 const createFloatingUi = (profileUrls: ProfileUrls, sourceUrl: string): void => {
@@ -299,7 +296,6 @@ const createFloatingUi = (profileUrls: ProfileUrls, sourceUrl: string): void => 
   shadowRoot.append(style, createFloatingButton());
   document.documentElement.append(hostElement);
   uiState.hostElement = hostElement;
-  uiState.shadowRoot = shadowRoot;
   uiState.displayedProfileUrls = profileUrls;
   uiState.displayedSourceUrl = sourceUrl;
 };

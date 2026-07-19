@@ -449,9 +449,7 @@
 }
 
 /* Utility states */
+.is-hidden,
 .is-overlay-hidden {
-  display: none !important;
-}
-.is-hidden {
   display: none !important;
 }

@@ -28,11 +28,13 @@ interface ComparatorCallbacks {
   onSwapImages: () => void;
 }
 
+type EventBinder = (id: string, handler: () => void, event?: string) => void;
+
 /** Bind all comparator UI event listeners and register cleanup handlers. */
 export function bindEvents(state: StateManager, deps: ComparatorCallbacks): void {
   const cleanup: Array<() => void> = [];
 
-  const on = (id: string, handler: () => void, event = 'click') => {
+  const on: EventBinder = (id, handler, event = 'click') => {
     const el = $<HTMLElement>(`#${id}`);
 
     if (!el) {
@@ -51,10 +53,10 @@ export function bindEvents(state: StateManager, deps: ComparatorCallbacks): void
   state.update('eventCleanup', cleanup);
 }
 
-function bindFilterEvents(on: (id: string, handler: () => void, event?: string) => void): void {
-  on('opacity-slider', () => updateOpacity(), 'input');
-  on('brightness-slider', () => updateFilters(), 'input');
-  on('saturate-slider', () => updateFilters(), 'input');
+function bindFilterEvents(on: EventBinder): void {
+  on('opacity-slider', updateOpacity, 'input');
+  on('brightness-slider', updateFilters, 'input');
+  on('saturate-slider', updateFilters, 'input');
   on(
     'comparison-background',
     () => {
@@ -63,8 +65,8 @@ function bindFilterEvents(on: (id: string, handler: () => void, event?: string) 
     },
     'change',
   );
-  on('invert-difference', () => toggleDifferenceInvert());
-  on('reset-filters', () => resetFilters());
+  on('invert-difference', toggleDifferenceInvert);
+  on('reset-filters', resetFilters);
 }
 
 function bindKeyboardEvents(deps: ComparatorCallbacks, cleanup: Array<() => void>): void {
@@ -91,10 +93,7 @@ function bindKeyboardEvents(deps: ComparatorCallbacks, cleanup: Array<() => void
   cleanup.push(() => document.removeEventListener('keydown', handleEscape));
 }
 
-function bindModeEvents(
-  on: (id: string, handler: () => void, event?: string) => void,
-  state: StateManager,
-): void {
+function bindModeEvents(on: EventBinder, state: StateManager): void {
   on(
     'comparison-mode',
     () => {
@@ -106,7 +105,7 @@ function bindModeEvents(
 }
 
 function bindNavigationEvents(
-  on: (id: string, handler: () => void, event?: string) => void,
+  on: EventBinder,
   deps: ComparatorCallbacks,
   state: StateManager,
 ): void {
@@ -116,10 +115,7 @@ function bindNavigationEvents(
   on('reset-zoom', () => resetZoom(state));
 }
 
-function bindTransformEvents(
-  on: (id: string, handler: () => void, event?: string) => void,
-  state: StateManager,
-): void {
+function bindTransformEvents(on: EventBinder, state: StateManager): void {
   on('flip-h-left', () => toggleTransform(state, 'left', 'flipH'));
   on('flip-v-left', () => toggleTransform(state, 'left', 'flipV'));
   on('rotate-left', () => rotateTransform(state, 'left'));
@@ -135,7 +131,9 @@ export function updateMode(state: StateManager): void {
   destroyOverlayZoom(state);
   cleanupOverlayWheelListeners();
 
-  if (state.get().mode === MODES.SLIDER) {
+  const prev = state.get().mode;
+
+  if (prev === MODES.SLIDER) {
     unbindSlider();
   }
 
@@ -146,7 +144,6 @@ export function updateMode(state: StateManager): void {
   }
 
   const next = sel.value as ModeType;
-  const prev = state.get().mode;
 
   state.update('mode', next);
 

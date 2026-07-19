@@ -259,7 +259,7 @@ export async function getRelatedPosts(state: StateManager): Promise<PostData[]> 
 
 /** Build related posts list for Yandere/Konachan pages. */
 async function getYandereKonachan(state: StateManager): Promise<PostData[]> {
-  const { isSimilar } = state.get();
+  const { isSimilar, postId } = state.get();
 
   if (isSimilar) {
     return getYandereSimilar();
@@ -267,7 +267,7 @@ async function getYandereKonachan(state: StateManager): Promise<PostData[]> {
 
   const posts: PostData[] = [];
 
-  if (state.get().postId) {
+  if (postId) {
     try {
       await fetchParentSiblings(state, posts);
     } catch (error) {

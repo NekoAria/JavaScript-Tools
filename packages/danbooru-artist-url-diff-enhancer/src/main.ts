@@ -12,6 +12,14 @@ function addCustomStyles(): void {
 const DIFF_LIST_SELECTOR = 'ul.diff-list:not([data-enhanced])';
 const URLS_COLUMN_SELECTOR = 'td.urls-column';
 
+function appendTrimmedText(target: string[], element: Element | null): void {
+  const text = element?.textContent?.trim();
+
+  if (text) {
+    target.push(text);
+  }
+}
+
 function hasUnenhancedDiffList(node: Node): boolean {
   if (node.nodeType !== Node.ELEMENT_NODE) {
     return false;
@@ -48,10 +56,7 @@ function init(): void {
 
   const observer = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
-      if (
-        mutation.type === 'childList' &&
-        [...mutation.addedNodes].some((node) => hasUnenhancedDiffList(node))
-      ) {
+      if ([...mutation.addedNodes].some((node) => hasUnenhancedDiffList(node))) {
         scheduleProcessDiffLists();
       }
     }
@@ -69,7 +74,9 @@ function init(): void {
  * MutationObserver (and this function) skip it on subsequent passes.
  */
 function processDiffLists(): void {
-  const diffLists = document.querySelectorAll('td.urls-column ul.diff-list:not([data-enhanced])');
+  const diffLists = document.querySelectorAll<HTMLUListElement>(
+    'td.urls-column ul.diff-list:not([data-enhanced])',
+  );
 
   for (const diffList of diffLists) {
     const allItems = diffList.querySelectorAll('li');
@@ -83,29 +90,12 @@ function processDiffLists(): void {
 
     for (const li of allItems) {
       if (li.classList.contains('changed')) {
-        const removedSpan = li.querySelector('.removed');
-        const addedSpan = li.querySelector('.added');
-        const removedUrl = removedSpan?.textContent?.trim();
-        const addedUrl = addedSpan?.textContent?.trim();
-
-        if (removedUrl) {
-          removedUrls.push(removedUrl);
-        }
-        if (addedUrl) {
-          addedUrls.push(addedUrl);
-        }
+        appendTrimmedText(removedUrls, li.querySelector('.removed'));
+        appendTrimmedText(addedUrls, li.querySelector('.added'));
       } else if (li.classList.contains('removed')) {
-        const url = li.textContent?.trim();
-
-        if (url) {
-          removedUrls.push(url);
-        }
+        appendTrimmedText(removedUrls, li);
       } else if (li.classList.contains('added')) {
-        const url = li.textContent?.trim();
-
-        if (url) {
-          addedUrls.push(url);
-        }
+        appendTrimmedText(addedUrls, li);
       }
     }
 
@@ -113,11 +103,10 @@ function processDiffLists(): void {
       continue;
     }
 
-    const listEl = diffList as HTMLElement;
     const optimizedPairs = optimizedDiff(removedUrls, addedUrls);
 
-    listEl.dataset.enhanced = 'true';
-    listEl.innerHTML = generateDiffHTML(optimizedPairs);
+    diffList.dataset.enhanced = 'true';
+    diffList.innerHTML = generateDiffHTML(optimizedPairs);
   }
 }
 

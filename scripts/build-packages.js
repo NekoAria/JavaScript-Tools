@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { collectFiles, fileExists, hashFiles, readCache, writeCache } from './lib/build-cache.js';
+import { getArgValue } from './lib/cli-args.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, '..');
@@ -15,29 +16,7 @@ const cacheFile = path.resolve(rootDir, '.cache', 'build-packages.json');
 const args = process.argv.slice(2);
 const isForce = args.includes('--force');
 const isVerbose = args.includes('--verbose');
-const argState = { hasError: false };
-
-function getArgValue(flag) {
-  const index = args.indexOf(flag);
-
-  if (index === -1) {
-    return null;
-  }
-
-  const value = args[index + 1];
-
-  if (!value || value.startsWith('--')) {
-    console.error(`${flag} requires a value.`);
-    process.exitCode = 1;
-    argState.hasError = true;
-
-    return null;
-  }
-
-  return value;
-}
-
-const packageFilter = getArgValue('--package');
+const { hasError: hasArgError, value: packageFilter } = getArgValue(args, '--package');
 
 /**
  * Discover package directories that have a build script.
@@ -46,17 +25,21 @@ const packageFilter = getArgValue('--package');
  */
 async function discoverPackages() {
   const entries = await readdir(packagesDir, { withFileTypes: true });
-  const dirs = entries.filter((e) => e.isDirectory());
   const packages = [];
 
-  for (const dir of dirs) {
-    const pkgPath = path.join(packagesDir, dir.name, 'package.json');
+  for (const entry of entries) {
+    if (!entry.isDirectory()) {
+      continue;
+    }
+
+    const packageDir = path.join(packagesDir, entry.name);
+    const packageJsonPath = path.join(packageDir, 'package.json');
 
     try {
-      const pkg = JSON.parse(await readFile(pkgPath, 'utf8'));
+      const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf8'));
 
-      if (pkg.scripts?.build) {
-        packages.push({ name: dir.name, dir: path.join(packagesDir, dir.name) });
+      if (packageJson.scripts?.build) {
+        packages.push({ name: entry.name, dir: packageDir });
       }
     } catch {
       // Skip directories without a readable package.json.
@@ -73,6 +56,7 @@ const globalInputs = [
   path.join(rootDir, 'pnpm-workspace.yaml'),
   path.join(rootDir, 'scripts', 'build-packages.js'),
   path.join(rootDir, 'scripts', 'lib', 'build-cache.js'),
+  path.join(rootDir, 'scripts', 'lib', 'cli-args.js'),
 ];
 
 /**
@@ -130,7 +114,7 @@ async function buildPackage(pkg, expectedOutput) {
  * - All files under the package directory
  * - All files under shared/
  * - Root config files (package.json, pnpm-lock.yaml, pnpm-workspace.yaml)
- * - Build script files (build-packages.js, build-cache.js)
+ * - Build script and helper files (build-packages.js, build-cache.js, cli-args.js)
  *
  * @param {string} pkgDir - Absolute path to the package directory
  * @returns {Promise<string>} Hex-encoded SHA-256 hash
@@ -138,9 +122,8 @@ async function buildPackage(pkg, expectedOutput) {
 async function computePackageHash(pkgDir) {
   const packageFiles = await collectFiles(pkgDir);
   const sharedFiles = await collectFiles(sharedDir);
-  const allFiles = [...packageFiles, ...sharedFiles, ...globalInputs];
 
-  return await hashFiles(allFiles, rootDir);
+  return hashFiles([...packageFiles, ...sharedFiles, ...globalInputs], rootDir);
 }
 
 /**
@@ -160,7 +143,7 @@ async function getFileMtime(file) {
 }
 
 async function main() {
-  if (argState.hasError) {
+  if (hasArgError) {
     return;
   }
 
@@ -199,8 +182,6 @@ async function main() {
     const hash = await computePackageHash(pkg.dir);
 
     if (!isForce && (await fileExists(expectedOutputPath)) && cache[pkg.name] === hash) {
-      newCache[pkg.name] = hash;
-
       if (isVerbose) {
         console.log(`[${pkg.name}] up to date`);
       }

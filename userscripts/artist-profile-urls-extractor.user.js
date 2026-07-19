@@ -163,21 +163,17 @@
 	};
 	var handleInkbunny = () => {
 		const watchListLink = document.querySelector("a[href^=\"watchlist_process.php\"]")?.getAttribute("href");
-		if (watchListLink) {
-			const userId = new URL(watchListLink, location.origin).searchParams.get("user_id");
-			if (!userId) return fail(utils.userNotFoundError("Inkbunny"));
-			const primaryUrl = location.href;
-			return createProfileResult(primaryUrl, `https://inkbunny.net/user.php?user_id=${userId}`);
-		}
-		return fail(utils.userNotFoundError("Inkbunny"));
+		if (!watchListLink) return fail(utils.userNotFoundError("Inkbunny"));
+		const userId = new URL(watchListLink, location.origin).searchParams.get("user_id");
+		if (!userId) return fail(utils.userNotFoundError("Inkbunny"));
+		const primaryUrl = location.href;
+		return createProfileResult(primaryUrl, `https://inkbunny.net/user.php?user_id=${userId}`);
 	};
 	var handleKoFi = () => {
 		const pageId = document.querySelector("[data-page-id]")?.dataset.pageId;
-		if (pageId) {
-			const primaryUrl = location.href;
-			return createProfileResult(primaryUrl, `https://ko-fi.com/${pageId}`);
-		}
-		return fail(utils.userNotFoundError("KoFi"));
+		if (!pageId) return fail(utils.userNotFoundError("KoFi"));
+		const primaryUrl = location.href;
+		return createProfileResult(primaryUrl, `https://ko-fi.com/${pageId}`);
 	};
 	var handleLofter = () => {
 		const controlFrame = document.querySelector("#control_frame");
@@ -325,7 +321,6 @@
 	};
 	var handleTwitter = async () => {
 		const profileName = getTwitterProfileName();
-		if (!profileName) return null;
 		let userEntity = findTwitterUserEntity(document, profileName);
 		if (!userEntity) {
 			const profileUrl = new URL(`/${profileName}`, location.origin).href;
@@ -376,7 +371,7 @@
 		const avatarImage = document.querySelector(".user-information-wrapper .user-avatar img");
 		const portraitId = extractTiebaPortraitId(avatarImage?.dataset.src || avatarImage?.getAttribute("src"));
 		if (!username || !portraitId) return fail(utils.userNotFoundError("Tieba"));
-		return createProfileResult(`https://tieba.baidu.com/home/main?un=${username}`, portraitId ? `https://tieba.baidu.com/home/main?id=${portraitId}` : null);
+		return createProfileResult(`https://tieba.baidu.com/home/main?un=${username}`, `https://tieba.baidu.com/home/main?id=${portraitId}`);
 	};
 	var getTumblrBlogIdentifier = () => {
 		const subdomain = /^(.+)\.tumblr\.com$/.exec(location.host)?.[1];
@@ -562,8 +557,7 @@
 		lastUrl: location.href,
 		modalElement: null,
 		refreshTimer: null,
-		refreshToken: 0,
-		shadowRoot: null
+		refreshToken: 0
 	};
 	var clamp = (value, minimum, maximum) => Math.min(Math.max(value, minimum), maximum);
 	var createElement = (tagName, className) => {
@@ -643,7 +637,7 @@
 		});
 		modal.append(title, ...visibleRows.map(([label, value]) => createUrlRow(label, value)), actions);
 		backdrop.append(modal);
-		uiState.shadowRoot?.append(backdrop);
+		uiState.hostElement?.shadowRoot?.append(backdrop);
 		uiState.modalElement = backdrop;
 		document.addEventListener("keydown", handleModalEscape);
 		closeButton.focus();
@@ -709,7 +703,6 @@
 		uiState.displayedProfileUrls = null;
 		uiState.displayedSourceUrl = null;
 		uiState.hostElement = null;
-		uiState.shadowRoot = null;
 	};
 	var createFloatingUi = (profileUrls, sourceUrl) => {
 		destroyFloatingUi();
@@ -722,7 +715,6 @@
 		shadowRoot.append(style, createFloatingButton());
 		document.documentElement.append(hostElement);
 		uiState.hostElement = hostElement;
-		uiState.shadowRoot = shadowRoot;
 		uiState.displayedProfileUrls = profileUrls;
 		uiState.displayedSourceUrl = sourceUrl;
 	};

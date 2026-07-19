@@ -289,11 +289,7 @@ function resolvePageContext(state: StateManager): {
 
 /** Wrap an element in a styled select-wrapper div for the custom dropdown arrow. */
 function wrapSelect(content: HTMLElement): HTMLElement {
-  const d = createEl('div', { class: 'select-wrapper' });
-
-  d.append(content);
-
-  return d;
+  return createEl('div', { class: 'select-wrapper' }, content);
 }
 
 /** Maps special context-based image IDs (iqdb, upload, similar) to human-readable labels used in the comparator header. */

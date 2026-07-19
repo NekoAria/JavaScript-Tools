@@ -164,8 +164,7 @@
 		if (!editArtistLink) return;
 		const wikiLink = createWikiLinkElement(tagName);
 		const separator = document.createTextNode(" | ");
-		editArtistLink.before(wikiLink);
-		editArtistLink.before(separator);
+		editArtistLink.before(wikiLink, separator);
 	};
 	function initArtistPage() {
 		const tagName = getArtistTagName();
@@ -180,6 +179,11 @@
 	var expectArray = (value, label) => {
 		if (!Array.isArray(value)) throw new TypeError(`Invalid ${label} response: expected an array`);
 		return value;
+	};
+	var fetchJson = async (url) => {
+		const response = await fetch(url);
+		if (!response.ok) throw new Error(`HTTP ${response.status}`);
+		return response.json();
 	};
 	var parseTagAliases = (value) => expectArray(value, "tag aliases").map((item) => {
 		if (!isRecord(item)) throw new TypeError("Invalid tag alias response item");
@@ -244,10 +248,7 @@
 	};
 	var fetchTagAliases = async (antecedentName) => {
 		const { origin } = location;
-		const url = `${origin}/tag_aliases.json?${new URLSearchParams({ "search[antecedent_name_matches]": antecedentName })}`;
-		const response = await fetch(url);
-		if (!response.ok) throw new Error(`HTTP ${response.status}`);
-		return parseTagAliases(await response.json());
+		return parseTagAliases(await fetchJson(`${origin}/tag_aliases.json?${new URLSearchParams({ "search[antecedent_name_matches]": antecedentName })}`));
 	};
 	var hasActiveTagAlias = (aliases, antecedentName, consequentName) => aliases.some((alias) => alias.status === "active" && alias.antecedentName === antecedentName && alias.consequentName === consequentName);
 	var hasActiveTagAliasBetweenNames = async (oldName, newName) => {
@@ -256,15 +257,12 @@
 	};
 	var fetchActiveArtistByName = async (name) => {
 		const { origin } = location;
-		const url = `${origin}/artists.json?${new URLSearchParams({
+		return parseArtists(await fetchJson(`${origin}/artists.json?${new URLSearchParams({
 			"search[name]": name,
 			"search[is_deleted]": "false",
 			limit: "1",
 			only: "id,name,is_deleted"
-		})}`;
-		const response = await fetch(url);
-		if (!response.ok) throw new Error(`HTTP ${response.status}`);
-		return parseArtists(await response.json());
+		})}`));
 	};
 	var hasActiveArtistEntry = async (name) => {
 		return (await fetchActiveArtistByName(name)).some((artist) => artist.name === name && !artist.isDeleted);
@@ -296,21 +294,16 @@
 		const { origin } = location;
 		const url = `${origin}/artist_versions.json?search[artist_id]=${artistId}`;
 		try {
-			const response = await fetch(url);
-			if (!response.ok) throw new Error(`HTTP ${response.status}`);
-			const versions = parseArtistVersions(await response.json());
+			const versions = parseArtistVersions(await fetchJson(url));
 			const newName = versions[renameIndex]?.name;
 			const oldName = versions[renameIndex + 1]?.name;
 			if (!oldName || !newName) return;
 			if (await hasActiveTagAliasBetweenNames(oldName, newName)) return;
 			if (await hasActiveArtistEntry(oldName)) return;
-			const postsUrl = `${origin}/posts.json?${new URLSearchParams({
+			if (parsePosts(await fetchJson(`${origin}/posts.json?${new URLSearchParams({
 				limit: "1",
 				tags: oldName
-			})}`;
-			const postsResponse = await fetch(postsUrl);
-			if (!postsResponse.ok) throw new Error(`HTTP ${postsResponse.status}`);
-			if (parsePosts(await postsResponse.json()).some((post) => post.artistTags.split(/\s+/).includes(oldName))) renderUnmigratedPostsWarning(oldName);
+			})}`)).some((post) => post.artistTags.split(/\s+/).includes(oldName))) renderUnmigratedPostsWarning(oldName);
 		} catch (error) {
 			console.error("Failed to check unmigrated posts:", error);
 		}
@@ -327,7 +320,7 @@
 		"required"
 	];
 	var normalizeOtherNamesValue = (value) => value.replaceAll(/\s+/g, " ").trim();
-	var getOtherNamesLines = (value) => value.trim().split(/\s+/).filter(Boolean);
+	var getOtherNamesLines = (value) => value.match(/\S+/g) ?? [];
 	var isOtherNamesTextarea = (field) => field.tagName === "TEXTAREA";
 	var copyOtherNamesAttributes = (from, to) => {
 		for (const attributeName of otherNamesAttributesToCopy) {

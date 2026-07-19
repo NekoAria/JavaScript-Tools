@@ -285,8 +285,7 @@ const addCreateWikiLink = (tagName: string): void => {
   const wikiLink = createWikiLinkElement(tagName);
   const separator = document.createTextNode(' | ');
 
-  editArtistLink.before(wikiLink);
-  editArtistLink.before(separator);
+  editArtistLink.before(wikiLink, separator);
 };
 
 export function initArtistPage(): void {

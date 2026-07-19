@@ -38,7 +38,7 @@
 		Sibling: 2,
 		Child: 3
 	};
-	var style_default = "/* ============================================================\n   Design tokens\n   ============================================================ */\n.comparator {\n  --sp-0-5: 0.125rem;\n  --sp-1: 0.25rem;\n  --sp-1-5: 0.375rem;\n  --sp-2: 0.5rem;\n  --sp-3: 0.75rem;\n  --sp-4: 1rem;\n  --sp-5: 1.25rem;\n\n  --grey-0: oklch(98.5% 0 0);\n  --grey-1: oklch(97% 0 0);\n  --grey-2: oklch(92.2% 0 0);\n  --grey-3: oklch(87% 0 0);\n  --grey-4: oklch(70.8% 0 0);\n  --grey-5: oklch(55.6% 0 0);\n  --grey-6: oklch(43.9% 0 0);\n  --grey-7: oklch(37.1% 0 0);\n  --grey-8: oklch(26.9% 0 0);\n  --grey-9: oklch(20.5% 0 0);\n  --grey-10: oklch(14.5% 0 0);\n\n  --accent: oklch(62.3% 0.214 259.815);\n  --ring: oklch(62.3% 0.214 259.815 / 25%);\n  --text-muted: var(--grey-2);\n  --ease: 120ms ease-out;\n  --divider-width: var(--sp-1);\n  --radius: var(--sp-1);\n  --border: 1px solid var(--grey-7);\n  --border-in: 1px solid var(--grey-6);\n\n  --z-header: 10001;\n  --z-overlay: 10002;\n  --z-slider: 10003;\n  position: fixed;\n  inset: 0;\n  z-index: 10000;\n  box-sizing: border-box;\n\n  display: flex;\n  flex-direction: column;\n  overflow: hidden;\n  font:\n    0.875rem/1.5 Verdana,\n    system-ui,\n    -apple-system,\n    Helvetica,\n    sans-serif;\n  color: var(--grey-0);\n\n  outline: none;\n  background: var(--grey-10);\n\n  &,\n  & *,\n  & *::before,\n  & *::after {\n    box-sizing: border-box;\n  }\n\n  @media (prefers-reduced-motion: reduce) {\n    --ease: 0ms;\n  }\n}\n\n/* Header */\n.header {\n  z-index: var(--z-header);\n  display: flex;\n  flex-direction: column;\n  gap: var(--sp-2);\n  padding: var(--sp-2) var(--sp-3);\n  background: var(--grey-9);\n  border-bottom: var(--border);\n}\n\n.primary-controls {\n  display: flex;\n  flex-wrap: wrap;\n  gap: var(--sp-2);\n  align-items: center;\n  justify-content: space-between;\n  width: 100%;\n}\n\n.right-controls {\n  display: flex;\n  gap: var(--sp-2);\n  align-items: center;\n  margin-left: auto;\n}\n\n.mode-label {\n  color: var(--text-muted);\n}\n\n.post-info {\n  font-size: 0.75rem;\n  color: var(--text-muted);\n}\n\n/* Form control */\n.form-control {\n  padding: var(--sp-0-5) var(--sp-2);\n  font: inherit;\n  color: var(--grey-0);\n  appearance: none;\n  outline: none;\n  background: var(--grey-8);\n  border: var(--border-in);\n  border-radius: var(--radius);\n  transition:\n    border-color var(--ease),\n    box-shadow var(--ease);\n\n  @media (hover: hover) {\n    &:hover {\n      border-color: var(--grey-5);\n    }\n  }\n\n  &:focus-visible {\n    border-color: var(--accent);\n    box-shadow: 0 0 0 2px var(--ring);\n  }\n}\n\n.form-control::placeholder {\n  color: var(--grey-4);\n}\n\n.id-input {\n  width: 10rem;\n}\n\n/* Buttons */\n.btn {\n  display: inline-flex;\n  gap: var(--sp-1);\n  align-items: center;\n  justify-content: center;\n  padding: var(--sp-0-5) var(--sp-2);\n  font: inherit;\n  line-height: 1.25;\n  color: var(--grey-1);\n  white-space: nowrap;\n  appearance: none;\n  cursor: pointer;\n  outline: none;\n  background: var(--grey-8);\n  border: var(--border);\n  border-radius: var(--radius);\n  transition:\n    background var(--ease),\n    border-color var(--ease),\n    color var(--ease),\n    box-shadow var(--ease);\n\n  @media (hover: hover) {\n    &:hover {\n      color: var(--grey-0);\n      background: var(--grey-7);\n      border-color: var(--grey-6);\n    }\n  }\n\n  &:active {\n    background: var(--grey-6);\n  }\n  &:disabled {\n    pointer-events: none;\n    cursor: not-allowed;\n    opacity: 0.5;\n  }\n\n  &:focus-visible {\n    border-color: var(--accent);\n    box-shadow: 0 0 0 2px var(--ring);\n  }\n\n  &.btn-close {\n    padding: var(--sp-0-5) var(--sp-1);\n    font-size: 1.25rem;\n    line-height: 1;\n    background: var(--grey-9);\n\n    @media (hover: hover) {\n      &:hover {\n        color: var(--grey-0);\n        background: oklch(100% 0 0 / 8%);\n      }\n    }\n  }\n}\n\n/* Range */\n.comparator input[type='range'] {\n  height: var(--sp-1);\n  appearance: none;\n  cursor: pointer;\n  outline: none;\n  background: var(--grey-7);\n  border-radius: calc(var(--sp-1) / 2);\n\n  &::-webkit-slider-thumb {\n    width: var(--sp-4);\n    height: var(--sp-4);\n    appearance: none;\n    cursor: pointer;\n    background: var(--grey-1);\n    border: 2px solid var(--grey-6);\n    border-radius: 50%;\n    transition: border-color var(--ease);\n    @media (hover: hover) {\n      &:hover {\n        border-color: var(--accent);\n      }\n    }\n  }\n\n  &::-moz-range-track {\n    height: var(--sp-1);\n    background: var(--grey-7);\n    border-radius: calc(var(--sp-1) / 2);\n  }\n\n  &::-moz-range-thumb {\n    width: var(--sp-4);\n    height: var(--sp-4);\n    cursor: pointer;\n    background: var(--grey-1);\n    border: 2px solid var(--grey-6);\n    border-radius: 50%;\n    transition: border-color var(--ease);\n    @media (hover: hover) {\n      &:hover {\n        border-color: var(--accent);\n      }\n    }\n  }\n}\n\n.range-control {\n  width: 7.5rem;\n  margin-right: var(--sp-1-5);\n}\n\n.range-value {\n  width: 3em;\n  font-variant-numeric: tabular-nums;\n  color: var(--text-muted);\n  text-align: center;\n}\n\n.comparator label {\n  display: inline-flex;\n  gap: var(--sp-1);\n  align-items: center;\n  font-size: inherit;\n  font-weight: normal;\n  color: var(--text-muted);\n  cursor: default;\n}\n\n/* Controls row */\n.controls-row {\n  display: flex;\n  flex-wrap: wrap;\n  gap: var(--sp-4);\n  align-items: center;\n  width: 100%;\n}\n\n.transform-group {\n  display: flex;\n  gap: var(--sp-1-5);\n  align-items: center;\n  margin-left: auto;\n}\n\n.control-group {\n  display: flex;\n  gap: var(--sp-1-5);\n  align-items: center;\n}\n\n/* Select wrapper */\n.select-wrapper,\n.post-selector {\n  position: relative;\n  display: inline-flex;\n  align-items: center;\n\n  & > select {\n    padding-right: var(--sp-5);\n    cursor: pointer;\n  }\n\n  &::after {\n    position: absolute;\n    top: 50%;\n    right: var(--sp-2);\n    width: var(--sp-2);\n    height: var(--sp-2);\n    pointer-events: none;\n    content: '';\n    border-right: 1.5px solid var(--text-muted);\n    border-bottom: 1.5px solid var(--text-muted);\n    transform: translateY(-50%) rotate(45deg) translate(-1px, -1px);\n  }\n}\n\n/* Content area */\n.content {\n  position: relative;\n  display: flex;\n  flex: 1;\n  min-height: 0;\n  overflow: hidden;\n}\n\n.comparison-side {\n  position: relative;\n  display: flex;\n  flex: 1;\n  align-items: center;\n  justify-content: center;\n  min-height: 0;\n  overflow: hidden;\n\n  & .sync-pan {\n    position: relative;\n  }\n}\n\n.divider {\n  align-self: stretch;\n  width: var(--divider-width);\n  cursor: default;\n  background: var(--grey-6);\n  transition: background var(--ease);\n  @media (hover: hover) {\n    &:hover {\n      background: var(--accent);\n    }\n  }\n}\n\n/* Overlay */\n.overlay-container {\n  position: absolute;\n  inset: 0;\n  z-index: var(--z-overlay);\n  overflow: hidden;\n\n  &.is-inverted {\n    filter: invert(1);\n  }\n\n  & .sync-pan {\n    position: absolute;\n    top: 0;\n    left: 0;\n  }\n\n  &[data-bg='black'] {\n    background: var(--grey-10);\n  }\n  &[data-bg='grey'] {\n    background: var(--grey-5);\n  }\n  &[data-bg='white'] {\n    background: var(--grey-0);\n  }\n}\n\n#comparison-content[data-bg='black'] {\n  background: var(--grey-10);\n}\n#comparison-content[data-bg='grey'] {\n  background: var(--grey-5);\n}\n#comparison-content[data-bg='white'] {\n  background: var(--grey-0);\n}\n\n/* Slider */\n.comparison-slider {\n  position: absolute;\n  top: 0;\n  bottom: 0;\n  z-index: var(--z-slider);\n  width: var(--divider-width);\n  cursor: col-resize;\n  background: var(--grey-0);\n\n  &::after {\n    position: absolute;\n    top: 50%;\n    left: 50%;\n    width: 2rem;\n    height: 2rem;\n    content: '';\n    background: var(--grey-0);\n    border: 1px solid var(--grey-4);\n    border-radius: 50%;\n    box-shadow: 0 1px 4px oklch(0% 0 0 / 40%);\n    transform: translate(-50%, -50%);\n  }\n}\n\n/* Pan/zoom */\n.sync-pan {\n  position: relative;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  width: 100%;\n  height: 100%;\n  overflow: hidden;\n}\n\n/* Images */\n.compared-img {\n  display: block;\n  max-width: 100%;\n  max-height: 100%;\n  object-fit: contain;\n  image-rendering: pixelated;\n  transform: scale(var(--flip-x, 1), var(--flip-y, 1)) rotate(var(--rotate, 0deg));\n}\n\n/* Overlay images */\n.overlay-img {\n  position: absolute;\n  inset: 0;\n  display: block;\n  width: 100%;\n  height: 100%;\n\n  &.mode-fade {\n    opacity: var(--fade-opacity, 0.5);\n  }\n  &.mode-difference {\n    mix-blend-mode: difference;\n  }\n}\n\n/* Utility states */\n.is-overlay-hidden {\n  display: none !important;\n}\n.is-hidden {\n  display: none !important;\n}\n";
+	var style_default = "/* ============================================================\n   Design tokens\n   ============================================================ */\n.comparator {\n  --sp-0-5: 0.125rem;\n  --sp-1: 0.25rem;\n  --sp-1-5: 0.375rem;\n  --sp-2: 0.5rem;\n  --sp-3: 0.75rem;\n  --sp-4: 1rem;\n  --sp-5: 1.25rem;\n\n  --grey-0: oklch(98.5% 0 0);\n  --grey-1: oklch(97% 0 0);\n  --grey-2: oklch(92.2% 0 0);\n  --grey-3: oklch(87% 0 0);\n  --grey-4: oklch(70.8% 0 0);\n  --grey-5: oklch(55.6% 0 0);\n  --grey-6: oklch(43.9% 0 0);\n  --grey-7: oklch(37.1% 0 0);\n  --grey-8: oklch(26.9% 0 0);\n  --grey-9: oklch(20.5% 0 0);\n  --grey-10: oklch(14.5% 0 0);\n\n  --accent: oklch(62.3% 0.214 259.815);\n  --ring: oklch(62.3% 0.214 259.815 / 25%);\n  --text-muted: var(--grey-2);\n  --ease: 120ms ease-out;\n  --divider-width: var(--sp-1);\n  --radius: var(--sp-1);\n  --border: 1px solid var(--grey-7);\n  --border-in: 1px solid var(--grey-6);\n\n  --z-header: 10001;\n  --z-overlay: 10002;\n  --z-slider: 10003;\n  position: fixed;\n  inset: 0;\n  z-index: 10000;\n  box-sizing: border-box;\n\n  display: flex;\n  flex-direction: column;\n  overflow: hidden;\n  font:\n    0.875rem/1.5 Verdana,\n    system-ui,\n    -apple-system,\n    Helvetica,\n    sans-serif;\n  color: var(--grey-0);\n\n  outline: none;\n  background: var(--grey-10);\n\n  &,\n  & *,\n  & *::before,\n  & *::after {\n    box-sizing: border-box;\n  }\n\n  @media (prefers-reduced-motion: reduce) {\n    --ease: 0ms;\n  }\n}\n\n/* Header */\n.header {\n  z-index: var(--z-header);\n  display: flex;\n  flex-direction: column;\n  gap: var(--sp-2);\n  padding: var(--sp-2) var(--sp-3);\n  background: var(--grey-9);\n  border-bottom: var(--border);\n}\n\n.primary-controls {\n  display: flex;\n  flex-wrap: wrap;\n  gap: var(--sp-2);\n  align-items: center;\n  justify-content: space-between;\n  width: 100%;\n}\n\n.right-controls {\n  display: flex;\n  gap: var(--sp-2);\n  align-items: center;\n  margin-left: auto;\n}\n\n.mode-label {\n  color: var(--text-muted);\n}\n\n.post-info {\n  font-size: 0.75rem;\n  color: var(--text-muted);\n}\n\n/* Form control */\n.form-control {\n  padding: var(--sp-0-5) var(--sp-2);\n  font: inherit;\n  color: var(--grey-0);\n  appearance: none;\n  outline: none;\n  background: var(--grey-8);\n  border: var(--border-in);\n  border-radius: var(--radius);\n  transition:\n    border-color var(--ease),\n    box-shadow var(--ease);\n\n  @media (hover: hover) {\n    &:hover {\n      border-color: var(--grey-5);\n    }\n  }\n\n  &:focus-visible {\n    border-color: var(--accent);\n    box-shadow: 0 0 0 2px var(--ring);\n  }\n}\n\n.form-control::placeholder {\n  color: var(--grey-4);\n}\n\n.id-input {\n  width: 10rem;\n}\n\n/* Buttons */\n.btn {\n  display: inline-flex;\n  gap: var(--sp-1);\n  align-items: center;\n  justify-content: center;\n  padding: var(--sp-0-5) var(--sp-2);\n  font: inherit;\n  line-height: 1.25;\n  color: var(--grey-1);\n  white-space: nowrap;\n  appearance: none;\n  cursor: pointer;\n  outline: none;\n  background: var(--grey-8);\n  border: var(--border);\n  border-radius: var(--radius);\n  transition:\n    background var(--ease),\n    border-color var(--ease),\n    color var(--ease),\n    box-shadow var(--ease);\n\n  @media (hover: hover) {\n    &:hover {\n      color: var(--grey-0);\n      background: var(--grey-7);\n      border-color: var(--grey-6);\n    }\n  }\n\n  &:active {\n    background: var(--grey-6);\n  }\n  &:disabled {\n    pointer-events: none;\n    cursor: not-allowed;\n    opacity: 0.5;\n  }\n\n  &:focus-visible {\n    border-color: var(--accent);\n    box-shadow: 0 0 0 2px var(--ring);\n  }\n\n  &.btn-close {\n    padding: var(--sp-0-5) var(--sp-1);\n    font-size: 1.25rem;\n    line-height: 1;\n    background: var(--grey-9);\n\n    @media (hover: hover) {\n      &:hover {\n        color: var(--grey-0);\n        background: oklch(100% 0 0 / 8%);\n      }\n    }\n  }\n}\n\n/* Range */\n.comparator input[type='range'] {\n  height: var(--sp-1);\n  appearance: none;\n  cursor: pointer;\n  outline: none;\n  background: var(--grey-7);\n  border-radius: calc(var(--sp-1) / 2);\n\n  &::-webkit-slider-thumb {\n    width: var(--sp-4);\n    height: var(--sp-4);\n    appearance: none;\n    cursor: pointer;\n    background: var(--grey-1);\n    border: 2px solid var(--grey-6);\n    border-radius: 50%;\n    transition: border-color var(--ease);\n    @media (hover: hover) {\n      &:hover {\n        border-color: var(--accent);\n      }\n    }\n  }\n\n  &::-moz-range-track {\n    height: var(--sp-1);\n    background: var(--grey-7);\n    border-radius: calc(var(--sp-1) / 2);\n  }\n\n  &::-moz-range-thumb {\n    width: var(--sp-4);\n    height: var(--sp-4);\n    cursor: pointer;\n    background: var(--grey-1);\n    border: 2px solid var(--grey-6);\n    border-radius: 50%;\n    transition: border-color var(--ease);\n    @media (hover: hover) {\n      &:hover {\n        border-color: var(--accent);\n      }\n    }\n  }\n}\n\n.range-control {\n  width: 7.5rem;\n  margin-right: var(--sp-1-5);\n}\n\n.range-value {\n  width: 3em;\n  font-variant-numeric: tabular-nums;\n  color: var(--text-muted);\n  text-align: center;\n}\n\n.comparator label {\n  display: inline-flex;\n  gap: var(--sp-1);\n  align-items: center;\n  font-size: inherit;\n  font-weight: normal;\n  color: var(--text-muted);\n  cursor: default;\n}\n\n/* Controls row */\n.controls-row {\n  display: flex;\n  flex-wrap: wrap;\n  gap: var(--sp-4);\n  align-items: center;\n  width: 100%;\n}\n\n.transform-group {\n  display: flex;\n  gap: var(--sp-1-5);\n  align-items: center;\n  margin-left: auto;\n}\n\n.control-group {\n  display: flex;\n  gap: var(--sp-1-5);\n  align-items: center;\n}\n\n/* Select wrapper */\n.select-wrapper,\n.post-selector {\n  position: relative;\n  display: inline-flex;\n  align-items: center;\n\n  & > select {\n    padding-right: var(--sp-5);\n    cursor: pointer;\n  }\n\n  &::after {\n    position: absolute;\n    top: 50%;\n    right: var(--sp-2);\n    width: var(--sp-2);\n    height: var(--sp-2);\n    pointer-events: none;\n    content: '';\n    border-right: 1.5px solid var(--text-muted);\n    border-bottom: 1.5px solid var(--text-muted);\n    transform: translateY(-50%) rotate(45deg) translate(-1px, -1px);\n  }\n}\n\n/* Content area */\n.content {\n  position: relative;\n  display: flex;\n  flex: 1;\n  min-height: 0;\n  overflow: hidden;\n}\n\n.comparison-side {\n  position: relative;\n  display: flex;\n  flex: 1;\n  align-items: center;\n  justify-content: center;\n  min-height: 0;\n  overflow: hidden;\n\n  & .sync-pan {\n    position: relative;\n  }\n}\n\n.divider {\n  align-self: stretch;\n  width: var(--divider-width);\n  cursor: default;\n  background: var(--grey-6);\n  transition: background var(--ease);\n  @media (hover: hover) {\n    &:hover {\n      background: var(--accent);\n    }\n  }\n}\n\n/* Overlay */\n.overlay-container {\n  position: absolute;\n  inset: 0;\n  z-index: var(--z-overlay);\n  overflow: hidden;\n\n  &.is-inverted {\n    filter: invert(1);\n  }\n\n  & .sync-pan {\n    position: absolute;\n    top: 0;\n    left: 0;\n  }\n\n  &[data-bg='black'] {\n    background: var(--grey-10);\n  }\n  &[data-bg='grey'] {\n    background: var(--grey-5);\n  }\n  &[data-bg='white'] {\n    background: var(--grey-0);\n  }\n}\n\n#comparison-content[data-bg='black'] {\n  background: var(--grey-10);\n}\n#comparison-content[data-bg='grey'] {\n  background: var(--grey-5);\n}\n#comparison-content[data-bg='white'] {\n  background: var(--grey-0);\n}\n\n/* Slider */\n.comparison-slider {\n  position: absolute;\n  top: 0;\n  bottom: 0;\n  z-index: var(--z-slider);\n  width: var(--divider-width);\n  cursor: col-resize;\n  background: var(--grey-0);\n\n  &::after {\n    position: absolute;\n    top: 50%;\n    left: 50%;\n    width: 2rem;\n    height: 2rem;\n    content: '';\n    background: var(--grey-0);\n    border: 1px solid var(--grey-4);\n    border-radius: 50%;\n    box-shadow: 0 1px 4px oklch(0% 0 0 / 40%);\n    transform: translate(-50%, -50%);\n  }\n}\n\n/* Pan/zoom */\n.sync-pan {\n  position: relative;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  width: 100%;\n  height: 100%;\n  overflow: hidden;\n}\n\n/* Images */\n.compared-img {\n  display: block;\n  max-width: 100%;\n  max-height: 100%;\n  object-fit: contain;\n  image-rendering: pixelated;\n  transform: scale(var(--flip-x, 1), var(--flip-y, 1)) rotate(var(--rotate, 0deg));\n}\n\n/* Overlay images */\n.overlay-img {\n  position: absolute;\n  inset: 0;\n  display: block;\n  width: 100%;\n  height: 100%;\n\n  &.mode-fade {\n    opacity: var(--fade-opacity, 0.5);\n  }\n  &.mode-difference {\n    mix-blend-mode: difference;\n  }\n}\n\n/* Utility states */\n.is-hidden,\n.is-overlay-hidden {\n  display: none !important;\n}\n";
 	var shadowState = { root: null };
 	var $ = (selector) => shadowState.root?.querySelector(selector) ?? null;
 	function createShadowHost() {
@@ -254,9 +254,7 @@
 		};
 	}
 	function wrapSelect(content) {
-		const d = createEl("div", { class: "select-wrapper" });
-		d.append(content);
-		return d;
+		return createEl("div", { class: "select-wrapper" }, content);
 	}
 	var ID_LABELS = {
 		iqdb: "IQDB",
@@ -1226,10 +1224,10 @@
 		return site === "danbooru" ? getDanbooru(state) : getYandereKonachan(state);
 	}
 	async function getYandereKonachan(state) {
-		const { isSimilar } = state.get();
+		const { isSimilar, postId } = state.get();
 		if (isSimilar) return getYandereSimilar();
 		const posts = [];
-		if (state.get().postId) {
+		if (postId) {
 			try {
 				await fetchParentSiblings(state, posts);
 			} catch (error) {
@@ -1382,7 +1380,7 @@
 		const sl = $("#opacity-slider");
 		if (sl) applyFade(+sl.value);
 	}
-	var sliderState = { cleanup: [] };
+	var sliderCleanup = [];
 	function bindSliderEvents(state, sliderEl, rightImg, container) {
 		unbindSlider();
 		let isDragging = false;
@@ -1390,8 +1388,7 @@
 			updateSlider(state, sliderEl, rightImg, e.clientX - container.getBoundingClientRect().left, container);
 		};
 		const onPanzoomChange = () => {
-			const raw = Number.parseInt(sliderEl.style.left);
-			updateSlider(state, sliderEl, rightImg, Number.isNaN(raw) ? container.clientWidth / 2 : raw, container);
+			updateSlider(state, sliderEl, rightImg, getSliderPosition(sliderEl, container), container);
 		};
 		const onSliderMouseDown = (e) => {
 			e.preventDefault();
@@ -1427,7 +1424,11 @@
 			overlayPan.addEventListener(ev, onPanzoomChange);
 			newCleanup.push(() => overlayPan.removeEventListener(ev, onPanzoomChange));
 		}
-		sliderState.cleanup = newCleanup;
+		sliderCleanup.push(...newCleanup);
+	}
+	function getSliderPosition(sliderEl, container) {
+		const position = Number.parseInt(sliderEl.style.left);
+		return Number.isNaN(position) ? container.clientWidth / 2 : position;
 	}
 	function initSlider(state) {
 		const container = $("#comparison-overlay-container");
@@ -1449,8 +1450,8 @@
 		});
 	}
 	function unbindSlider() {
-		for (const fn of sliderState.cleanup) fn();
-		sliderState.cleanup = [];
+		for (const fn of sliderCleanup) fn();
+		sliderCleanup.length = 0;
 	}
 	function updateSlider(state, sliderEl, rightImg, containerX, container) {
 		const x = Math.max(0, Math.min(containerX, container.clientWidth));
@@ -1472,10 +1473,7 @@
 		const sliderEl = $("#comparison-slider");
 		const rightImg = $("#overlay-image");
 		const container = $("#comparison-overlay-container");
-		if (sliderEl && rightImg && container) {
-			const raw = Number.parseInt(sliderEl.style.left);
-			updateSlider(state, sliderEl, rightImg, Number.isNaN(raw) ? container.clientWidth / 2 : raw, container);
-		}
+		if (sliderEl && rightImg && container) updateSlider(state, sliderEl, rightImg, getSliderPosition(sliderEl, container), container);
 	}
 	function createOverlayImages() {
 		const pan = $("#overlay-pan");
@@ -1498,6 +1496,12 @@
 			"comparison-divider"
 		]) $(`#${id}`)?.classList.add("is-overlay-hidden");
 	}
+	function prepareOverlay(state) {
+		hideMainElements();
+		$("#comparison-overlay-container")?.classList.remove("is-hidden");
+		createOverlayImages();
+		initOverlayPanzoom(state);
+	}
 	function resetModeDisplay() {
 		for (const id of [
 			"left-side",
@@ -1515,10 +1519,7 @@
 		$("#filter-controls")?.classList.remove("is-hidden");
 	}
 	function setupDifference(state) {
-		hideMainElements();
-		showOverlay();
-		createOverlayImages();
-		initOverlayPanzoom(state);
+		prepareOverlay(state);
 		const img = $("#overlay-image");
 		if (img?.src?.trim()) {
 			img.classList.remove("is-hidden");
@@ -1529,10 +1530,7 @@
 		$("#difference-controls")?.classList.remove("is-hidden");
 	}
 	function setupFade(state) {
-		hideMainElements();
-		showOverlay();
-		createOverlayImages();
-		initOverlayPanzoom(state);
+		prepareOverlay(state);
 		const img = $("#overlay-image");
 		if (img?.src?.trim()) {
 			img.classList.remove("is-hidden");
@@ -1558,14 +1556,8 @@
 		}
 	}
 	function setupSlider(state) {
-		hideMainElements();
-		showOverlay();
-		createOverlayImages();
-		initOverlayPanzoom(state);
+		prepareOverlay(state);
 		setTimeout(() => initSlider(state), 0);
-	}
-	function showOverlay() {
-		$("#comparison-overlay-container")?.classList.remove("is-hidden");
 	}
 	function getSavedBackground() {
 		let s;
@@ -1629,15 +1621,15 @@
 		state.update("eventCleanup", cleanup);
 	}
 	function bindFilterEvents(on) {
-		on("opacity-slider", () => updateOpacity(), "input");
-		on("brightness-slider", () => updateFilters(), "input");
-		on("saturate-slider", () => updateFilters(), "input");
+		on("opacity-slider", updateOpacity, "input");
+		on("brightness-slider", updateFilters, "input");
+		on("saturate-slider", updateFilters, "input");
 		on("comparison-background", () => {
 			updateBackground();
 			persistBackground();
 		}, "change");
-		on("invert-difference", () => toggleDifferenceInvert());
-		on("reset-filters", () => resetFilters());
+		on("invert-difference", toggleDifferenceInvert);
+		on("reset-filters", resetFilters);
 	}
 	function bindKeyboardEvents(deps, cleanup) {
 		const input = $("#second-image-input");
@@ -1679,11 +1671,11 @@
 		commitZoomState(state);
 		destroyOverlayZoom(state);
 		cleanupOverlayWheelListeners();
-		if (state.get().mode === MODES.SLIDER) unbindSlider();
+		const prev = state.get().mode;
+		if (prev === MODES.SLIDER) unbindSlider();
 		const sel = $("#comparison-mode");
 		if (!sel) return;
 		const next = sel.value;
-		const prev = state.get().mode;
 		state.update("mode", next);
 		if (prev !== next && isOverlayMode(prev) !== isOverlayMode(next)) applyZoomTransition(state, prev, next);
 		resetModeDisplay();
@@ -2021,16 +2013,19 @@
 		const state = createAppState();
 		state.update("originalImageUrl", getOriginalImageUrl(state));
 		subscribeSliderUpdater(state);
-		const onCompare = (postId) => openComparator(postId, state);
-		addCompareLinks(state, (id) => void onCompare(id));
-		addMainMenuLink(state, () => void onCompare(null));
+		const onCompare = (postId) => {
+			openComparator(postId, state);
+		};
+		const refreshCompareLinks = () => addCompareLinks(state, onCompare);
+		refreshCompareLinks();
+		addMainMenuLink(state, () => onCompare(null));
 		const target = document.querySelector(".posts-container, .iqdb-posts, #post-list-posts") ?? document.body;
 		let pendingRaf = null;
 		new MutationObserver(() => {
 			if (pendingRaf) return;
 			pendingRaf = requestAnimationFrame(() => {
 				pendingRaf = null;
-				addCompareLinks(state, (id) => void onCompare(id));
+				refreshCompareLinks();
 			});
 		}).observe(target, {
 			childList: true,

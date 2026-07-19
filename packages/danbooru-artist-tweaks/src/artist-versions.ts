@@ -30,6 +30,16 @@ const expectArray = (value: unknown, label: string): unknown[] => {
   return value;
 };
 
+const fetchJson = async (url: string): Promise<unknown> => {
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  return response.json();
+};
+
 const parseTagAliases = (value: unknown): TagAliasRecord[] =>
   expectArray(value, 'tag aliases').map((item) => {
     if (!isRecord(item)) {
@@ -171,15 +181,8 @@ const fetchTagAliases = async (antecedentName: string): Promise<TagAliasRecord[]
     'search[antecedent_name_matches]': antecedentName,
   });
   const url = `${origin}/tag_aliases.json?${params}`;
-  const response = await fetch(url);
 
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
-  }
-
-  const data: unknown = await response.json();
-
-  return parseTagAliases(data);
+  return parseTagAliases(await fetchJson(url));
 };
 
 const hasActiveTagAlias = (
@@ -218,15 +221,8 @@ const fetchActiveArtistByName = async (name: string): Promise<ArtistRecord[]> =>
     only: 'id,name,is_deleted',
   });
   const url = `${origin}/artists.json?${params}`;
-  const response = await fetch(url);
 
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
-  }
-
-  const data: unknown = await response.json();
-
-  return parseArtists(data);
+  return parseArtists(await fetchJson(url));
 };
 
 const hasActiveArtistEntry = async (name: string): Promise<boolean> => {
@@ -285,14 +281,7 @@ const checkUnmigratedPostsOnRename = async (artistId: string): Promise<void> => 
   const url = `${origin}/artist_versions.json?search[artist_id]=${artistId}`;
 
   try {
-    const response = await fetch(url);
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    const versionData: unknown = await response.json();
-    const versions = parseArtistVersions(versionData);
+    const versions = parseArtistVersions(await fetchJson(url));
     const newName = versions[renameIndex]?.name;
 
     // In the API response, the version after the rename row contains the old name.
@@ -319,14 +308,7 @@ const checkUnmigratedPostsOnRename = async (artistId: string): Promise<void> => 
       tags: oldName,
     });
     const postsUrl = `${origin}/posts.json?${postsParams}`;
-    const postsResponse = await fetch(postsUrl);
-
-    if (!postsResponse.ok) {
-      throw new Error(`HTTP ${postsResponse.status}`);
-    }
-
-    const postData: unknown = await postsResponse.json();
-    const posts = parsePosts(postData);
+    const posts = parsePosts(await fetchJson(postsUrl));
     const hasUnmigratedPosts = posts.some((post) => post.artistTags.split(/\s+/).includes(oldName));
 
     if (hasUnmigratedPosts) {

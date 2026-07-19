@@ -152,57 +152,55 @@
 			for (const addedIndex of addedUrls.keys()) if (!usedAdded.has(addedIndex) && isMatchingAddedIndex(addedIndex)) return addedIndex;
 			return null;
 		};
-		for (const [i, removedUrl] of removedUrls.entries()) {
-			if (usedRemoved.has(i)) continue;
-			const addedIndex = findMatchingAddedIndex((j) => addedUrls[j] === `-${removedUrl}` || removedUrl === `-${addedUrls[j]}`);
-			if (addedIndex !== null) addChangedPair(i, addedIndex);
-		}
-		for (const i of removedUrls.keys()) {
-			if (usedRemoved.has(i)) continue;
-			const addedIndex = findMatchingAddedIndex((j) => normalizedRemoved[i].normalized === normalizedAdded[j].normalized);
-			if (addedIndex !== null) addChangedPair(i, addedIndex);
-		}
-		for (const i of removedUrls.keys()) {
-			if (usedRemoved.has(i)) continue;
-			const removedPath = normalizedRemoved[i].path;
-			if (!removedPath) continue;
-			const addedIndex = findMatchingAddedIndex((j) => removedPath === normalizedAdded[j].path);
-			if (addedIndex !== null) addChangedPair(i, addedIndex);
-		}
+		const matchRemainingUrls = (findAddedIndex) => {
+			for (const removedIndex of removedUrls.keys()) {
+				if (usedRemoved.has(removedIndex)) continue;
+				const addedIndex = findAddedIndex(removedIndex);
+				if (addedIndex !== null) addChangedPair(removedIndex, addedIndex);
+			}
+		};
+		matchRemainingUrls((removedIndex) => {
+			const removedUrl = removedUrls[removedIndex];
+			return findMatchingAddedIndex((addedIndex) => addedUrls[addedIndex] === `-${removedUrl}` || removedUrl === `-${addedUrls[addedIndex]}`);
+		});
+		matchRemainingUrls((removedIndex) => findMatchingAddedIndex((addedIndex) => normalizedRemoved[removedIndex].normalized === normalizedAdded[addedIndex].normalized));
+		matchRemainingUrls((removedIndex) => {
+			const removedPath = normalizedRemoved[removedIndex].path;
+			return removedPath ? findMatchingAddedIndex((addedIndex) => removedPath === normalizedAdded[addedIndex].path) : null;
+		});
 		const removedIds = removedUrls.map((url) => extractSignificantIds(url));
 		const addedIds = addedUrls.map((url) => extractSignificantIds(url));
-		for (const i of removedUrls.keys()) {
-			if (usedRemoved.has(i) || removedIds[i].length === 0) continue;
-			const addedIndex = findMatchingAddedIndex((j) => addedIds[j].length > 0 && removedIds[i].some((id) => addedIds[j].includes(id)));
-			if (addedIndex !== null) addChangedPair(i, addedIndex);
-		}
+		matchRemainingUrls((removedIndex) => {
+			if (removedIds[removedIndex].length === 0) return null;
+			return findMatchingAddedIndex((addedIndex) => addedIds[addedIndex].length > 0 && removedIds[removedIndex].some((id) => addedIds[addedIndex].includes(id)));
+		});
 		const candidates = [];
-		const collectSimilarityCandidates = (i) => {
-			for (let j = 0; j < addedUrls.length; j++) {
-				if (usedAdded.has(j)) continue;
-				const isSameDomain = normalizedRemoved[i].host === normalizedAdded[j].host;
-				const pathPrefixLen = longestCommonPrefix(normalizedRemoved[i].path, normalizedAdded[j].path);
+		const collectSimilarityCandidates = (removedIndex) => {
+			for (let addedIndex = 0; addedIndex < addedUrls.length; addedIndex++) {
+				if (usedAdded.has(addedIndex)) continue;
+				const isSameDomain = normalizedRemoved[removedIndex].host === normalizedAdded[addedIndex].host;
+				const pathPrefixLen = longestCommonPrefix(normalizedRemoved[removedIndex].path, normalizedAdded[addedIndex].path);
 				if (!isSameDomain && pathPrefixLen < 3) continue;
-				const similarity = calculateSimilarity(normalizedRemoved[i].normalized, normalizedAdded[j].normalized);
+				const similarity = calculateSimilarity(normalizedRemoved[removedIndex].normalized, normalizedAdded[addedIndex].normalized);
 				if (similarity > (isSameDomain ? .5 : .6)) candidates.push({
-					i,
-					j,
+					removedIndex,
+					addedIndex,
 					similarity
 				});
 			}
 		};
-		for (let i = 0; i < removedUrls.length; i++) if (!usedRemoved.has(i)) collectSimilarityCandidates(i);
+		for (const removedIndex of removedUrls.keys()) if (!usedRemoved.has(removedIndex)) collectSimilarityCandidates(removedIndex);
 		candidates.sort((a, b) => b.similarity - a.similarity);
-		for (const { i, j } of candidates) {
-			if (usedRemoved.has(i) || usedAdded.has(j)) continue;
-			addChangedPair(i, j);
+		for (const { removedIndex, addedIndex } of candidates) {
+			if (usedRemoved.has(removedIndex) || usedAdded.has(addedIndex)) continue;
+			addChangedPair(removedIndex, addedIndex);
 		}
-		for (const [i, removedUrl] of removedUrls.entries()) if (!usedRemoved.has(i)) pairs.push({
+		for (const [removedIndex, removedUrl] of removedUrls.entries()) if (!usedRemoved.has(removedIndex)) pairs.push({
 			removed: removedUrl,
 			added: null,
 			type: "removed"
 		});
-		for (const [j, addedUrl] of addedUrls.entries()) if (!usedAdded.has(j)) pairs.push({
+		for (const [addedIndex, addedUrl] of addedUrls.entries()) if (!usedAdded.has(addedIndex)) pairs.push({
 			removed: null,
 			added: addedUrl,
 			type: "added"
@@ -270,6 +268,10 @@
 	}
 	var DIFF_LIST_SELECTOR = "ul.diff-list:not([data-enhanced])";
 	var URLS_COLUMN_SELECTOR = "td.urls-column";
+	function appendTrimmedText(target, element) {
+		const text = element?.textContent?.trim();
+		if (text) target.push(text);
+	}
 	function hasUnenhancedDiffList(node) {
 		if (node.nodeType !== Node.ELEMENT_NODE) return false;
 		const el = node;
@@ -287,7 +289,7 @@
 			}, 100);
 		};
 		new MutationObserver((mutations) => {
-			for (const mutation of mutations) if (mutation.type === "childList" && [...mutation.addedNodes].some((node) => hasUnenhancedDiffList(node))) scheduleProcessDiffLists();
+			for (const mutation of mutations) if ([...mutation.addedNodes].some((node) => hasUnenhancedDiffList(node))) scheduleProcessDiffLists();
 		}).observe(document.body, {
 			childList: true,
 			subtree: true
@@ -301,24 +303,14 @@
 			const removedUrls = [];
 			const addedUrls = [];
 			for (const li of allItems) if (li.classList.contains("changed")) {
-				const removedSpan = li.querySelector(".removed");
-				const addedSpan = li.querySelector(".added");
-				const removedUrl = removedSpan?.textContent?.trim();
-				const addedUrl = addedSpan?.textContent?.trim();
-				if (removedUrl) removedUrls.push(removedUrl);
-				if (addedUrl) addedUrls.push(addedUrl);
-			} else if (li.classList.contains("removed")) {
-				const url = li.textContent?.trim();
-				if (url) removedUrls.push(url);
-			} else if (li.classList.contains("added")) {
-				const url = li.textContent?.trim();
-				if (url) addedUrls.push(url);
-			}
+				appendTrimmedText(removedUrls, li.querySelector(".removed"));
+				appendTrimmedText(addedUrls, li.querySelector(".added"));
+			} else if (li.classList.contains("removed")) appendTrimmedText(removedUrls, li);
+			else if (li.classList.contains("added")) appendTrimmedText(addedUrls, li);
 			if (removedUrls.length === 0 && addedUrls.length === 0) continue;
-			const listEl = diffList;
 			const optimizedPairs = optimizedDiff(removedUrls, addedUrls);
-			listEl.dataset.enhanced = "true";
-			listEl.innerHTML = generateDiffHTML(optimizedPairs);
+			diffList.dataset.enhanced = "true";
+			diffList.innerHTML = generateDiffHTML(optimizedPairs);
 		}
 	}
 	if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);

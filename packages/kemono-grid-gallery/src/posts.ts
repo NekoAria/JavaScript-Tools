@@ -26,9 +26,9 @@ const SITES: Readonly<Record<string, SiteConfig>> = {
     API_BASE_URL: 'https://kemono.cr/api/v1',
     IMAGE_BASE_URL: 'https://img.kemono.cr/thumbnail/data',
   },
-  'pawchive.st': {
-    API_BASE_URL: 'https://pawchive.st/api/v1',
-    IMAGE_BASE_URL: 'https://img.pawchive.st/thumbnail/data',
+  'pawchive.pw': {
+    API_BASE_URL: 'https://pawchive.pw/api/v1',
+    IMAGE_BASE_URL: 'https://img.pawchive.pw/thumbnail/data',
   },
 };
 const SUPPORTED_IMAGE_EXTENSIONS = new Set(['.bmp', '.gif', '.jpeg', '.jpg', '.png', '.webp']);

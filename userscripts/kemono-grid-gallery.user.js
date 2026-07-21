@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Kemono/Coomer/Pawchive Grid Gallery Layout
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      1.1.1
+// @version      1.1.2
 // @author       Neko_Aria
 // @description  Add a responsive grid gallery layout for the Kemono/Coomer/Pawchive thumbnails, using the first attachment image file as the cover
 // @license      MIT
@@ -10,7 +10,7 @@
 // @supportURL   https://github.com/NekoAria/JavaScript-Tools/issues
 // @match        https://coomer.st/*
 // @match        https://kemono.cr/*
-// @match        https://pawchive.st/*
+// @match        https://pawchive.pw/*
 // @grant        none
 // ==/UserScript==
 
@@ -141,9 +141,9 @@
 			API_BASE_URL: "https://kemono.cr/api/v1",
 			IMAGE_BASE_URL: "https://img.kemono.cr/thumbnail/data"
 		},
-		"pawchive.st": {
-			API_BASE_URL: "https://pawchive.st/api/v1",
-			IMAGE_BASE_URL: "https://img.pawchive.st/thumbnail/data"
+		"pawchive.pw": {
+			API_BASE_URL: "https://pawchive.pw/api/v1",
+			IMAGE_BASE_URL: "https://img.pawchive.pw/thumbnail/data"
 		}
 	};
 	var SUPPORTED_IMAGE_EXTENSIONS = new Set([

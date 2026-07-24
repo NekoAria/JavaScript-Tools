@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Artist Profile URLs Extractor
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      1.0.8
+// @version      1.0.9
 // @author       Neko_Aria
 // @description  Add a draggable floating button on supported artist profile pages that opens a modal with canonical profile URLs and copy actions
 // @homepageURL  https://github.com/NekoAria/JavaScript-Tools/tree/main/packages/artist-profile-urls-extractor
@@ -170,10 +170,10 @@
 		return createProfileResult(primaryUrl, `https://inkbunny.net/user.php?user_id=${userId}`);
 	};
 	var handleKoFi = () => {
+		const canonicalUrl = document.querySelector("link[rel='canonical'][href]")?.href;
 		const pageId = document.querySelector("[data-page-id]")?.dataset.pageId;
-		if (!pageId) return fail(utils.userNotFoundError("KoFi"));
-		const primaryUrl = location.href;
-		return createProfileResult(primaryUrl, `https://ko-fi.com/${pageId}`);
+		if (!canonicalUrl || !pageId) return fail(utils.userNotFoundError("KoFi"));
+		return createProfileResult(canonicalUrl, `https://ko-fi.com/${pageId}`);
 	};
 	var handleLofter = () => {
 		const controlFrame = document.querySelector("#control_frame");

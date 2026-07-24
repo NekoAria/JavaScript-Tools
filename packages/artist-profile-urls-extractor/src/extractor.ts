@@ -293,16 +293,16 @@ const handleInkbunny = () => {
 };
 
 const handleKoFi = () => {
+  const canonicalUrl = document.querySelector<HTMLLinkElement>("link[rel='canonical'][href]")?.href;
   const pageId = document.querySelector<HTMLElement>('[data-page-id]')?.dataset.pageId;
 
-  if (!pageId) {
+  if (!canonicalUrl || !pageId) {
     return fail(utils.userNotFoundError('KoFi'));
   }
 
-  const primaryUrl = location.href;
   const secondaryUrl = `https://ko-fi.com/${pageId}`;
 
-  return createProfileResult(primaryUrl, secondaryUrl);
+  return createProfileResult(canonicalUrl, secondaryUrl);
 };
 
 const handleLofter = () => {

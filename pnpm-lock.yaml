@@ -63,14 +63,14 @@ importers:
         specifier: ^1.73.0
         version: 1.73.0
       stylelint:
-        specifier: ^17.14.0
-        version: 17.14.0(typescript@6.0.3)
+        specifier: ^17.14.1
+        version: 17.14.1(typescript@6.0.3)
       stylelint-config-recess-order:
         specifier: ^7.7.0
-        version: 7.7.0(stylelint-order@8.1.1(stylelint@17.14.0(typescript@6.0.3)))(stylelint@17.14.0(typescript@6.0.3))
+        version: 7.7.0(stylelint-order@8.1.1(stylelint@17.14.1(typescript@6.0.3)))(stylelint@17.14.1(typescript@6.0.3))
       stylelint-order:
         specifier: ^8.1.1
-        version: 8.1.1(stylelint@17.14.0(typescript@6.0.3))
+        version: 8.1.1(stylelint@17.14.1(typescript@6.0.3))
       typescript-eslint:
         specifier: ^8.64.0
         version: 8.64.0(eslint@10.7.0(jiti@2.7.0))(typescript@6.0.3)
@@ -79,7 +79,7 @@ importers:
         version: 8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)
       vite-plugin-monkey:
         specifier: 'catalog:'
-        version: 8.0.6(postcss@8.5.19)(vite@8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
+        version: 8.0.6(postcss@8.5.23)(vite@8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
 
   packages/artist-profile-urls-extractor:
     devDependencies:
@@ -91,7 +91,7 @@ importers:
         version: 8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)
       vite-plugin-monkey:
         specifier: 'catalog:'
-        version: 8.0.6(postcss@8.5.19)(vite@8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
+        version: 8.0.6(postcss@8.5.23)(vite@8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
 
   packages/booru-image-comparator:
     dependencies:
@@ -107,7 +107,7 @@ importers:
         version: 8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)
       vite-plugin-monkey:
         specifier: 'catalog:'
-        version: 8.0.6(postcss@8.5.19)(vite@8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
+        version: 8.0.6(postcss@8.5.23)(vite@8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
 
   packages/danbooru-artist-tweaks:
     devDependencies:
@@ -119,7 +119,7 @@ importers:
         version: 8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)
       vite-plugin-monkey:
         specifier: 'catalog:'
-        version: 8.0.6(postcss@8.5.19)(vite@8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
+        version: 8.0.6(postcss@8.5.23)(vite@8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
 
   packages/danbooru-artist-url-diff-enhancer:
     devDependencies:
@@ -131,7 +131,7 @@ importers:
         version: 8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)
       vite-plugin-monkey:
         specifier: 'catalog:'
-        version: 8.0.6(postcss@8.5.19)(vite@8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
+        version: 8.0.6(postcss@8.5.23)(vite@8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
 
   packages/deviantart-base36-auto-converter:
     devDependencies:
@@ -140,7 +140,7 @@ importers:
         version: 8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)
       vite-plugin-monkey:
         specifier: 'catalog:'
-        version: 8.0.6(postcss@8.5.19)(vite@8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
+        version: 8.0.6(postcss@8.5.23)(vite@8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
 
   packages/kemono-grid-gallery:
     devDependencies:
@@ -152,7 +152,7 @@ importers:
         version: 8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)
       vite-plugin-monkey:
         specifier: 'catalog:'
-        version: 8.0.6(postcss@8.5.19)(vite@8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
+        version: 8.0.6(postcss@8.5.23)(vite@8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
 
 packages:
 
@@ -170,8 +170,8 @@ packages:
   '@cacheable/utils@2.5.0':
     resolution: {integrity: sha512-buipgOVDkkPXNR5+xBpDw7Zk2n1EvU7qBJCNUcL7rhQ//kfpOXPAvQ511Os0vpLYJ1pZnvudNytkQt2hst3wqA==}
 
-  '@csstools/css-calc@3.2.1':
-    resolution: {integrity: sha512-DtdHlgXh5ZkA43cwBcAm+huzgJiwx3ZTWVjBs94kwz2xKqSimDA3lBgCjphYgwgVUMWatSM0pDd8TILB1yrVVg==}
+  '@csstools/css-calc@3.3.0':
+    resolution: {integrity: sha512-c5ihYsPkdG6JCkU2zTMm4+k6r7RXuGxtWYhu5DHMIiF1FHzrfmHL5so11AoFpUv/tu61xfcmT4AmKoFfMPoqdQ==}
     engines: {node: '>=20.19.0'}
     peerDependencies:
       '@csstools/css-parser-algorithms': ^4.0.0
@@ -183,8 +183,8 @@ packages:
     peerDependencies:
       '@csstools/css-tokenizer': ^4.0.0
 
-  '@csstools/css-syntax-patches-for-csstree@1.1.6':
-    resolution: {integrity: sha512-TcJCWFbXLPpJYq6z7bfOyjWYJDiDg2/I4gyUC9pqPNqHFRIey0EB0q0L5cSnQDfWJg8Jd6VadakxdIez/3zkqQ==}
+  '@csstools/css-syntax-patches-for-csstree@1.1.7':
+    resolution: {integrity: sha512-fQ+05118eQS1cofO3aJpB5efgpBZMvIzwr/sbC8kDLVA5XLG8q1kJV5yzrUAI1f7lvhPnm8fgIjzFB8/O/5Dig==}
     peerDependencies:
       css-tree: ^3.2.1
     peerDependenciesMeta:
@@ -202,8 +202,8 @@ packages:
       '@csstools/css-parser-algorithms': ^4.0.0
       '@csstools/css-tokenizer': ^4.0.0
 
-  '@csstools/selector-resolve-nested@4.0.0':
-    resolution: {integrity: sha512-9vAPxmp+Dx3wQBIUwc1v7Mdisw1kbbaGqXUM8QLTgWg7SoPGYtXBsMXvsFs/0Bn5yoFhcktzxNZGNaUt0VjgjA==}
+  '@csstools/selector-resolve-nested@4.0.1':
+    resolution: {integrity: sha512-j3vdQu0XwLME5qOTWxm8cnmvsf423R2YL6DbKklCHZwkDm7UdKNu6RPlw4REIJhSlKBICY3B70/7QZdicLqZgg==}
     engines: {node: '>=20.19.0'}
     peerDependencies:
       postcss-selector-parser: ^7.1.1
@@ -1586,8 +1586,8 @@ packages:
   fast-levenshtein@2.0.6:
     resolution: {integrity: sha512-DCXu6Ifhqcks7TZKY3Hxp3y6qphY5SJZmrWMDrKcERSOXWQdMhU9Ig/PYrzyw/ul9jOIyh0N4M0tbC5hodg8dw==}
 
-  fast-uri@3.1.3:
-    resolution: {integrity: sha512-i70LwGWUduXqzicKXWshooq+sWL1K3WUU5rKZNG/0i3a1OSoX3HqhH5WbWwTmqWfor4urUakGPiRQcleRZTwOg==}
+  fast-uri@3.1.4:
+    resolution: {integrity: sha512-8JnbkQ4juDyvYs4mgFGQqg4yCYtFDtUtmp2QIQq11ZZe5CFQ5wcqm1rqDgAh/QdMySuBnPzMUiJUNZG5N/AiQw==}
 
   fastest-levenshtein@1.0.16:
     resolution: {integrity: sha512-eRnCtTTtGZFpQCwhJiUOuxPQWRXVKYDn0b2PeHfXL6/Zi53SLAzAHfVhVWK2AryC/WH05kGfxhFIPvTF0SXQzg==}
@@ -1636,6 +1636,9 @@ packages:
 
   flatted@3.4.2:
     resolution: {integrity: sha512-PjDse7RzhcPkIJwy5t7KPWQSZ9cAbzQXcafsetQoD7sOJRQlGikNbx7yZp2OotDnJyrDcbyRq3Ttb18iYOqkxA==}
+
+  flatted@3.4.3:
+    resolution: {integrity: sha512-/zipXxyO6rGvuNGDiULY9MvEGSkb2gaG4GGH4ygMi0ZZzyMHdUZBmntJmx5x1G2VuPytCwGN4xsJP6cw+sK+vQ==}
 
   formatly@0.3.0:
     resolution: {integrity: sha512-9XNj/o4wrRFyhSMJOvsuyMwy8aUfBaZ1VrqHVfohyXf0Sw0e+yfKG+xZaY3arGCOMdwFsqObtzVOc1gU9KiT9w==}
@@ -2173,6 +2176,10 @@ packages:
     resolution: {integrity: sha512-Mz8SaolMd8nB+G13WkORcxQKHZ/NE4xXevtkJHVuG+guo9/wYKlIMTKAqGdEmYOXR2ijPjTYNHssizdaVSUNdQ==}
     engines: {node: ^10 || ^12 || >=14}
 
+  postcss@8.5.23:
+    resolution: {integrity: sha512-g50586zr4bZmwFiTlflMu8E0bDTb5I5gertgwAKmsdUlTQIhZtunzUlD1WSzwcVWPoAVpsrA6vlfCD7oXvRwgg==}
+    engines: {node: ^10 || ^12 || >=14}
+
   powershell-utils@0.1.0:
     resolution: {integrity: sha512-dM0jVuXJPsDN6DvRpea484tCUaMiXWjuCn++HGTqUWzGDjv5tZkEZldAJ/UMlqRYGFrD/etByo4/xOuC/snX2A==}
     engines: {node: '>=20'}
@@ -2309,8 +2316,8 @@ packages:
     peerDependencies:
       stylelint: ^16.18.0 || ^17.0.0
 
-  stylelint@17.14.0:
-    resolution: {integrity: sha512-8xkHPpdqYryeIsOgfsYTmr6cIeC4nLYWk5S8BPxpodq8mIuepggkMljsHewWfuAjj/+qpRKou2QerhjMH3iasg==}
+  stylelint@17.14.1:
+    resolution: {integrity: sha512-xVQwyiuxALUBNB2fBe0tmNemg9KqLtdj3T64mioFDar79B2cU8LIyz+3KL6LdiHs9NkeNfwxpKSaIVOY8f112g==}
     engines: {node: '>=20.19.0'}
     hasBin: true
 
@@ -2517,7 +2524,7 @@ snapshots:
       hashery: 1.5.1
       keyv: 5.6.0
 
-  '@csstools/css-calc@3.2.1(@csstools/css-parser-algorithms@4.0.0(@csstools/css-tokenizer@4.0.0))(@csstools/css-tokenizer@4.0.0)':
+  '@csstools/css-calc@3.3.0(@csstools/css-parser-algorithms@4.0.0(@csstools/css-tokenizer@4.0.0))(@csstools/css-tokenizer@4.0.0)':
     dependencies:
       '@csstools/css-parser-algorithms': 4.0.0(@csstools/css-tokenizer@4.0.0)
       '@csstools/css-tokenizer': 4.0.0
@@ -2526,7 +2533,7 @@ snapshots:
     dependencies:
       '@csstools/css-tokenizer': 4.0.0
 
-  '@csstools/css-syntax-patches-for-csstree@1.1.6(css-tree@3.2.1)':
+  '@csstools/css-syntax-patches-for-csstree@1.1.7(css-tree@3.2.1)':
     optionalDependencies:
       css-tree: 3.2.1
 
@@ -2537,7 +2544,7 @@ snapshots:
       '@csstools/css-parser-algorithms': 4.0.0(@csstools/css-tokenizer@4.0.0)
       '@csstools/css-tokenizer': 4.0.0
 
-  '@csstools/selector-resolve-nested@4.0.0(postcss-selector-parser@7.1.4)':
+  '@csstools/selector-resolve-nested@4.0.1(postcss-selector-parser@7.1.4)':
     dependencies:
       postcss-selector-parser: 7.1.4
 
@@ -3298,7 +3305,7 @@ snapshots:
   ajv@8.20.0:
     dependencies:
       fast-deep-equal: 3.1.3
-      fast-uri: 3.1.3
+      fast-uri: 3.1.4
       json-schema-traverse: 1.0.0
       require-from-string: 2.0.2
 
@@ -3620,7 +3627,7 @@ snapshots:
 
   fast-levenshtein@2.0.6: {}
 
-  fast-uri@3.1.3: {}
+  fast-uri@3.1.4: {}
 
   fastest-levenshtein@1.0.16: {}
 
@@ -3663,10 +3670,12 @@ snapshots:
   flat-cache@6.1.23:
     dependencies:
       cacheable: 2.5.0
-      flatted: 3.4.2
+      flatted: 3.4.3
       hookified: 1.15.1
 
   flatted@3.4.2: {}
+
+  flatted@3.4.3: {}
 
   formatly@0.3.0:
     dependencies:
@@ -4147,9 +4156,9 @@ snapshots:
 
   pluralize@8.0.0: {}
 
-  postcss-safe-parser@7.0.1(postcss@8.5.19):
+  postcss-safe-parser@7.0.1(postcss@8.5.23):
     dependencies:
-      postcss: 8.5.19
+      postcss: 8.5.23
 
   postcss-selector-parser@7.1.4:
     dependencies:
@@ -4160,12 +4169,12 @@ snapshots:
     dependencies:
       postcss: 8.5.15
 
-  postcss-url@10.1.3(postcss@8.5.19):
+  postcss-url@10.1.3(postcss@8.5.23):
     dependencies:
       make-dir: 3.1.0
       mime: 2.5.2
       minimatch: 3.0.8
-      postcss: 8.5.19
+      postcss: 8.5.23
       xxhashjs: 0.2.2
 
   postcss-value-parser@4.2.0: {}
@@ -4177,6 +4186,12 @@ snapshots:
       source-map-js: 1.2.1
 
   postcss@8.5.19:
+    dependencies:
+      nanoid: 3.3.16
+      picocolors: 1.1.1
+      source-map-js: 1.2.1
+
+  postcss@8.5.23:
     dependencies:
       nanoid: 3.3.16
       picocolors: 1.1.1
@@ -4315,25 +4330,25 @@ snapshots:
 
   strip-json-comments@5.0.3: {}
 
-  stylelint-config-recess-order@7.7.0(stylelint-order@8.1.1(stylelint@17.14.0(typescript@6.0.3)))(stylelint@17.14.0(typescript@6.0.3)):
+  stylelint-config-recess-order@7.7.0(stylelint-order@8.1.1(stylelint@17.14.1(typescript@6.0.3)))(stylelint@17.14.1(typescript@6.0.3)):
     dependencies:
-      stylelint: 17.14.0(typescript@6.0.3)
-      stylelint-order: 8.1.1(stylelint@17.14.0(typescript@6.0.3))
+      stylelint: 17.14.1(typescript@6.0.3)
+      stylelint-order: 8.1.1(stylelint@17.14.1(typescript@6.0.3))
 
-  stylelint-order@8.1.1(stylelint@17.14.0(typescript@6.0.3)):
+  stylelint-order@8.1.1(stylelint@17.14.1(typescript@6.0.3)):
     dependencies:
       postcss: 8.5.15
       postcss-sorting: 10.0.0(postcss@8.5.15)
-      stylelint: 17.14.0(typescript@6.0.3)
+      stylelint: 17.14.1(typescript@6.0.3)
 
-  stylelint@17.14.0(typescript@6.0.3):
+  stylelint@17.14.1(typescript@6.0.3):
     dependencies:
-      '@csstools/css-calc': 3.2.1(@csstools/css-parser-algorithms@4.0.0(@csstools/css-tokenizer@4.0.0))(@csstools/css-tokenizer@4.0.0)
+      '@csstools/css-calc': 3.3.0(@csstools/css-parser-algorithms@4.0.0(@csstools/css-tokenizer@4.0.0))(@csstools/css-tokenizer@4.0.0)
       '@csstools/css-parser-algorithms': 4.0.0(@csstools/css-tokenizer@4.0.0)
-      '@csstools/css-syntax-patches-for-csstree': 1.1.6(css-tree@3.2.1)
+      '@csstools/css-syntax-patches-for-csstree': 1.1.7(css-tree@3.2.1)
       '@csstools/css-tokenizer': 4.0.0
       '@csstools/media-query-list-parser': 5.0.0(@csstools/css-parser-algorithms@4.0.0(@csstools/css-tokenizer@4.0.0))(@csstools/css-tokenizer@4.0.0)
-      '@csstools/selector-resolve-nested': 4.0.0(postcss-selector-parser@7.1.4)
+      '@csstools/selector-resolve-nested': 4.0.1(postcss-selector-parser@7.1.4)
       '@csstools/selector-specificity': 6.0.0(postcss-selector-parser@7.1.4)
       colord: 2.9.3
       cosmiconfig: 9.0.2(typescript@6.0.3)
@@ -4354,8 +4369,8 @@ snapshots:
       micromatch: 4.0.8
       normalize-path: 3.0.0
       picocolors: 1.1.1
-      postcss: 8.5.19
-      postcss-safe-parser: 7.0.1(postcss@8.5.19)
+      postcss: 8.5.23
+      postcss-safe-parser: 7.0.1(postcss@8.5.23)
       postcss-selector-parser: 7.1.4
       postcss-value-parser: 4.2.0
       string-width: 8.2.2
@@ -4449,7 +4464,7 @@ snapshots:
 
   util-deprecate@1.0.2: {}
 
-  vite-plugin-monkey@8.0.6(postcss@8.5.19)(vite@8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)):
+  vite-plugin-monkey@8.0.6(postcss@8.5.23)(vite@8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)):
     dependencies:
       acorn-walk: 8.3.5
       cross-spawn: 7.0.6
@@ -4459,7 +4474,7 @@ snapshots:
       mrmime: 2.0.1
       open: 11.0.0
       picocolors: 1.1.1
-      postcss-url: 10.1.3(postcss@8.5.19)
+      postcss-url: 10.1.3(postcss@8.5.23)
       rollup: 4.60.3
       systemjs: 6.15.1
     optionalDependencies:

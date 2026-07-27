@@ -13,8 +13,8 @@ catalogs:
       specifier: 8.1.5
       version: 8.1.5
     vite-plugin-monkey:
-      specifier: 8.0.6
-      version: 8.0.6
+      specifier: 8.1.0
+      version: 8.1.0
 
 importers:
 
@@ -79,7 +79,7 @@ importers:
         version: 8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)
       vite-plugin-monkey:
         specifier: 'catalog:'
-        version: 8.0.6(postcss@8.5.23)(vite@8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
+        version: 8.1.0(postcss@8.5.23)(vite@8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
 
   packages/artist-profile-urls-extractor:
     devDependencies:
@@ -91,7 +91,7 @@ importers:
         version: 8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)
       vite-plugin-monkey:
         specifier: 'catalog:'
-        version: 8.0.6(postcss@8.5.23)(vite@8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
+        version: 8.1.0(postcss@8.5.23)(vite@8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
 
   packages/booru-image-comparator:
     dependencies:
@@ -107,7 +107,7 @@ importers:
         version: 8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)
       vite-plugin-monkey:
         specifier: 'catalog:'
-        version: 8.0.6(postcss@8.5.23)(vite@8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
+        version: 8.1.0(postcss@8.5.23)(vite@8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
 
   packages/danbooru-artist-tweaks:
     devDependencies:
@@ -119,7 +119,7 @@ importers:
         version: 8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)
       vite-plugin-monkey:
         specifier: 'catalog:'
-        version: 8.0.6(postcss@8.5.23)(vite@8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
+        version: 8.1.0(postcss@8.5.23)(vite@8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
 
   packages/danbooru-artist-url-diff-enhancer:
     devDependencies:
@@ -131,7 +131,7 @@ importers:
         version: 8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)
       vite-plugin-monkey:
         specifier: 'catalog:'
-        version: 8.0.6(postcss@8.5.23)(vite@8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
+        version: 8.1.0(postcss@8.5.23)(vite@8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
 
   packages/deviantart-base36-auto-converter:
     devDependencies:
@@ -140,7 +140,7 @@ importers:
         version: 8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)
       vite-plugin-monkey:
         specifier: 'catalog:'
-        version: 8.0.6(postcss@8.5.23)(vite@8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
+        version: 8.1.0(postcss@8.5.23)(vite@8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
 
   packages/kemono-grid-gallery:
     devDependencies:
@@ -152,7 +152,7 @@ importers:
         version: 8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)
       vite-plugin-monkey:
         specifier: 'catalog:'
-        version: 8.0.6(postcss@8.5.23)(vite@8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
+        version: 8.1.0(postcss@8.5.23)(vite@8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
 
 packages:
 
@@ -1275,11 +1275,6 @@ packages:
   acorn-walk@8.3.5:
     resolution: {integrity: sha512-HEHNfbars9v4pgpW6SO1KSPkfoS0xVOM/9UzkJltjlsHZmJasxg8aXkuZa7SMf8vKGIBhpUsPluQSqhJFCqebw==}
     engines: {node: '>=0.4.0'}
-
-  acorn@8.16.0:
-    resolution: {integrity: sha512-UVJyE9MttOsBQIDKw1skb9nAwQuR5wuGD3+82K6JgJlm/Y+KI92oNsMNGZCYdDsVtRHSak0pcV5Dno5+4jh9sw==}
-    engines: {node: '>=0.4.0'}
-    hasBin: true
 
   acorn@8.17.0:
     resolution: {integrity: sha512-xRQbDb9BnwDafYNn6Vwl839DYVjqXYb1XVGtWAZ1kcDc6iwAL4hg3B1dZlRiuENFeO2H53gFG3in621AdERVAg==}
@@ -2408,8 +2403,8 @@ packages:
   util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
 
-  vite-plugin-monkey@8.0.6:
-    resolution: {integrity: sha512-DpNKGLpATKMiFh0m0UaT85oEZYUJ4gtKeaTmL/zyR2jmCmuuybJGC1iI5+wJzLASZpdkTF055UDxVfHtF1RlNQ==}
+  vite-plugin-monkey@8.1.0:
+    resolution: {integrity: sha512-/fsxr3qV/GdKyyG1v6uK55RGDm0z95Ym+VkoEWZ7YKZ26eT7XelwBIqzo30Nc37bxuHxlr8TyVkxrb7p8KEHjg==}
     peerDependencies:
       vite: ^8.0.0
     peerDependenciesMeta:
@@ -3289,9 +3284,7 @@ snapshots:
 
   acorn-walk@8.3.5:
     dependencies:
-      acorn: 8.16.0
-
-  acorn@8.16.0: {}
+      acorn: 8.17.0
 
   acorn@8.17.0: {}
 
@@ -4464,7 +4457,7 @@ snapshots:
 
   util-deprecate@1.0.2: {}
 
-  vite-plugin-monkey@8.0.6(postcss@8.5.23)(vite@8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)):
+  vite-plugin-monkey@8.1.0(postcss@8.5.23)(vite@8.1.5(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)):
     dependencies:
       acorn-walk: 8.3.5
       cross-spawn: 7.0.6

@@ -110,9 +110,9 @@
 		};
 	}
 	function setupHistoryListener(methodName, handleUrlChange) {
-		const originalMethod = history[methodName];
-		const wrappedMethod = function(...args) {
-			const result = Reflect.apply(originalMethod, history, args);
+		const originalMethod = history[methodName].bind(history);
+		const wrappedMethod = (...args) => {
+			const result = originalMethod(...args);
 			handleUrlChange();
 			return result;
 		};

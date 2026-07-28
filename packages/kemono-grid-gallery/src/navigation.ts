@@ -20,9 +20,9 @@ export function getCurrentUserPath(): UserPath | null {
 }
 
 function setupHistoryListener(methodName: HistoryMethodName, handleUrlChange: () => void): void {
-  const originalMethod: History['pushState'] = history[methodName];
-  const wrappedMethod: History['pushState'] = function (...args) {
-    const result = Reflect.apply(originalMethod, history, args);
+  const originalMethod = history[methodName].bind(history);
+  const wrappedMethod: History['pushState'] = (...args) => {
+    const result = originalMethod(...args);
 
     handleUrlChange();
 

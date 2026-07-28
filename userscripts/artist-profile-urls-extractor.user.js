@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Artist Profile URLs Extractor
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      1.0.10
+// @version      1.0.11
 // @author       Neko_Aria
 // @description  Add a draggable floating button on supported artist profile pages that opens a modal with canonical profile URLs and copy actions
 // @homepageURL  https://github.com/NekoAria/JavaScript-Tools/tree/main/packages/artist-profile-urls-extractor
@@ -305,17 +305,27 @@
 		return profileName;
 	};
 	var normalizeTwitterProfileName = (profileName) => profileName.replace(/^@/, "").toLowerCase();
+	var createMatchingTwitterUserEntity = (additionalName, identifier, expectedName) => {
+		if (!additionalName || typeof identifier !== "string" && typeof identifier !== "number" || normalizeTwitterProfileName(additionalName) !== expectedName) return null;
+		return {
+			additionalName,
+			identifier
+		};
+	};
 	var findTwitterUserEntity = (root, expectedProfileName) => {
 		const expectedName = normalizeTwitterProfileName(expectedProfileName);
 		const scriptTags = root.querySelectorAll("script[type='application/ld+json']");
 		for (const scriptTag of scriptTags) {
 			const userEntity = getRecord(utils.safeJsonParse(scriptTag.textContent), "mainEntity");
-			const additionalName = getString(userEntity, "additionalName");
-			const identifier = userEntity?.identifier;
-			if (additionalName && (typeof identifier === "string" || typeof identifier === "number") && normalizeTwitterProfileName(additionalName) === expectedName) return {
-				additionalName,
-				identifier
-			};
+			const matchedEntity = createMatchingTwitterUserEntity(getString(userEntity, "additionalName"), userEntity?.identifier, expectedName);
+			if (matchedEntity) return matchedEntity;
+		}
+		const microdataEntities = root.querySelectorAll("[itemprop~='mainEntity'][itemscope][itemtype~='https://schema.org/Person']");
+		for (const microdataEntity of microdataEntities) {
+			const additionalName = microdataEntity.querySelector(":scope > meta[itemprop~='additionalName'][content]")?.content;
+			const identifier = microdataEntity.querySelector(":scope > meta[itemprop~='identifier'][content]")?.content;
+			const matchedEntity = createMatchingTwitterUserEntity(additionalName, identifier, expectedName);
+			if (matchedEntity) return matchedEntity;
 		}
 		return null;
 	};

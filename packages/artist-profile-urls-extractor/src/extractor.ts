@@ -227,7 +227,7 @@ const handleFacebook = () => {
 };
 
 const handleFantia = () => {
-  const creatorProfileLink = document.querySelector<HTMLAnchorElement>('.fanclub-header a');
+  const creatorProfileLink = document.querySelector('.fanclub-header a');
 
   if (!creatorProfileLink) {
     return fail(utils.userNotFoundError('Fantia'));
@@ -329,7 +329,7 @@ const handleLofter = () => {
 
 const handleMihuashi = async () => {
   const { pathname } = location;
-  const usernameElement = document.querySelector<HTMLElement>('h2.user-profile__name');
+  const usernameElement = document.querySelector('h2.user-profile__name');
 
   if (!usernameElement) {
     return fail(utils.userNotFoundError('Mihuashi'));
@@ -593,25 +593,58 @@ const getTwitterProfileName = (): string => {
 const normalizeTwitterProfileName = (profileName: string): string =>
   profileName.replace(/^@/, '').toLowerCase();
 
+const createMatchingTwitterUserEntity = (
+  additionalName: string | null | undefined,
+  identifier: unknown,
+  expectedName: string,
+): TwitterUserEntity | null => {
+  if (
+    !additionalName ||
+    (typeof identifier !== 'string' && typeof identifier !== 'number') ||
+    normalizeTwitterProfileName(additionalName) !== expectedName
+  ) {
+    return null;
+  }
+
+  return { additionalName, identifier };
+};
+
 const findTwitterUserEntity = (
   root: ParentNode,
   expectedProfileName: string,
 ): TwitterUserEntity | null => {
   const expectedName = normalizeTwitterProfileName(expectedProfileName);
-  const scriptTags = root.querySelectorAll<HTMLScriptElement>("script[type='application/ld+json']");
+  const scriptTags = root.querySelectorAll("script[type='application/ld+json']");
 
   for (const scriptTag of scriptTags) {
     const structuredData = utils.safeJsonParse(scriptTag.textContent);
     const userEntity = getRecord(structuredData, 'mainEntity');
-    const additionalName = getString(userEntity, 'additionalName');
-    const identifier = userEntity?.identifier;
+    const matchedEntity = createMatchingTwitterUserEntity(
+      getString(userEntity, 'additionalName'),
+      userEntity?.identifier,
+      expectedName,
+    );
 
-    if (
-      additionalName &&
-      (typeof identifier === 'string' || typeof identifier === 'number') &&
-      normalizeTwitterProfileName(additionalName) === expectedName
-    ) {
-      return { additionalName, identifier };
+    if (matchedEntity) {
+      return matchedEntity;
+    }
+  }
+
+  const microdataEntities = root.querySelectorAll(
+    "[itemprop~='mainEntity'][itemscope][itemtype~='https://schema.org/Person']",
+  );
+
+  for (const microdataEntity of microdataEntities) {
+    const additionalName = microdataEntity.querySelector<HTMLMetaElement>(
+      ":scope > meta[itemprop~='additionalName'][content]",
+    )?.content;
+    const identifier = microdataEntity.querySelector<HTMLMetaElement>(
+      ":scope > meta[itemprop~='identifier'][content]",
+    )?.content;
+    const matchedEntity = createMatchingTwitterUserEntity(additionalName, identifier, expectedName);
+
+    if (matchedEntity) {
+      return matchedEntity;
     }
   }
 

@@ -19,7 +19,7 @@
 		return value.map((item) => {
 			if (!isRecord$1(item)) throw new TypeError("Invalid pending BUR response item");
 			const { forum_post_id: forumPostId, id, script } = item;
-			if (typeof id !== "number" && typeof id !== "string" || typeof script !== "string") throw new TypeError("Invalid pending BUR fields");
+			if (typeof script !== "string" || typeof id !== "number" && typeof id !== "string") throw new TypeError("Invalid pending BUR fields");
 			if (forumPostId !== void 0 && forumPostId !== null && typeof forumPostId !== "number" && typeof forumPostId !== "string") throw new TypeError("Invalid pending BUR forum post ID");
 			return {
 				forumPostId: forumPostId ?? null,
@@ -69,7 +69,7 @@
 		const fineprintLinks = document.querySelectorAll("p.fineprint a");
 		for (const link of fineprintLinks) {
 			const href = link.getAttribute("href");
-			if (href?.startsWith("/wiki_pages/") && href !== "/wiki_pages/help:tag_aliases") {
+			if (href !== "/wiki_pages/help:tag_aliases" && href?.startsWith("/wiki_pages/")) {
 				const newHref = `/bulk_update_requests?commit=search[status]=approved&search[tags_include_any]=${href.replace("/wiki_pages/", "")}`;
 				link.setAttribute("href", newHref);
 			}

@@ -408,7 +408,7 @@
 		}
 		const blogUrl = blog?.url || blog?.blogViewUrl || blog?.blog_view_url;
 		const primaryUrl = typeof blogUrl === "string" ? blogUrl.replace(/^http:/, "https:").replace(/\/$/, "") : null;
-		if (!blog?.uuid || !primaryUrl) return fail(utils.userNotFoundError("Tumblr"));
+		if (!primaryUrl || !blog?.uuid) return fail(utils.userNotFoundError("Tumblr"));
 		return createProfileResult(primaryUrl, `https://www.tumblr.com/blog/view/${blog.uuid}`);
 	};
 	var handleWeibo = () => {

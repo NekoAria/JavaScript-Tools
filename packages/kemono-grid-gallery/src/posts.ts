@@ -39,7 +39,7 @@ function buildPostAttachmentMap(posts: Post[]): Map<string, string> {
   for (const post of posts) {
     const imagePath = getFirstImagePath(post);
 
-    if (post.id != null && imagePath) {
+    if (imagePath && post.id != null) {
       postAttachments.set(String(post.id), imagePath);
     }
   }

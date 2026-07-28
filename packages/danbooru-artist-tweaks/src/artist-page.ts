@@ -21,7 +21,7 @@ const parsePendingBulkUpdateRequests = (value: unknown): PendingBulkUpdateReques
 
     const { forum_post_id: forumPostId, id, script } = item;
 
-    if ((typeof id !== 'number' && typeof id !== 'string') || typeof script !== 'string') {
+    if (typeof script !== 'string' || (typeof id !== 'number' && typeof id !== 'string')) {
       throw new TypeError('Invalid pending BUR fields');
     }
     if (
@@ -94,7 +94,7 @@ const replaceWikiLinksWithBulkUpdateRequests = (): void => {
   for (const link of fineprintLinks) {
     const href = link.getAttribute('href');
 
-    if (href?.startsWith('/wiki_pages/') && href !== '/wiki_pages/help:tag_aliases') {
+    if (href !== '/wiki_pages/help:tag_aliases' && href?.startsWith('/wiki_pages/')) {
       // Keep the tag alias help page intact; other wiki links point to alias targets.
       const tagName = href.replace('/wiki_pages/', '');
       const newHref = `/bulk_update_requests?commit=search[status]=approved&search[tags_include_any]=${tagName}`;

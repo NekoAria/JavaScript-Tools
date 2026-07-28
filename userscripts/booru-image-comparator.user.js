@@ -1088,7 +1088,7 @@
 	}
 	function addPostFromPreview(el, isParent, postId, posts) {
 		const { id } = el.dataset;
-		if (!id || !el.querySelector(".post-preview-image") || id === postId || posts.some((p) => p.id === id)) return;
+		if (!id || id === postId || !el.querySelector(".post-preview-image") || posts.some((p) => p.id === id)) return;
 		const parentId = document.body.dataset.postParentId;
 		const relationshipType = isParent ? id === parentId ? "Parent" : "Sibling" : "Child";
 		posts.push({

@@ -15,8 +15,8 @@ function addPostFromPreview(
 
   if (
     !id ||
-    !el.querySelector('.post-preview-image') ||
     id === postId ||
+    !el.querySelector('.post-preview-image') ||
     posts.some((p) => p.id === id)
   ) {
     return;

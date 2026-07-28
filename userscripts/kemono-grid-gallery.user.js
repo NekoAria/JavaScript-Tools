@@ -158,7 +158,7 @@
 		const postAttachments = new Map();
 		for (const post of posts) {
 			const imagePath = getFirstImagePath(post);
-			if (post.id != null && imagePath) postAttachments.set(String(post.id), imagePath);
+			if (imagePath && post.id != null) postAttachments.set(String(post.id), imagePath);
 		}
 		return postAttachments;
 	}

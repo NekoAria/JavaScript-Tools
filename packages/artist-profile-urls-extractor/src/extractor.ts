@@ -797,7 +797,7 @@ const handleTumblr = async () => {
   const primaryUrl =
     typeof blogUrl === 'string' ? blogUrl.replace(/^http:/, 'https:').replace(/\/$/, '') : null;
 
-  if (!blog?.uuid || !primaryUrl) {
+  if (!primaryUrl || !blog?.uuid) {
     return fail(utils.userNotFoundError('Tumblr'));
   }
 

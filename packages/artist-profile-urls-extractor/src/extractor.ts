@@ -271,16 +271,18 @@ const handleGumroad = () => {
 };
 
 const handleInkbunny = () => {
-  const watchListLink = document
-    .querySelector('a[href^="watchlist_process.php"]')
+  const watchWidgetUserId = document
+    .querySelector('#watch_button[user_id], #watch_unwatch[user_id]')
+    ?.getAttribute('user_id');
+  const legacyWatchListHref = document
+    .querySelector('a[href*="watchlist_process.php"][href*="user_id="]')
     ?.getAttribute('href');
-
-  if (!watchListLink) {
-    return fail(utils.userNotFoundError('Inkbunny'));
-  }
-
-  const watchListUrl = new URL(watchListLink, location.origin);
-  const userId = watchListUrl.searchParams.get('user_id');
+  const legacyUserId = legacyWatchListHref
+    ? new URL(legacyWatchListHref, location.origin).searchParams.get('user_id')
+    : null;
+  const userId = [watchWidgetUserId, legacyUserId].find(
+    (candidate) => typeof candidate === 'string' && /^\d+$/.test(candidate),
+  );
 
   if (!userId) {
     return fail(utils.userNotFoundError('Inkbunny'));

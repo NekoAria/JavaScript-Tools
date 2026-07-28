@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Artist Profile URLs Extractor
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      1.0.9
+// @version      1.0.10
 // @author       Neko_Aria
 // @description  Add a draggable floating button on supported artist profile pages that opens a modal with canonical profile URLs and copy actions
 // @homepageURL  https://github.com/NekoAria/JavaScript-Tools/tree/main/packages/artist-profile-urls-extractor
@@ -162,9 +162,9 @@
 		return createProfileResult(primaryUrl, externalId ? `https://${externalId}.gumroad.com` : null);
 	};
 	var handleInkbunny = () => {
-		const watchListLink = document.querySelector("a[href^=\"watchlist_process.php\"]")?.getAttribute("href");
-		if (!watchListLink) return fail(utils.userNotFoundError("Inkbunny"));
-		const userId = new URL(watchListLink, location.origin).searchParams.get("user_id");
+		const watchWidgetUserId = document.querySelector("#watch_button[user_id], #watch_unwatch[user_id]")?.getAttribute("user_id");
+		const legacyWatchListHref = document.querySelector("a[href*=\"watchlist_process.php\"][href*=\"user_id=\"]")?.getAttribute("href");
+		const userId = [watchWidgetUserId, legacyWatchListHref ? new URL(legacyWatchListHref, location.origin).searchParams.get("user_id") : null].find((candidate) => typeof candidate === "string" && /^\d+$/.test(candidate));
 		if (!userId) return fail(utils.userNotFoundError("Inkbunny"));
 		const primaryUrl = location.href;
 		return createProfileResult(primaryUrl, `https://inkbunny.net/user.php?user_id=${userId}`);

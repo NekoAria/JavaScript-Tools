@@ -16,10 +16,11 @@ import {
   destroyOverlayZoom,
   isOverlayMode,
   resetZoom,
+  setPanZoomSync,
 } from './panzoom';
 import { $ } from './shadow';
 import { unbindSlider } from './slider';
-import { persistBackground, persistMode } from './storage';
+import { persistBackground, persistMode, persistPanZoomSync } from './storage';
 import { applyTransforms, resetTransforms, rotateTransform, toggleTransform } from './transform';
 
 interface ComparatorCallbacks {
@@ -99,6 +100,19 @@ function bindModeEvents(on: EventBinder, state: StateManager): void {
     () => {
       updateMode(state);
       persistMode();
+    },
+    'change',
+  );
+  on(
+    'sync-pan-zoom',
+    () => {
+      const checkbox = $<HTMLInputElement>('#sync-pan-zoom');
+
+      if (!checkbox) {
+        return;
+      }
+      setPanZoomSync(state, checkbox.checked);
+      persistPanZoomSync(checkbox.checked);
     },
     'change',
   );

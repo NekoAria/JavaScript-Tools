@@ -8,8 +8,10 @@ export interface AppState {
   postId: string | null;
   searchUrl: string | null;
   mode: ModeType;
+  isPanZoomSynced: boolean;
+  lastInteractedSide: SideType;
   transforms: TransformsState;
-  zoomState: ZoomState;
+  zoomStates: ZoomStates;
   panzoomInstances: PanzoomInstances;
   eventCleanup: Array<() => void>;
   originalImageUrl: string | null;
@@ -51,6 +53,18 @@ export interface TransformState {
   rotation: 0 | 90 | 180 | 270;
 }
 
+export interface ZoomState {
+  scale: number;
+  x: number;
+  y: number;
+}
+
+export interface ZoomStates {
+  left: ZoomState;
+  right: ZoomState;
+  overlay: ZoomState;
+}
+
 interface PanzoomInstances {
   left?: PanzoomObject | null;
   right?: PanzoomObject | null;
@@ -60,10 +74,4 @@ interface PanzoomInstances {
 interface TransformsState {
   left: TransformState;
   right: TransformState;
-}
-
-interface ZoomState {
-  scale: number;
-  x: number;
-  y: number;
 }

@@ -1,22 +1,18 @@
-import type { AppState, ModeType, StateManager } from './types';
+import type { ModeType, SideType, StateManager, ZoomState, ZoomStates } from './types';
 
 import Panzoom, { type PanzoomGlobalOptions, type PanzoomObject } from '@panzoom/panzoom';
 
-import { DIVIDER_WIDTH, LAYOUT_FLUSH_MS, MODES } from './constants';
+import { DEFAULT_ZOOM_STATE, DIVIDER_WIDTH, LAYOUT_FLUSH_MS, MODES } from './constants';
 import { $ } from './shadow';
 
 /** Track wheel listeners without polluting HTMLElement. */
 const wheelListeners = new WeakMap<HTMLElement, (e: WheelEvent) => void>();
 const OVERLAY_MODES: ReadonlySet<ModeType> = new Set([MODES.SLIDER, MODES.FADE, MODES.DIFFERENCE]);
+const ZOOM_TARGETS = ['left', 'right', 'overlay'] as const;
 
-/** Return the currently active Panzoom instance, preferring overlay over side-by-side panels. */
-function activeZoomInstance(appState: AppState): PanzoomObject | null {
-  return (
-    appState.panzoomInstances.overlay ??
-    appState.panzoomInstances.left ??
-    appState.panzoomInstances.right ??
-    null
-  );
+function applyZoomState(instance: PanzoomObject, zoomState: ZoomState): void {
+  instance.zoom(zoomState.scale, { animate: false, silent: true });
+  instance.pan(zoomState.x, zoomState.y, { animate: false, silent: true });
 }
 
 /**
@@ -29,7 +25,6 @@ export function applyZoomTransition(
   fromMode: ModeType,
   toMode: ModeType,
 ): void {
-  const { zoomState } = state.get();
   const isFromOverlay = isOverlayMode(fromMode);
   const isToOverlay = isOverlayMode(toMode);
 
@@ -37,38 +32,22 @@ export function applyZoomTransition(
     return;
   }
 
-  const refImg = $<HTMLImageElement>('#left-image');
-  const content = $<HTMLElement>('#comparison-content');
+  const anchorSide = resolveAnchorSide(state);
+  const { zoomStates } = state.get();
+  const source = isFromOverlay ? zoomStates.overlay : zoomStates[anchorSide];
+  const transitioned = transitionZoomState(source, fromMode, anchorSide);
 
-  if (!refImg || !content || !refImg.naturalWidth) {
+  if (isToOverlay) {
+    state.update('zoomStates', { ...zoomStates, overlay: transitioned });
+
     return;
   }
 
-  const divider = $<HTMLElement>('#comparison-divider');
-  const divW = divider?.getBoundingClientRect().width || DIVIDER_WIDTH;
-  const sideW = (content.clientWidth - divW) / 2;
-  // Calculate displayed image height for a given container width while preserving aspect ratio
-  const computeImageHeight = (img: HTMLImageElement, w: number) => {
-    if (!img.naturalWidth || !img.naturalHeight) {
-      return content.clientHeight;
-    }
-
-    return img.naturalWidth / img.naturalHeight > w / content.clientHeight
-      ? w / (img.naturalWidth / img.naturalHeight)
-      : content.clientHeight;
-  };
-
-  const sideBySideH = computeImageHeight(refImg, sideW);
-  const overlayH = computeImageHeight(refImg, content.clientWidth);
-  const ratio = isFromOverlay && !isToOverlay ? overlayH / sideBySideH : sideBySideH / overlayH;
-
-  if (ratio !== 1) {
-    state.update('zoomState', {
-      ...zoomState,
-      scale: Math.max(0.1, zoomState.scale * ratio),
-      y: zoomState.y * ratio,
-    });
-  }
+  state.update('zoomStates', {
+    ...zoomStates,
+    left: { ...transitioned },
+    right: { ...transitioned },
+  });
 }
 
 function bindWheelEvents(state: StateManager): void {
@@ -80,8 +59,8 @@ function bindWheelEvents(state: StateManager): void {
     return;
   }
 
-  const lw = makeWheelHandler(left);
-  const rw = makeWheelHandler(right);
+  const lw = makeWheelHandler(left, () => markLastInteractedSide(state, 'left'));
+  const rw = makeWheelHandler(right, () => markLastInteractedSide(state, 'right'));
 
   leftSide.addEventListener('wheel', lw);
   rightSide.addEventListener('wheel', rw);
@@ -107,16 +86,19 @@ export function cleanupOverlayWheelListeners(): void {
   }
 }
 
-/** Persist the active panzoom scale and pan position into state. */
+/** Save every initialized Panzoom instance into its corresponding view state. */
 export function commitZoomState(state: StateManager): void {
-  const active = activeZoomInstance(state.get());
+  const { panzoomInstances, zoomStates } = state.get();
+  const next: ZoomStates = { ...zoomStates };
 
-  if (!active) {
-    return;
+  for (const target of ZOOM_TARGETS) {
+    const instance = panzoomInstances[target];
+
+    if (instance) {
+      next[target] = readZoomState(instance);
+    }
   }
-  const pan = active.getPan();
-
-  state.update('zoomState', { scale: active.getScale(), x: pan.x, y: pan.y });
+  state.update('zoomStates', next);
 }
 
 export function destroyAllZoom(state: StateManager): void {
@@ -138,6 +120,10 @@ export function destroyOverlayZoom(state: StateManager): void {
   }
 }
 
+function hasImage(side: SideType): boolean {
+  return Boolean($<HTMLImageElement>(`#${side}-image`)?.getAttribute('src')?.trim());
+}
+
 export function initOverlayPanzoom(state: StateManager): void {
   const overlayPan = $<HTMLElement>('#overlay-pan');
   const container = $<HTMLElement>('#comparison-overlay-container');
@@ -149,11 +135,7 @@ export function initOverlayPanzoom(state: StateManager): void {
   const instance = Panzoom(overlayPan, { maxScale: Infinity });
 
   state.update('panzoomInstances', { ...state.get().panzoomInstances, overlay: instance });
-
-  const { zoomState } = state.get();
-
-  instance.zoom(zoomState.scale, { animate: false, silent: true });
-  instance.pan(zoomState.x, zoomState.y, { animate: false, silent: true });
+  applyZoomState(instance, state.get().zoomStates.overlay);
 
   const old = wheelListeners.get(container);
 
@@ -168,7 +150,7 @@ export function initOverlayPanzoom(state: StateManager): void {
   container.addEventListener('wheel', wh);
 }
 
-/** Initialize side-by-side panzoom instances for the left and right images. */
+/** Initialize side-by-side Panzoom instances for the left and right images. */
 export function initView(state: StateManager): void {
   const leftPan = $<HTMLElement>('#left-pan');
   const rightPan = $<HTMLElement>('#right-pan');
@@ -199,36 +181,133 @@ export function isOverlayMode(mode: ModeType): boolean {
   return OVERLAY_MODES.has(mode);
 }
 
-function makeWheelHandler(pz: PanzoomObject) {
+function makeWheelHandler(pz: PanzoomObject, onInteraction?: () => void) {
   return (e: WheelEvent) => {
     e.preventDefault();
+    onInteraction?.();
     pz.zoomWithWheel(e);
   };
 }
 
-/** Reset zoom and pan on all panzoom instances. */
-export function resetZoom(state: StateManager): void {
-  const { left, right, overlay } = state.get().panzoomInstances;
-
-  for (const pz of [left, right, overlay]) {
-    pz?.reset();
+function markLastInteractedSide(state: StateManager, side: SideType): void {
+  if (hasImage(side) && state.get().lastInteractedSide !== side) {
+    state.update('lastInteractedSide', side);
   }
+}
+
+function readZoomState(instance: PanzoomObject): ZoomState {
+  const pan = instance.getPan();
+
+  return { scale: instance.getScale(), x: pan.x, y: pan.y };
+}
+
+/** Reset zoom and pan on one side, or on every Panzoom instance when no side is specified. */
+export function resetZoom(state: StateManager, side?: SideType): void {
+  const { panzoomInstances, zoomStates } = state.get();
+  const targets = side ? [side] : ZOOM_TARGETS;
+  const next: ZoomStates = { ...zoomStates };
+
+  for (const target of targets) {
+    panzoomInstances[target]?.reset({ animate: false, silent: true });
+    next[target] = { ...DEFAULT_ZOOM_STATE };
+  }
+
+  if (side) {
+    state.update('zoomStates', next);
+  } else {
+    state.update({ zoomStates: next, lastInteractedSide: 'left' });
+  }
+}
+
+function resolveAnchorSide(state: StateManager): SideType {
+  const { isPanZoomSynced, lastInteractedSide } = state.get();
+
+  if (isPanZoomSynced) {
+    return 'left';
+  }
+  if (hasImage(lastInteractedSide)) {
+    return lastInteractedSide;
+  }
+
+  const otherSide = lastInteractedSide === 'left' ? 'right' : 'left';
+
+  return hasImage(otherSide) ? otherSide : lastInteractedSide;
 }
 
 export function restoreZoomState(state: StateManager): void {
-  const { zoomState, panzoomInstances } = state.get();
-  const { left, right, overlay } = panzoomInstances;
+  const { zoomStates, panzoomInstances } = state.get();
 
-  for (const pz of [left, right, overlay]) {
-    if (!pz) {
-      continue;
+  for (const target of ZOOM_TARGETS) {
+    const instance = panzoomInstances[target];
+
+    if (instance) {
+      applyZoomState(instance, zoomStates[target]);
     }
-    pz.zoom(zoomState.scale, { animate: false, silent: true });
-    pz.pan(zoomState.x, zoomState.y, { animate: false, silent: true });
   }
 }
 
-/** Synchronize pan and zoom between the left and right panzoom instances. */
+/** Enable or disable synchronized side-by-side pan and zoom. */
+export function setPanZoomSync(state: StateManager, isSynced: boolean): void {
+  if (state.get().isPanZoomSynced === isSynced) {
+    return;
+  }
+
+  commitZoomState(state);
+
+  if (!isSynced || state.get().mode !== MODES.SIDE_BY_SIDE) {
+    state.update('isPanZoomSynced', isSynced);
+
+    return;
+  }
+
+  const anchorSide = resolveAnchorSide(state);
+  const targetSide = anchorSide === 'left' ? 'right' : 'left';
+  const { panzoomInstances, zoomStates } = state.get();
+  const source = zoomStates[anchorSide];
+
+  const target = panzoomInstances[targetSide];
+
+  if (target) {
+    applyZoomState(target, source);
+  }
+  state.update({
+    isPanZoomSynced: true,
+    zoomStates: {
+      ...zoomStates,
+      left: { ...source },
+      right: { ...source },
+    },
+  });
+}
+
+/** Swap independent side view states so each zoom follows its image. */
+export function swapSideZoomStates(state: StateManager): void {
+  commitZoomState(state);
+  const { isPanZoomSynced, lastInteractedSide, panzoomInstances, zoomStates } = state.get();
+
+  if (isPanZoomSynced) {
+    return;
+  }
+
+  const next: ZoomStates = {
+    ...zoomStates,
+    left: { ...zoomStates.right },
+    right: { ...zoomStates.left },
+  };
+
+  if (panzoomInstances.left) {
+    applyZoomState(panzoomInstances.left, next.left);
+  }
+  if (panzoomInstances.right) {
+    applyZoomState(panzoomInstances.right, next.right);
+  }
+  state.update({
+    zoomStates: next,
+    lastInteractedSide: lastInteractedSide === 'left' ? 'right' : 'left',
+  });
+}
+
+/** Synchronize pan and zoom between the left and right Panzoom instances when enabled. */
 function syncPanzoom(state: StateManager): void {
   const leftPan = $<HTMLElement>('#left-pan');
   const rightPan = $<HTMLElement>('#right-pan');
@@ -238,19 +317,16 @@ function syncPanzoom(state: StateManager): void {
     return;
   }
 
-  // Prevent infinite recursion: updating one panzoom fires panzoomchange, which would otherwise sync back to the source
+  // Prevent infinite recursion if a Panzoom implementation emits changes despite silent updates.
   let isBusy = false;
 
   const sync = (target: PanzoomObject) => (e: Event) => {
-    if (isBusy) {
+    if (isBusy || !state.get().isPanZoomSynced) {
       return;
     }
     isBusy = true;
     try {
-      const { x, y, scale } = (e as CustomEvent<{ x: number; y: number; scale: number }>).detail;
-
-      target.zoom(scale, { animate: false, silent: true });
-      target.pan(x, y, { animate: false, silent: true });
+      applyZoomState(target, (e as CustomEvent<ZoomState>).detail);
     } catch (error) {
       console.warn('Panzoom sync failed:', error);
     } finally {
@@ -260,13 +336,59 @@ function syncPanzoom(state: StateManager): void {
 
   const leftHandler = sync(right);
   const rightHandler = sync(left);
+  const leftStartHandler = () => markLastInteractedSide(state, 'left');
+  const rightStartHandler = () => markLastInteractedSide(state, 'right');
 
   leftPan.addEventListener('panzoomchange', leftHandler);
   rightPan.addEventListener('panzoomchange', rightHandler);
+  leftPan.addEventListener('panzoomstart', leftStartHandler);
+  rightPan.addEventListener('panzoomstart', rightStartHandler);
 
   state.update('eventCleanup', [
     ...state.get().eventCleanup,
     () => leftPan.removeEventListener('panzoomchange', leftHandler),
     () => rightPan.removeEventListener('panzoomchange', rightHandler),
+    () => leftPan.removeEventListener('panzoomstart', leftStartHandler),
+    () => rightPan.removeEventListener('panzoomstart', rightStartHandler),
   ]);
+}
+
+function transitionZoomState(
+  zoomState: ZoomState,
+  fromMode: ModeType,
+  referenceSide: SideType,
+): ZoomState {
+  const refImg = $<HTMLImageElement>(`#${referenceSide}-image`);
+  const content = $<HTMLElement>('#comparison-content');
+
+  if (!refImg || !content || !refImg.naturalWidth) {
+    return { ...zoomState };
+  }
+
+  const divider = $<HTMLElement>('#comparison-divider');
+  const dividerWidth = divider?.getBoundingClientRect().width || DIVIDER_WIDTH;
+  const sideWidth = (content.clientWidth - dividerWidth) / 2;
+
+  if (sideWidth <= 0 || content.clientHeight <= 0) {
+    return { ...zoomState };
+  }
+
+  const aspectRatio = refImg.naturalWidth / refImg.naturalHeight;
+  const computeImageHeight = (width: number) => Math.min(width / aspectRatio, content.clientHeight);
+
+  const sideBySideHeight = computeImageHeight(sideWidth);
+  const overlayHeight = computeImageHeight(content.clientWidth);
+  const ratio = isOverlayMode(fromMode)
+    ? overlayHeight / sideBySideHeight
+    : sideBySideHeight / overlayHeight;
+
+  if (ratio === 1 || ratio <= 0 || !Number.isFinite(ratio)) {
+    return { ...zoomState };
+  }
+
+  return {
+    ...zoomState,
+    scale: Math.max(0.1, zoomState.scale * ratio),
+    y: zoomState.y * ratio,
+  };
 }

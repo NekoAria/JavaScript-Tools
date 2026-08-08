@@ -42,6 +42,7 @@ function hideMainElements(): void {
 function prepareOverlay(state: StateManager): void {
   hideMainElements();
   $<HTMLElement>('#comparison-overlay-container')?.classList.remove('is-hidden');
+  $<HTMLElement>('#sync-pan-zoom-control')?.classList.add('is-hidden');
   createOverlayImages();
   initOverlayPanzoom(state);
 }
@@ -63,6 +64,7 @@ export function resetModeDisplay(): void {
   $<HTMLElement>('#fade-controls')?.classList.add('is-hidden');
   $<HTMLElement>('#difference-controls')?.classList.add('is-hidden');
   $<HTMLElement>('#filter-controls')?.classList.remove('is-hidden');
+  $<HTMLElement>('#sync-pan-zoom-control')?.classList.remove('is-hidden');
 }
 
 /** Activate difference comparison mode: hide side-by-side panels, build overlay with difference blend mode. */

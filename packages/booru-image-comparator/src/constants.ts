@@ -1,8 +1,12 @@
-import type { ModeType, RelationshipType } from './types';
+import type { ModeType, RelationshipType, ZoomState } from './types';
 
 export const STORAGE_KEY_MODE = 'universal_comparator_mode';
 
 export const STORAGE_KEY_BACKGROUND = 'universal_comparator_background';
+
+export const STORAGE_KEY_SYNC_PAN_ZOOM = 'universal_comparator_sync_pan_zoom';
+
+export const DEFAULT_ZOOM_STATE = Object.freeze<ZoomState>({ scale: 1, x: 0, y: 0 });
 
 export const MODES = {
   SIDE_BY_SIDE: 'side-by-side',

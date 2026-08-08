@@ -10,11 +10,11 @@ import {
   swapImages,
 } from './images';
 import { resetModeDisplay } from './mode';
-import { destroyAllZoom, initView } from './panzoom';
+import { destroyAllZoom, initView, resetZoom } from './panzoom';
 import { createPostSelector } from './posts';
 import { createShadowHost, destroyShadow } from './shadow';
 import { unbindSlider } from './slider';
-import { restoreBackground, restoreMode } from './storage';
+import { restoreBackground, restoreMode, restorePanZoomSync } from './storage';
 import { resetTransforms } from './transform';
 import { bindEvents, updateMode } from './view';
 
@@ -36,6 +36,7 @@ function closeComparator(state: StateManager): void {
   invalidatePendingLoads();
   unbindSlider();
   resetTransforms(state);
+  resetZoom(state);
   resetModeDisplay();
   destroyAllZoom(state);
   for (const fn of state.get().eventCleanup) {
@@ -90,6 +91,7 @@ async function setupComparator(state: StateManager): Promise<void> {
     onSwapImages: () => swapImages(state),
   });
 
+  restorePanZoomSync(state);
   initView(state);
   restoreMode(state);
   restoreBackground();

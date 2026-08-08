@@ -107,7 +107,7 @@ export function subscribeSliderUpdater(state: StateManager): () => void {
       // JSON.stringify for deep comparison of nested transform/zoom objects
       (JSON.stringify(next.transforms) !== JSON.stringify(prev.transforms) ||
         prev.mode !== MODES.SLIDER ||
-        JSON.stringify(next.zoomState) !== JSON.stringify(prev.zoomState))
+        JSON.stringify(next.zoomStates) !== JSON.stringify(prev.zoomStates))
     ) {
       setTimeout(() => updateSliderIfNeeded(state), LAYOUT_FLUSH_MS);
     }

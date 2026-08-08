@@ -3,7 +3,7 @@ import type { StateManager } from './types';
 import { fetchSinglePost } from './api';
 import { MODES } from './constants';
 import { updateInfoUI, updatePostInfo } from './dom';
-import { resetZoom } from './panzoom';
+import { resetZoom, swapSideZoomStates } from './panzoom';
 import { extractImageUrl, getRelatedPosts } from './posts';
 import { $ } from './shadow';
 import { applyTransforms } from './transform';
@@ -38,7 +38,10 @@ function clearRightImage(): void {
 /** Refresh overlay and UI after an image loads. */
 function finalizeImageLoad(state: StateManager, postId: string): void {
   updateInfoUI(postId);
-  resetZoom(state);
+  const { isPanZoomSynced, mode } = state.get();
+  const resetSide = !isPanZoomSynced && mode === MODES.SIDE_BY_SIDE ? 'right' : undefined;
+
+  resetZoom(state, resetSide);
   updateMode(state);
 }
 
@@ -244,8 +247,11 @@ export function swapImages(state: StateManager): void {
   [leftImg.src, rightImg.src] = [rightImg.src, leftImg.src];
   swapDataAttr(leftImg, rightImg, 'id');
 
-  const { transforms: t, mode } = state.get();
+  const { transforms: t, mode, isPanZoomSynced } = state.get();
 
+  if (!isPanZoomSynced) {
+    swapSideZoomStates(state);
+  }
   state.update('transforms', { left: t.right, right: t.left });
   updatePostInfo();
 

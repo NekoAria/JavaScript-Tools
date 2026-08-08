@@ -156,6 +156,19 @@ export function buildInterface(state: StateManager): HTMLElement {
   return container;
 }
 
+function buildPanZoomSyncControl(): HTMLElement {
+  const checkbox = createEl('input', { id: 'sync-pan-zoom', type: 'checkbox' });
+
+  checkbox.checked = true;
+
+  return createEl(
+    'label',
+    { id: 'sync-pan-zoom-control', class: 'sync-toggle' },
+    checkbox,
+    'Sync pan & zoom',
+  );
+}
+
 function buildPrimaryControls(state: StateManager): HTMLElement {
   const currentLabel = getCurrentLabel(state);
   const modeSelect = createEl(
@@ -184,6 +197,7 @@ function buildPrimaryControls(state: StateManager): HTMLElement {
     createEl(
       'div',
       { class: 'right-controls' },
+      buildPanZoomSyncControl(),
       btn('swap-images', 'Swap'),
       btn('reset-zoom', 'Reset Zoom'),
       createEl('button', { id: 'close-comparison', class: 'btn btn-close' }, '✕'),

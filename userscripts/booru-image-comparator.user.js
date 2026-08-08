@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Universal Booru Image Comparator
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      2.0.2
+// @version      2.1.0
 // @author       Neko_Aria
 // @description  Compare images on Danbooru / Yande.re / Konachan with multiple modes and transformations
 // @homepageURL  https://github.com/NekoAria/JavaScript-Tools/tree/main/packages/booru-image-comparator
@@ -20,6 +20,12 @@
 	"use strict";
 	var STORAGE_KEY_MODE = "universal_comparator_mode";
 	var STORAGE_KEY_BACKGROUND = "universal_comparator_background";
+	var STORAGE_KEY_SYNC_PAN_ZOOM = "universal_comparator_sync_pan_zoom";
+	var DEFAULT_ZOOM_STATE = Object.freeze({
+		scale: 1,
+		x: 0,
+		y: 0
+	});
 	var MODES = {
 		SIDE_BY_SIDE: "side-by-side",
 		SLIDER: "slider",
@@ -38,7 +44,7 @@
 		Sibling: 2,
 		Child: 3
 	};
-	var style_default = "/* ============================================================\n   Design tokens\n   ============================================================ */\n.comparator {\n  --sp-0-5: 0.125rem;\n  --sp-1: 0.25rem;\n  --sp-1-5: 0.375rem;\n  --sp-2: 0.5rem;\n  --sp-3: 0.75rem;\n  --sp-4: 1rem;\n  --sp-5: 1.25rem;\n\n  --grey-0: oklch(98.5% 0 0);\n  --grey-1: oklch(97% 0 0);\n  --grey-2: oklch(92.2% 0 0);\n  --grey-3: oklch(87% 0 0);\n  --grey-4: oklch(70.8% 0 0);\n  --grey-5: oklch(55.6% 0 0);\n  --grey-6: oklch(43.9% 0 0);\n  --grey-7: oklch(37.1% 0 0);\n  --grey-8: oklch(26.9% 0 0);\n  --grey-9: oklch(20.5% 0 0);\n  --grey-10: oklch(14.5% 0 0);\n\n  --accent: oklch(62.3% 0.214 259.815);\n  --ring: oklch(62.3% 0.214 259.815 / 25%);\n  --text-muted: var(--grey-2);\n  --ease: 120ms ease-out;\n  --divider-width: var(--sp-1);\n  --radius: var(--sp-1);\n  --border: 1px solid var(--grey-7);\n  --border-in: 1px solid var(--grey-6);\n\n  --z-header: 10001;\n  --z-overlay: 10002;\n  --z-slider: 10003;\n  position: fixed;\n  inset: 0;\n  z-index: 10000;\n  box-sizing: border-box;\n\n  display: flex;\n  flex-direction: column;\n  overflow: hidden;\n  font:\n    0.875rem/1.5 Verdana,\n    system-ui,\n    -apple-system,\n    Helvetica,\n    sans-serif;\n  color: var(--grey-0);\n\n  outline: none;\n  background: var(--grey-10);\n\n  &,\n  & *,\n  & *::before,\n  & *::after {\n    box-sizing: border-box;\n  }\n\n  @media (prefers-reduced-motion: reduce) {\n    --ease: 0ms;\n  }\n}\n\n/* Header */\n.header {\n  z-index: var(--z-header);\n  display: flex;\n  flex-direction: column;\n  gap: var(--sp-2);\n  padding: var(--sp-2) var(--sp-3);\n  background: var(--grey-9);\n  border-bottom: var(--border);\n}\n\n.primary-controls {\n  display: flex;\n  flex-wrap: wrap;\n  gap: var(--sp-2);\n  align-items: center;\n  justify-content: space-between;\n  width: 100%;\n}\n\n.right-controls {\n  display: flex;\n  gap: var(--sp-2);\n  align-items: center;\n  margin-left: auto;\n}\n\n.mode-label {\n  color: var(--text-muted);\n}\n\n.post-info {\n  font-size: 0.75rem;\n  color: var(--text-muted);\n}\n\n/* Form control */\n.form-control {\n  padding: var(--sp-0-5) var(--sp-2);\n  font: inherit;\n  color: var(--grey-0);\n  appearance: none;\n  outline: none;\n  background: var(--grey-8);\n  border: var(--border-in);\n  border-radius: var(--radius);\n  transition:\n    border-color var(--ease),\n    box-shadow var(--ease);\n\n  @media (hover: hover) {\n    &:hover {\n      border-color: var(--grey-5);\n    }\n  }\n\n  &:focus-visible {\n    border-color: var(--accent);\n    box-shadow: 0 0 0 2px var(--ring);\n  }\n}\n\n.form-control::placeholder {\n  color: var(--grey-4);\n}\n\n.id-input {\n  width: 10rem;\n}\n\n/* Buttons */\n.btn {\n  display: inline-flex;\n  gap: var(--sp-1);\n  align-items: center;\n  justify-content: center;\n  padding: var(--sp-0-5) var(--sp-2);\n  font: inherit;\n  line-height: 1.25;\n  color: var(--grey-1);\n  white-space: nowrap;\n  appearance: none;\n  cursor: pointer;\n  outline: none;\n  background: var(--grey-8);\n  border: var(--border);\n  border-radius: var(--radius);\n  transition:\n    background var(--ease),\n    border-color var(--ease),\n    color var(--ease),\n    box-shadow var(--ease);\n\n  @media (hover: hover) {\n    &:hover {\n      color: var(--grey-0);\n      background: var(--grey-7);\n      border-color: var(--grey-6);\n    }\n  }\n\n  &:active {\n    background: var(--grey-6);\n  }\n  &:disabled {\n    pointer-events: none;\n    cursor: not-allowed;\n    opacity: 0.5;\n  }\n\n  &:focus-visible {\n    border-color: var(--accent);\n    box-shadow: 0 0 0 2px var(--ring);\n  }\n\n  &.btn-close {\n    padding: var(--sp-0-5) var(--sp-1);\n    font-size: 1.25rem;\n    line-height: 1;\n    background: var(--grey-9);\n\n    @media (hover: hover) {\n      &:hover {\n        color: var(--grey-0);\n        background: oklch(100% 0 0 / 8%);\n      }\n    }\n  }\n}\n\n/* Range */\n.comparator input[type='range'] {\n  height: var(--sp-1);\n  appearance: none;\n  cursor: pointer;\n  outline: none;\n  background: var(--grey-7);\n  border-radius: calc(var(--sp-1) / 2);\n\n  &::-webkit-slider-thumb {\n    width: var(--sp-4);\n    height: var(--sp-4);\n    appearance: none;\n    cursor: pointer;\n    background: var(--grey-1);\n    border: 2px solid var(--grey-6);\n    border-radius: 50%;\n    transition: border-color var(--ease);\n    @media (hover: hover) {\n      &:hover {\n        border-color: var(--accent);\n      }\n    }\n  }\n\n  &::-moz-range-track {\n    height: var(--sp-1);\n    background: var(--grey-7);\n    border-radius: calc(var(--sp-1) / 2);\n  }\n\n  &::-moz-range-thumb {\n    width: var(--sp-4);\n    height: var(--sp-4);\n    cursor: pointer;\n    background: var(--grey-1);\n    border: 2px solid var(--grey-6);\n    border-radius: 50%;\n    transition: border-color var(--ease);\n    @media (hover: hover) {\n      &:hover {\n        border-color: var(--accent);\n      }\n    }\n  }\n}\n\n.range-control {\n  width: 7.5rem;\n  margin-right: var(--sp-1-5);\n}\n\n.range-value {\n  width: 3em;\n  font-variant-numeric: tabular-nums;\n  color: var(--text-muted);\n  text-align: center;\n}\n\n.comparator label {\n  display: inline-flex;\n  gap: var(--sp-1);\n  align-items: center;\n  font-size: inherit;\n  font-weight: normal;\n  color: var(--text-muted);\n  cursor: default;\n}\n\n/* Controls row */\n.controls-row {\n  display: flex;\n  flex-wrap: wrap;\n  gap: var(--sp-4);\n  align-items: center;\n  width: 100%;\n}\n\n.transform-group {\n  display: flex;\n  gap: var(--sp-1-5);\n  align-items: center;\n  margin-left: auto;\n}\n\n.control-group {\n  display: flex;\n  gap: var(--sp-1-5);\n  align-items: center;\n}\n\n/* Select wrapper */\n.select-wrapper,\n.post-selector {\n  position: relative;\n  display: inline-flex;\n  align-items: center;\n\n  & > select {\n    padding-right: var(--sp-5);\n    cursor: pointer;\n  }\n\n  &::after {\n    position: absolute;\n    top: 50%;\n    right: var(--sp-2);\n    width: var(--sp-2);\n    height: var(--sp-2);\n    pointer-events: none;\n    content: '';\n    border-right: 1.5px solid var(--text-muted);\n    border-bottom: 1.5px solid var(--text-muted);\n    transform: translateY(-50%) rotate(45deg) translate(-1px, -1px);\n  }\n}\n\n/* Content area */\n.content {\n  position: relative;\n  display: flex;\n  flex: 1;\n  min-height: 0;\n  overflow: hidden;\n}\n\n.comparison-side {\n  position: relative;\n  display: flex;\n  flex: 1;\n  align-items: center;\n  justify-content: center;\n  min-height: 0;\n  overflow: hidden;\n\n  & .sync-pan {\n    position: relative;\n  }\n}\n\n.divider {\n  align-self: stretch;\n  width: var(--divider-width);\n  cursor: default;\n  background: var(--grey-6);\n  transition: background var(--ease);\n  @media (hover: hover) {\n    &:hover {\n      background: var(--accent);\n    }\n  }\n}\n\n/* Overlay */\n.overlay-container {\n  position: absolute;\n  inset: 0;\n  z-index: var(--z-overlay);\n  overflow: hidden;\n\n  &.is-inverted {\n    filter: invert(1);\n  }\n\n  & .sync-pan {\n    position: absolute;\n    top: 0;\n    left: 0;\n  }\n\n  &[data-bg='black'] {\n    background: var(--grey-10);\n  }\n  &[data-bg='grey'] {\n    background: var(--grey-5);\n  }\n  &[data-bg='white'] {\n    background: var(--grey-0);\n  }\n}\n\n#comparison-content[data-bg='black'] {\n  background: var(--grey-10);\n}\n#comparison-content[data-bg='grey'] {\n  background: var(--grey-5);\n}\n#comparison-content[data-bg='white'] {\n  background: var(--grey-0);\n}\n\n/* Slider */\n.comparison-slider {\n  position: absolute;\n  top: 0;\n  bottom: 0;\n  z-index: var(--z-slider);\n  width: var(--divider-width);\n  cursor: col-resize;\n  background: var(--grey-0);\n\n  &::after {\n    position: absolute;\n    top: 50%;\n    left: 50%;\n    width: 2rem;\n    height: 2rem;\n    content: '';\n    background: var(--grey-0);\n    border: 1px solid var(--grey-4);\n    border-radius: 50%;\n    box-shadow: 0 1px 4px oklch(0% 0 0 / 40%);\n    transform: translate(-50%, -50%);\n  }\n}\n\n/* Pan/zoom */\n.sync-pan {\n  position: relative;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  width: 100%;\n  height: 100%;\n  overflow: hidden;\n}\n\n/* Images */\n.compared-img {\n  display: block;\n  max-width: 100%;\n  max-height: 100%;\n  object-fit: contain;\n  image-rendering: pixelated;\n  transform: scale(var(--flip-x, 1), var(--flip-y, 1)) rotate(var(--rotate, 0deg));\n}\n\n/* Overlay images */\n.overlay-img {\n  position: absolute;\n  inset: 0;\n  display: block;\n  width: 100%;\n  height: 100%;\n\n  &.mode-fade {\n    opacity: var(--fade-opacity, 0.5);\n  }\n  &.mode-difference {\n    mix-blend-mode: difference;\n  }\n}\n\n/* Utility states */\n.is-hidden,\n.is-overlay-hidden {\n  display: none !important;\n}\n";
+	var style_default = "/* ============================================================\n   Design tokens\n   ============================================================ */\n.comparator {\n  --sp-0-5: 0.125rem;\n  --sp-1: 0.25rem;\n  --sp-1-5: 0.375rem;\n  --sp-2: 0.5rem;\n  --sp-3: 0.75rem;\n  --sp-4: 1rem;\n  --sp-5: 1.25rem;\n\n  --grey-0: oklch(98.5% 0 0);\n  --grey-1: oklch(97% 0 0);\n  --grey-2: oklch(92.2% 0 0);\n  --grey-3: oklch(87% 0 0);\n  --grey-4: oklch(70.8% 0 0);\n  --grey-5: oklch(55.6% 0 0);\n  --grey-6: oklch(43.9% 0 0);\n  --grey-7: oklch(37.1% 0 0);\n  --grey-8: oklch(26.9% 0 0);\n  --grey-9: oklch(20.5% 0 0);\n  --grey-10: oklch(14.5% 0 0);\n\n  --accent: oklch(62.3% 0.214 259.815);\n  --ring: oklch(62.3% 0.214 259.815 / 25%);\n  --text-muted: var(--grey-2);\n  --ease: 120ms ease-out;\n  --divider-width: var(--sp-1);\n  --radius: var(--sp-1);\n  --border: 1px solid var(--grey-7);\n  --border-in: 1px solid var(--grey-6);\n\n  --z-header: 10001;\n  --z-overlay: 10002;\n  --z-slider: 10003;\n  position: fixed;\n  inset: 0;\n  z-index: 10000;\n  box-sizing: border-box;\n\n  display: flex;\n  flex-direction: column;\n  overflow: hidden;\n  font:\n    0.875rem/1.5 Verdana,\n    system-ui,\n    -apple-system,\n    Helvetica,\n    sans-serif;\n  color: var(--grey-0);\n\n  outline: none;\n  background: var(--grey-10);\n\n  &,\n  & *,\n  & *::before,\n  & *::after {\n    box-sizing: border-box;\n  }\n\n  @media (prefers-reduced-motion: reduce) {\n    --ease: 0ms;\n  }\n}\n\n/* Header */\n.header {\n  z-index: var(--z-header);\n  display: flex;\n  flex-direction: column;\n  gap: var(--sp-2);\n  padding: var(--sp-2) var(--sp-3);\n  background: var(--grey-9);\n  border-bottom: var(--border);\n}\n\n.primary-controls {\n  display: flex;\n  flex-wrap: wrap;\n  gap: var(--sp-2);\n  align-items: center;\n  justify-content: space-between;\n  width: 100%;\n}\n\n.right-controls {\n  display: flex;\n  gap: var(--sp-2);\n  align-items: center;\n  margin-left: auto;\n}\n\n.mode-label {\n  color: var(--text-muted);\n}\n\n.comparator .sync-toggle {\n  white-space: nowrap;\n  cursor: pointer;\n\n  & input {\n    width: var(--sp-4);\n    height: var(--sp-4);\n    accent-color: var(--accent);\n    cursor: pointer;\n\n    &:focus-visible {\n      outline: 2px solid var(--accent);\n      outline-offset: 2px;\n    }\n  }\n}\n\n.post-info {\n  font-size: 0.75rem;\n  color: var(--text-muted);\n}\n\n/* Form control */\n.form-control {\n  padding: var(--sp-0-5) var(--sp-2);\n  font: inherit;\n  color: var(--grey-0);\n  appearance: none;\n  outline: none;\n  background: var(--grey-8);\n  border: var(--border-in);\n  border-radius: var(--radius);\n  transition:\n    border-color var(--ease),\n    box-shadow var(--ease);\n\n  @media (hover: hover) {\n    &:hover {\n      border-color: var(--grey-5);\n    }\n  }\n\n  &:focus-visible {\n    border-color: var(--accent);\n    box-shadow: 0 0 0 2px var(--ring);\n  }\n}\n\n.form-control::placeholder {\n  color: var(--grey-4);\n}\n\n.id-input {\n  width: 10rem;\n}\n\n/* Buttons */\n.btn {\n  display: inline-flex;\n  gap: var(--sp-1);\n  align-items: center;\n  justify-content: center;\n  padding: var(--sp-0-5) var(--sp-2);\n  font: inherit;\n  line-height: 1.25;\n  color: var(--grey-1);\n  white-space: nowrap;\n  appearance: none;\n  cursor: pointer;\n  outline: none;\n  background: var(--grey-8);\n  border: var(--border);\n  border-radius: var(--radius);\n  transition:\n    background var(--ease),\n    border-color var(--ease),\n    color var(--ease),\n    box-shadow var(--ease);\n\n  @media (hover: hover) {\n    &:hover {\n      color: var(--grey-0);\n      background: var(--grey-7);\n      border-color: var(--grey-6);\n    }\n  }\n\n  &:active {\n    background: var(--grey-6);\n  }\n  &:disabled {\n    pointer-events: none;\n    cursor: not-allowed;\n    opacity: 0.5;\n  }\n\n  &:focus-visible {\n    border-color: var(--accent);\n    box-shadow: 0 0 0 2px var(--ring);\n  }\n\n  &.btn-close {\n    padding: var(--sp-0-5) var(--sp-1);\n    font-size: 1.25rem;\n    line-height: 1;\n    background: var(--grey-9);\n\n    @media (hover: hover) {\n      &:hover {\n        color: var(--grey-0);\n        background: oklch(100% 0 0 / 8%);\n      }\n    }\n  }\n}\n\n/* Range */\n.comparator input[type='range'] {\n  height: var(--sp-1);\n  appearance: none;\n  cursor: pointer;\n  outline: none;\n  background: var(--grey-7);\n  border-radius: calc(var(--sp-1) / 2);\n\n  &::-webkit-slider-thumb {\n    width: var(--sp-4);\n    height: var(--sp-4);\n    appearance: none;\n    cursor: pointer;\n    background: var(--grey-1);\n    border: 2px solid var(--grey-6);\n    border-radius: 50%;\n    transition: border-color var(--ease);\n    @media (hover: hover) {\n      &:hover {\n        border-color: var(--accent);\n      }\n    }\n  }\n\n  &::-moz-range-track {\n    height: var(--sp-1);\n    background: var(--grey-7);\n    border-radius: calc(var(--sp-1) / 2);\n  }\n\n  &::-moz-range-thumb {\n    width: var(--sp-4);\n    height: var(--sp-4);\n    cursor: pointer;\n    background: var(--grey-1);\n    border: 2px solid var(--grey-6);\n    border-radius: 50%;\n    transition: border-color var(--ease);\n    @media (hover: hover) {\n      &:hover {\n        border-color: var(--accent);\n      }\n    }\n  }\n}\n\n.range-control {\n  width: 7.5rem;\n  margin-right: var(--sp-1-5);\n}\n\n.range-value {\n  width: 3em;\n  font-variant-numeric: tabular-nums;\n  color: var(--text-muted);\n  text-align: center;\n}\n\n.comparator label {\n  display: inline-flex;\n  gap: var(--sp-1);\n  align-items: center;\n  font-size: inherit;\n  font-weight: normal;\n  color: var(--text-muted);\n  cursor: default;\n}\n\n/* Controls row */\n.controls-row {\n  display: flex;\n  flex-wrap: wrap;\n  gap: var(--sp-4);\n  align-items: center;\n  width: 100%;\n}\n\n.transform-group {\n  display: flex;\n  gap: var(--sp-1-5);\n  align-items: center;\n  margin-left: auto;\n}\n\n.control-group {\n  display: flex;\n  gap: var(--sp-1-5);\n  align-items: center;\n}\n\n/* Select wrapper */\n.select-wrapper,\n.post-selector {\n  position: relative;\n  display: inline-flex;\n  align-items: center;\n\n  & > select {\n    padding-right: var(--sp-5);\n    cursor: pointer;\n  }\n\n  &::after {\n    position: absolute;\n    top: 50%;\n    right: var(--sp-2);\n    width: var(--sp-2);\n    height: var(--sp-2);\n    pointer-events: none;\n    content: '';\n    border-right: 1.5px solid var(--text-muted);\n    border-bottom: 1.5px solid var(--text-muted);\n    transform: translateY(-50%) rotate(45deg) translate(-1px, -1px);\n  }\n}\n\n/* Content area */\n.content {\n  position: relative;\n  display: flex;\n  flex: 1;\n  min-height: 0;\n  overflow: hidden;\n}\n\n.comparison-side {\n  position: relative;\n  display: flex;\n  flex: 1;\n  align-items: center;\n  justify-content: center;\n  min-height: 0;\n  overflow: hidden;\n\n  & .sync-pan {\n    position: relative;\n  }\n}\n\n.divider {\n  align-self: stretch;\n  width: var(--divider-width);\n  cursor: default;\n  background: var(--grey-6);\n  transition: background var(--ease);\n  @media (hover: hover) {\n    &:hover {\n      background: var(--accent);\n    }\n  }\n}\n\n/* Overlay */\n.overlay-container {\n  position: absolute;\n  inset: 0;\n  z-index: var(--z-overlay);\n  overflow: hidden;\n\n  &.is-inverted {\n    filter: invert(1);\n  }\n\n  & .sync-pan {\n    position: absolute;\n    top: 0;\n    left: 0;\n  }\n\n  &[data-bg='black'] {\n    background: var(--grey-10);\n  }\n  &[data-bg='grey'] {\n    background: var(--grey-5);\n  }\n  &[data-bg='white'] {\n    background: var(--grey-0);\n  }\n}\n\n#comparison-content[data-bg='black'] {\n  background: var(--grey-10);\n}\n#comparison-content[data-bg='grey'] {\n  background: var(--grey-5);\n}\n#comparison-content[data-bg='white'] {\n  background: var(--grey-0);\n}\n\n/* Slider */\n.comparison-slider {\n  position: absolute;\n  top: 0;\n  bottom: 0;\n  z-index: var(--z-slider);\n  width: var(--divider-width);\n  cursor: col-resize;\n  background: var(--grey-0);\n\n  &::after {\n    position: absolute;\n    top: 50%;\n    left: 50%;\n    width: 2rem;\n    height: 2rem;\n    content: '';\n    background: var(--grey-0);\n    border: 1px solid var(--grey-4);\n    border-radius: 50%;\n    box-shadow: 0 1px 4px oklch(0% 0 0 / 40%);\n    transform: translate(-50%, -50%);\n  }\n}\n\n/* Pan/zoom */\n.sync-pan {\n  position: relative;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  width: 100%;\n  height: 100%;\n  overflow: hidden;\n}\n\n/* Images */\n.compared-img {\n  display: block;\n  max-width: 100%;\n  max-height: 100%;\n  object-fit: contain;\n  image-rendering: pixelated;\n  transform: scale(var(--flip-x, 1), var(--flip-y, 1)) rotate(var(--rotate, 0deg));\n}\n\n/* Overlay images */\n.overlay-img {\n  position: absolute;\n  inset: 0;\n  display: block;\n  width: 100%;\n  height: 100%;\n\n  &.mode-fade {\n    opacity: var(--fade-opacity, 0.5);\n  }\n  &.mode-difference {\n    mix-blend-mode: difference;\n  }\n}\n\n/* Utility states */\n.is-hidden,\n.is-overlay-hidden {\n  display: none !important;\n}\n";
 	var shadowState = { root: null };
 	var $ = (selector) => shadowState.root?.querySelector(selector) ?? null;
 	function createShadowHost() {
@@ -182,6 +188,17 @@
 		container.append(buildHeader(state), buildContent());
 		return container;
 	}
+	function buildPanZoomSyncControl() {
+		const checkbox = createEl("input", {
+			id: "sync-pan-zoom",
+			type: "checkbox"
+		});
+		checkbox.checked = true;
+		return createEl("label", {
+			id: "sync-pan-zoom-control",
+			class: "sync-toggle"
+		}, checkbox, "Sync pan & zoom");
+	}
 	function buildPrimaryControls(state) {
 		const currentLabel = getCurrentLabel(state);
 		const modeSelect = createEl("select", {
@@ -196,7 +213,7 @@
 		}), btn("load-comparison", "Load"), createEl("span", { class: "mode-label" }, "Mode:"), wrapSelect(modeSelect), createEl("div", {
 			id: "post-info-display",
 			class: "post-info"
-		}), createEl("div", { class: "right-controls" }, btn("swap-images", "Swap"), btn("reset-zoom", "Reset Zoom"), createEl("button", {
+		}), createEl("div", { class: "right-controls" }, buildPanZoomSyncControl(), btn("swap-images", "Swap"), btn("reset-zoom", "Reset Zoom"), createEl("button", {
 			id: "close-comparison",
 			class: "btn btn-close"
 		}, "✕")));
@@ -266,8 +283,10 @@
 		const input = $("#second-image-input");
 		if (input && postId !== "custom") input.value = postId;
 		const selector = $(".post-selector select");
-		if (selector) if (postId === "custom") selector.value = "";
-		else selector.value = [...selector.options].some((opt) => opt.value === postId) ? postId : "";
+		if (selector) {
+			if (postId === "custom") selector.value = "";
+			else selector.value = [...selector.options].some((opt) => opt.value === postId) ? postId : "";
+		}
 	}
 	function updatePostInfo() {
 		const leftImg = $("#left-image");
@@ -614,8 +633,10 @@
 				originalEvent
 			};
 			requestAnimationFrame(() => {
-				if (typeof opts.animate === "boolean") if (opts.animate) setTransition(elem, opts);
-				else setStyle(elem, "transition", "none");
+				if (typeof opts.animate === "boolean") {
+					if (opts.animate) setTransition(elem, opts);
+					else setStyle(elem, "transition", "none");
+				}
 				opts.setTransform(elem, value, opts);
 				trigger(eventName, value, opts);
 				trigger("panzoomchange", value, opts);
@@ -891,30 +912,39 @@
 		MODES.FADE,
 		MODES.DIFFERENCE
 	]);
-	function activeZoomInstance(appState) {
-		return appState.panzoomInstances.overlay ?? appState.panzoomInstances.left ?? appState.panzoomInstances.right ?? null;
+	var ZOOM_TARGETS = [
+		"left",
+		"right",
+		"overlay"
+	];
+	function applyZoomState(instance, zoomState) {
+		instance.zoom(zoomState.scale, {
+			animate: false,
+			silent: true
+		});
+		instance.pan(zoomState.x, zoomState.y, {
+			animate: false,
+			silent: true
+		});
 	}
 	function applyZoomTransition(state, fromMode, toMode) {
-		const { zoomState } = state.get();
 		const isFromOverlay = isOverlayMode(fromMode);
 		const isToOverlay = isOverlayMode(toMode);
 		if (isFromOverlay === isToOverlay) return;
-		const refImg = $("#left-image");
-		const content = $("#comparison-content");
-		if (!refImg || !content || !refImg.naturalWidth) return;
-		const divW = $("#comparison-divider")?.getBoundingClientRect().width || 4;
-		const sideW = (content.clientWidth - divW) / 2;
-		const computeImageHeight = (img, w) => {
-			if (!img.naturalWidth || !img.naturalHeight) return content.clientHeight;
-			return img.naturalWidth / img.naturalHeight > w / content.clientHeight ? w / (img.naturalWidth / img.naturalHeight) : content.clientHeight;
-		};
-		const sideBySideH = computeImageHeight(refImg, sideW);
-		const overlayH = computeImageHeight(refImg, content.clientWidth);
-		const ratio = isFromOverlay && !isToOverlay ? overlayH / sideBySideH : sideBySideH / overlayH;
-		if (ratio !== 1) state.update("zoomState", {
-			...zoomState,
-			scale: Math.max(.1, zoomState.scale * ratio),
-			y: zoomState.y * ratio
+		const anchorSide = resolveAnchorSide(state);
+		const { zoomStates } = state.get();
+		const transitioned = transitionZoomState(isFromOverlay ? zoomStates.overlay : zoomStates[anchorSide], fromMode, anchorSide);
+		if (isToOverlay) {
+			state.update("zoomStates", {
+				...zoomStates,
+				overlay: transitioned
+			});
+			return;
+		}
+		state.update("zoomStates", {
+			...zoomStates,
+			left: { ...transitioned },
+			right: { ...transitioned }
 		});
 	}
 	function bindWheelEvents(state) {
@@ -922,8 +952,8 @@
 		const rightSide = $("#right-side");
 		const { left, right } = state.get().panzoomInstances;
 		if (!leftSide || !rightSide || !left || !right) return;
-		const lw = makeWheelHandler(left);
-		const rw = makeWheelHandler(right);
+		const lw = makeWheelHandler(left, () => markLastInteractedSide(state, "left"));
+		const rw = makeWheelHandler(right, () => markLastInteractedSide(state, "right"));
 		leftSide.addEventListener("wheel", lw);
 		rightSide.addEventListener("wheel", rw);
 		state.update("eventCleanup", [
@@ -942,14 +972,13 @@
 		}
 	}
 	function commitZoomState(state) {
-		const active = activeZoomInstance(state.get());
-		if (!active) return;
-		const pan = active.getPan();
-		state.update("zoomState", {
-			scale: active.getScale(),
-			x: pan.x,
-			y: pan.y
-		});
+		const { panzoomInstances, zoomStates } = state.get();
+		const next = { ...zoomStates };
+		for (const target of ZOOM_TARGETS) {
+			const instance = panzoomInstances[target];
+			if (instance) next[target] = readZoomState(instance);
+		}
+		state.update("zoomStates", next);
 	}
 	function destroyAllZoom(state) {
 		const { left, right, overlay } = state.get().panzoomInstances;
@@ -971,6 +1000,9 @@
 			});
 		}
 	}
+	function hasImage(side) {
+		return Boolean($(`#${side}-image`)?.getAttribute("src")?.trim());
+	}
 	function initOverlayPanzoom(state) {
 		const overlayPan = $("#overlay-pan");
 		const container = $("#comparison-overlay-container");
@@ -980,15 +1012,7 @@
 			...state.get().panzoomInstances,
 			overlay: instance
 		});
-		const { zoomState } = state.get();
-		instance.zoom(zoomState.scale, {
-			animate: false,
-			silent: true
-		});
-		instance.pan(zoomState.x, zoomState.y, {
-			animate: false,
-			silent: true
-		});
+		applyZoomState(instance, state.get().zoomStates.overlay);
 		const old = wheelListeners.get(container);
 		if (old) {
 			container.removeEventListener("wheel", old);
@@ -1018,38 +1042,92 @@
 	function isOverlayMode(mode) {
 		return OVERLAY_MODES.has(mode);
 	}
-	function makeWheelHandler(pz) {
+	function makeWheelHandler(pz, onInteraction) {
 		return (e) => {
 			e.preventDefault();
+			onInteraction?.();
 			pz.zoomWithWheel(e);
 		};
 	}
-	function resetZoom(state) {
-		const { left, right, overlay } = state.get().panzoomInstances;
-		for (const pz of [
-			left,
-			right,
-			overlay
-		]) pz?.reset();
+	function markLastInteractedSide(state, side) {
+		if (hasImage(side) && state.get().lastInteractedSide !== side) state.update("lastInteractedSide", side);
+	}
+	function readZoomState(instance) {
+		const pan = instance.getPan();
+		return {
+			scale: instance.getScale(),
+			x: pan.x,
+			y: pan.y
+		};
+	}
+	function resetZoom(state, side) {
+		const { panzoomInstances, zoomStates } = state.get();
+		const targets = side ? [side] : ZOOM_TARGETS;
+		const next = { ...zoomStates };
+		for (const target of targets) {
+			panzoomInstances[target]?.reset({
+				animate: false,
+				silent: true
+			});
+			next[target] = { ...DEFAULT_ZOOM_STATE };
+		}
+		if (side) state.update("zoomStates", next);
+		else state.update({
+			zoomStates: next,
+			lastInteractedSide: "left"
+		});
+	}
+	function resolveAnchorSide(state) {
+		const { isPanZoomSynced, lastInteractedSide } = state.get();
+		if (isPanZoomSynced) return "left";
+		if (hasImage(lastInteractedSide)) return lastInteractedSide;
+		const otherSide = lastInteractedSide === "left" ? "right" : "left";
+		return hasImage(otherSide) ? otherSide : lastInteractedSide;
 	}
 	function restoreZoomState(state) {
-		const { zoomState, panzoomInstances } = state.get();
-		const { left, right, overlay } = panzoomInstances;
-		for (const pz of [
-			left,
-			right,
-			overlay
-		]) {
-			if (!pz) continue;
-			pz.zoom(zoomState.scale, {
-				animate: false,
-				silent: true
-			});
-			pz.pan(zoomState.x, zoomState.y, {
-				animate: false,
-				silent: true
-			});
+		const { zoomStates, panzoomInstances } = state.get();
+		for (const target of ZOOM_TARGETS) {
+			const instance = panzoomInstances[target];
+			if (instance) applyZoomState(instance, zoomStates[target]);
 		}
+	}
+	function setPanZoomSync(state, isSynced) {
+		if (state.get().isPanZoomSynced === isSynced) return;
+		commitZoomState(state);
+		if (!isSynced || state.get().mode !== MODES.SIDE_BY_SIDE) {
+			state.update("isPanZoomSynced", isSynced);
+			return;
+		}
+		const anchorSide = resolveAnchorSide(state);
+		const targetSide = anchorSide === "left" ? "right" : "left";
+		const { panzoomInstances, zoomStates } = state.get();
+		const source = zoomStates[anchorSide];
+		const target = panzoomInstances[targetSide];
+		if (target) applyZoomState(target, source);
+		state.update({
+			isPanZoomSynced: true,
+			zoomStates: {
+				...zoomStates,
+				left: { ...source },
+				right: { ...source }
+			}
+		});
+	}
+	function swapSideZoomStates(state) {
+		commitZoomState(state);
+		const { isPanZoomSynced, lastInteractedSide, panzoomInstances, zoomStates } = state.get();
+		if (isPanZoomSynced) return;
+		const next = {
+			...zoomStates,
+			left: { ...zoomStates.right },
+			right: { ...zoomStates.left }
+		};
+		if (panzoomInstances.left) applyZoomState(panzoomInstances.left, next.left);
+		if (panzoomInstances.right) applyZoomState(panzoomInstances.right, next.right);
+		state.update({
+			zoomStates: next,
+			lastInteractedSide: lastInteractedSide === "left" ? "right" : "left"
+		});
 	}
 	function syncPanzoom(state) {
 		const leftPan = $("#left-pan");
@@ -1058,18 +1136,10 @@
 		if (!leftPan || !rightPan || !left || !right) return;
 		let isBusy = false;
 		const sync = (target) => (e) => {
-			if (isBusy) return;
+			if (isBusy || !state.get().isPanZoomSynced) return;
 			isBusy = true;
 			try {
-				const { x, y, scale } = e.detail;
-				target.zoom(scale, {
-					animate: false,
-					silent: true
-				});
-				target.pan(x, y, {
-					animate: false,
-					silent: true
-				});
+				applyZoomState(target, e.detail);
 			} catch (error) {
 				console.warn("Panzoom sync failed:", error);
 			} finally {
@@ -1078,13 +1148,38 @@
 		};
 		const leftHandler = sync(right);
 		const rightHandler = sync(left);
+		const leftStartHandler = () => markLastInteractedSide(state, "left");
+		const rightStartHandler = () => markLastInteractedSide(state, "right");
 		leftPan.addEventListener("panzoomchange", leftHandler);
 		rightPan.addEventListener("panzoomchange", rightHandler);
+		leftPan.addEventListener("panzoomstart", leftStartHandler);
+		rightPan.addEventListener("panzoomstart", rightStartHandler);
 		state.update("eventCleanup", [
 			...state.get().eventCleanup,
 			() => leftPan.removeEventListener("panzoomchange", leftHandler),
-			() => rightPan.removeEventListener("panzoomchange", rightHandler)
+			() => rightPan.removeEventListener("panzoomchange", rightHandler),
+			() => leftPan.removeEventListener("panzoomstart", leftStartHandler),
+			() => rightPan.removeEventListener("panzoomstart", rightStartHandler)
 		]);
+	}
+	function transitionZoomState(zoomState, fromMode, referenceSide) {
+		const refImg = $(`#${referenceSide}-image`);
+		const content = $("#comparison-content");
+		if (!refImg || !content || !refImg.naturalWidth) return { ...zoomState };
+		const dividerWidth = $("#comparison-divider")?.getBoundingClientRect().width || 4;
+		const sideWidth = (content.clientWidth - dividerWidth) / 2;
+		if (sideWidth <= 0 || content.clientHeight <= 0) return { ...zoomState };
+		const aspectRatio = refImg.naturalWidth / refImg.naturalHeight;
+		const computeImageHeight = (width) => Math.min(width / aspectRatio, content.clientHeight);
+		const sideBySideHeight = computeImageHeight(sideWidth);
+		const overlayHeight = computeImageHeight(content.clientWidth);
+		const ratio = isOverlayMode(fromMode) ? overlayHeight / sideBySideHeight : sideBySideHeight / overlayHeight;
+		if (ratio === 1 || ratio <= 0 || !Number.isFinite(ratio)) return { ...zoomState };
+		return {
+			...zoomState,
+			scale: Math.max(.1, zoomState.scale * ratio),
+			y: zoomState.y * ratio
+		};
 	}
 	function addPostFromPreview(el, isParent, postId, posts) {
 		const { id } = el.dataset;
@@ -1446,7 +1541,7 @@
 	}
 	function subscribeSliderUpdater(state) {
 		return state.subscribe((next, prev) => {
-			if (next.mode === MODES.SLIDER && (JSON.stringify(next.transforms) !== JSON.stringify(prev.transforms) || prev.mode !== MODES.SLIDER || JSON.stringify(next.zoomState) !== JSON.stringify(prev.zoomState))) setTimeout(() => updateSliderIfNeeded(state), 0);
+			if (next.mode === MODES.SLIDER && (JSON.stringify(next.transforms) !== JSON.stringify(prev.transforms) || prev.mode !== MODES.SLIDER || JSON.stringify(next.zoomStates) !== JSON.stringify(prev.zoomStates))) setTimeout(() => updateSliderIfNeeded(state), 0);
 		});
 	}
 	function unbindSlider() {
@@ -1499,6 +1594,7 @@
 	function prepareOverlay(state) {
 		hideMainElements();
 		$("#comparison-overlay-container")?.classList.remove("is-hidden");
+		$("#sync-pan-zoom-control")?.classList.add("is-hidden");
 		createOverlayImages();
 		initOverlayPanzoom(state);
 	}
@@ -1517,6 +1613,7 @@
 		$("#fade-controls")?.classList.add("is-hidden");
 		$("#difference-controls")?.classList.add("is-hidden");
 		$("#filter-controls")?.classList.remove("is-hidden");
+		$("#sync-pan-zoom-control")?.classList.remove("is-hidden");
 	}
 	function setupDifference(state) {
 		prepareOverlay(state);
@@ -1550,9 +1647,7 @@
 			case MODES.DIFFERENCE:
 				setupDifference(state);
 				break;
-			default:
-				setTimeout(() => restoreZoomState(state), 100);
-				break;
+			default: setTimeout(() => restoreZoomState(state), 100);
 		}
 	}
 	function setupSlider(state) {
@@ -1577,6 +1672,13 @@
 		}
 		return s && MODES_ARRAY.includes(s) ? s : MODES.SIDE_BY_SIDE;
 	}
+	function isPanZoomSyncEnabled() {
+		try {
+			return localStorage.getItem(STORAGE_KEY_SYNC_PAN_ZOOM) !== "false";
+		} catch {
+			return true;
+		}
+	}
 	function persistBackground() {
 		try {
 			const sel = $("#comparison-background");
@@ -1593,6 +1695,13 @@
 			console.warn("Failed to save mode:", error);
 		}
 	}
+	function persistPanZoomSync(isSynced) {
+		try {
+			localStorage.setItem(STORAGE_KEY_SYNC_PAN_ZOOM, String(isSynced));
+		} catch (error) {
+			console.warn("Failed to save pan and zoom sync preference:", error);
+		}
+	}
 	function restoreBackground() {
 		const saved = getSavedBackground();
 		const sel = $("#comparison-background");
@@ -1604,6 +1713,12 @@
 		state.update("mode", saved);
 		const sel = $("#comparison-mode");
 		if (sel) sel.value = saved;
+	}
+	function restorePanZoomSync(state) {
+		const isSynced = isPanZoomSyncEnabled();
+		const checkbox = $("#sync-pan-zoom");
+		state.update("isPanZoomSynced", isSynced);
+		if (checkbox) checkbox.checked = isSynced;
 	}
 	function bindEvents(state, deps) {
 		const cleanup = [];
@@ -1650,6 +1765,12 @@
 		on("comparison-mode", () => {
 			updateMode(state);
 			persistMode();
+		}, "change");
+		on("sync-pan-zoom", () => {
+			const checkbox = $("#sync-pan-zoom");
+			if (!checkbox) return;
+			setPanZoomSync(state, checkbox.checked);
+			persistPanZoomSync(checkbox.checked);
 		}, "change");
 	}
 	function bindNavigationEvents(on, deps, state) {
@@ -1706,7 +1827,8 @@
 	}
 	function finalizeImageLoad(state, postId) {
 		updateInfoUI(postId);
-		resetZoom(state);
+		const { isPanZoomSynced, mode } = state.get();
+		resetZoom(state, !isPanZoomSynced && mode === MODES.SIDE_BY_SIDE ? "right" : void 0);
 		updateMode(state);
 	}
 	function generateLoadToken() {
@@ -1814,7 +1936,8 @@
 		if (!rightImg.src.trim()) return;
 		[leftImg.src, rightImg.src] = [rightImg.src, leftImg.src];
 		swapDataAttr(leftImg, rightImg, "id");
-		const { transforms: t, mode } = state.get();
+		const { transforms: t, mode, isPanZoomSynced } = state.get();
+		if (!isPanZoomSynced) swapSideZoomStates(state);
 		state.update("transforms", {
 			left: t.right,
 			right: t.left
@@ -1835,6 +1958,7 @@
 		invalidatePendingLoads();
 		unbindSlider();
 		resetTransforms(state);
+		resetZoom(state);
 		resetModeDisplay();
 		destroyAllZoom(state);
 		for (const fn of state.get().eventCleanup) fn();
@@ -1868,6 +1992,7 @@
 			onLoadImage: () => handleLoadImage(state),
 			onSwapImages: () => swapImages(state)
 		});
+		restorePanZoomSync(state);
 		initView(state);
 		restoreMode(state);
 		restoreBackground();
@@ -1947,6 +2072,8 @@
 			postId,
 			searchUrl,
 			mode: MODES.SIDE_BY_SIDE,
+			isPanZoomSynced: true,
+			lastInteractedSide: "left",
 			transforms: {
 				left: {
 					flipH: false,
@@ -1959,10 +2086,10 @@
 					rotation: 0
 				}
 			},
-			zoomState: {
-				scale: 1,
-				x: 0,
-				y: 0
+			zoomStates: {
+				left: { ...DEFAULT_ZOOM_STATE },
+				right: { ...DEFAULT_ZOOM_STATE },
+				overlay: { ...DEFAULT_ZOOM_STATE }
 			},
 			panzoomInstances: {},
 			eventCleanup: [],

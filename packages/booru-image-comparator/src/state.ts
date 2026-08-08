@@ -1,6 +1,6 @@
 import type { AppState, StateManager } from './types';
 
-import { MODES } from './constants';
+import { DEFAULT_ZOOM_STATE, MODES } from './constants';
 import { detectSite, extractPostIdFromPath } from './utils';
 
 /** Create the initial application state by inspecting the current page. */
@@ -50,11 +50,17 @@ export function createAppState(): StateManager {
     postId,
     searchUrl,
     mode: MODES.SIDE_BY_SIDE,
+    isPanZoomSynced: true,
+    lastInteractedSide: 'left',
     transforms: {
       left: { flipH: false, flipV: false, rotation: 0 },
       right: { flipH: false, flipV: false, rotation: 0 },
     },
-    zoomState: { scale: 1, x: 0, y: 0 },
+    zoomStates: {
+      left: { ...DEFAULT_ZOOM_STATE },
+      right: { ...DEFAULT_ZOOM_STATE },
+      overlay: { ...DEFAULT_ZOOM_STATE },
+    },
     panzoomInstances: {},
     eventCleanup: [],
     originalImageUrl: null,

@@ -96,6 +96,23 @@
   color: var(--text-muted);
 }
 
+.comparator .sync-toggle {
+  white-space: nowrap;
+  cursor: pointer;
+
+  & input {
+    width: var(--sp-4);
+    height: var(--sp-4);
+    accent-color: var(--accent);
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+  }
+}
+
 .post-info {
   font-size: 0.75rem;
   color: var(--text-muted);

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Artist Profile URLs Extractor
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      1.0.11
+// @version      1.0.12
 // @author       Neko_Aria
 // @description  Add a draggable floating button on supported artist profile pages that opens a modal with canonical profile URLs and copy actions
 // @homepageURL  https://github.com/NekoAria/JavaScript-Tools/tree/main/packages/artist-profile-urls-extractor
@@ -367,21 +367,65 @@
 		const secondaryUrl = (await utils.safeFetch(staccUrl))?.url ?? null;
 		return createProfileResult(primaryUrl, secondaryUrl);
 	};
+	var normalizeTiebaPortraitId = (value) => value?.split("?", 1)[0].trim() || null;
 	var extractTiebaPortraitId = (avatarUrl) => {
 		if (!avatarUrl) return null;
 		try {
 			const avatarPath = new URL(avatarUrl.trim(), location.href).pathname;
-			return /\/portrait\/item\/([^/]+)/.exec(avatarPath)?.[1] ?? null;
+			return normalizeTiebaPortraitId(/\/portrait\/item\/([^/]+)/.exec(avatarPath)?.[1]);
 		} catch {
 			return null;
 		}
 	};
-	var handleTieba = () => {
-		const username = document.querySelector(".user-information-wrapper .head-name")?.textContent?.trim() || null;
-		const avatarImage = document.querySelector(".user-information-wrapper .user-avatar img");
-		const portraitId = extractTiebaPortraitId(avatarImage?.dataset.src || avatarImage?.getAttribute("src"));
+	var getTiebaPortraitId = (pageUrl) => {
+		const urlPortraitId = normalizeTiebaPortraitId(pageUrl.searchParams.get("id"));
+		if (urlPortraitId) return urlPortraitId;
+		const portraitSign = document.querySelector("#j_userhead[data-sign]")?.dataset.sign;
+		const signPortraitId = normalizeTiebaPortraitId(portraitSign);
+		if (signPortraitId) return signPortraitId;
+		const avatarImage = document.querySelector(".user-information-wrapper .user-avatar img, #j_userhead img");
+		return extractTiebaPortraitId(avatarImage?.dataset.src || avatarImage?.getAttribute("src"));
+	};
+	var getTiebaUsernameFromProfileLink = () => {
+		const profileHref = document.querySelector("#userinfo_wrap a[href*=\"/p/\"][href*=\"from=tieba\"]")?.getAttribute("href");
+		if (!profileHref) return null;
+		try {
+			const profileUrl = new URL(profileHref, location.href);
+			if (profileUrl.hostname !== "www.baidu.com") return null;
+			const encodedUsername = /^\/p\/([^/]+)\/?$/.exec(profileUrl.pathname)?.[1];
+			if (!encodedUsername) return null;
+			return decodeURIComponent(encodedUsername).trim() || null;
+		} catch {
+			return null;
+		}
+	};
+	var getTiebaPanelData = async (portraitId, username) => {
+		const panelUrl = new URL("/home/get/panel", location.origin);
+		panelUrl.searchParams.set("ie", "utf8");
+		if (portraitId) panelUrl.searchParams.set("id", portraitId);
+		else if (username) panelUrl.searchParams.set("un", username);
+		else return null;
+		const panelResponse = await utils.safeFetch(panelUrl);
+		if (!panelResponse) return null;
+		return getRecord(utils.safeJsonParse(await panelResponse.text()), "data");
+	};
+	var createTiebaHomeUrl = (key, value) => {
+		const profileUrl = new URL("/home/main", "https://tieba.baidu.com");
+		profileUrl.searchParams.set(key, value);
+		return profileUrl.href;
+	};
+	var handleTieba = async () => {
+		const pageUrl = new URL(location.href);
+		let portraitId = getTiebaPortraitId(pageUrl);
+		let username = pageUrl.searchParams.get("un")?.trim() || getTiebaUsernameFromProfileLink();
+		if (!username || !portraitId) {
+			const panelData = await getTiebaPanelData(portraitId, username);
+			username ||= getString(panelData, "name") ?? getString(panelData, "name_show");
+			portraitId ||= normalizeTiebaPortraitId(getString(panelData, "portrait"));
+		}
+		username ||= document.querySelector(".user-information-wrapper .head-name")?.textContent?.trim() || null;
 		if (!username || !portraitId) return fail(utils.userNotFoundError("Tieba"));
-		return createProfileResult(`https://tieba.baidu.com/home/main?un=${username}`, `https://tieba.baidu.com/home/main?id=${portraitId}`);
+		return createProfileResult(createTiebaHomeUrl("un", username), createTiebaHomeUrl("id", portraitId));
 	};
 	var getTumblrBlogIdentifier = () => {
 		const subdomain = /^(.+)\.tumblr\.com$/.exec(location.host)?.[1];
@@ -440,7 +484,7 @@
 		if (vanityChannelUrl) {
 			const urlObj = new URL(vanityChannelUrl);
 			if (urlObj.protocol === "http:") urlObj.protocol = "https:";
-			vanityChannelUrl = decodeURI(urlObj.href);
+			vanityChannelUrl = urlObj.href;
 		}
 		if (!vanityChannelUrl || !channelUrl) return fail("Failed to extract channel URLs");
 		return createProfileResult(vanityChannelUrl, channelUrl);
@@ -512,6 +556,13 @@
 		for (const [domain, handler] of SUBDOMAIN_HANDLERS) if (isHostWithinDomain(host, domain)) return handler;
 		return null;
 	};
+	var decodeUtf8Url = (url) => {
+		try {
+			return decodeURI(url);
+		} catch {
+			return url;
+		}
+	};
 	var getComparableUrl = (url) => {
 		if (!url) return null;
 		try {
@@ -523,9 +574,8 @@
 	var normalizeProfileUrls = (profileUrls, sourceUrl, host, options = {}) => {
 		const { requireAdditionalUrl = true } = options;
 		if (!profileUrls?.primaryUrl) return fail(`Invalid profile URLs extracted from ${host}`, profileUrls);
-		const { primaryUrl } = profileUrls;
-		let { secondaryUrl } = profileUrls;
-		secondaryUrl ||= null;
+		const primaryUrl = decodeUtf8Url(profileUrls.primaryUrl);
+		let secondaryUrl = profileUrls.secondaryUrl ? decodeUtf8Url(profileUrls.secondaryUrl) : null;
 		const comparablePrimaryUrl = getComparableUrl(primaryUrl);
 		if (secondaryUrl && getComparableUrl(secondaryUrl) === comparablePrimaryUrl) secondaryUrl = null;
 		const normalizedProfileUrls = createProfileResult(primaryUrl, secondaryUrl);

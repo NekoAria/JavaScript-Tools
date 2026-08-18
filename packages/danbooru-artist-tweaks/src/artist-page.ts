@@ -131,7 +131,7 @@ const getBulkUpdateRequestScriptLines = (script: string): string[] =>
   script.split(/\r?\n/).filter((line) => line.trim());
 
 const artistTagPairPattern =
-  /^(\s*)((?:(?:create|remove)\s+)?alias|rename)(\s+)(\S+)(\s+->\s+)(\S+)(\s*)$/;
+  /^(\s*)((?:(?:create|remove)\s+)?alias|rename)(\s+)(\S+)(\s+->\s+)(\S+)(\s*)$/i;
 
 const createArtistTagLink = (tagName: string): HTMLAnchorElement => {
   const link = document.createElement('a');

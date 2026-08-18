@@ -5,7 +5,9 @@ import Panzoom, { type PanzoomGlobalOptions, type PanzoomObject } from '@panzoom
 import { DEFAULT_ZOOM_STATE, DIVIDER_WIDTH, LAYOUT_FLUSH_MS, MODES } from './constants';
 import { $ } from './shadow';
 
-/** Track wheel listeners without polluting HTMLElement. */
+/**
+Track wheel listeners without polluting HTMLElement.
+*/
 const wheelListeners = new WeakMap<HTMLElement, (e: WheelEvent) => void>();
 const OVERLAY_MODES: ReadonlySet<ModeType> = new Set([MODES.SLIDER, MODES.FADE, MODES.DIFFERENCE]);
 const ZOOM_TARGETS = ['left', 'right', 'overlay'] as const;
@@ -86,7 +88,9 @@ export function cleanupOverlayWheelListeners(): void {
   }
 }
 
-/** Save every initialized Panzoom instance into its corresponding view state. */
+/**
+Save every initialized Panzoom instance into its corresponding view state.
+*/
 export function commitZoomState(state: StateManager): void {
   const { panzoomInstances, zoomStates } = state.get();
   const next: ZoomStates = { ...zoomStates };
@@ -150,7 +154,9 @@ export function initOverlayPanzoom(state: StateManager): void {
   container.addEventListener('wheel', wh);
 }
 
-/** Initialize side-by-side Panzoom instances for the left and right images. */
+/**
+Initialize side-by-side Panzoom instances for the left and right images.
+*/
 export function initView(state: StateManager): void {
   const leftPan = $<HTMLElement>('#left-pan');
   const rightPan = $<HTMLElement>('#right-pan');
@@ -201,7 +207,9 @@ function readZoomState(instance: PanzoomObject): ZoomState {
   return { scale: instance.getScale(), x: pan.x, y: pan.y };
 }
 
-/** Reset zoom and pan on one side, or on every Panzoom instance when no side is specified. */
+/**
+Reset zoom and pan on one side, or on every Panzoom instance when no side is specified.
+*/
 export function resetZoom(state: StateManager, side?: SideType): void {
   const { panzoomInstances, zoomStates } = state.get();
   const targets = side ? [side] : ZOOM_TARGETS;
@@ -246,7 +254,9 @@ export function restoreZoomState(state: StateManager): void {
   }
 }
 
-/** Enable or disable synchronized side-by-side pan and zoom. */
+/**
+Enable or disable synchronized side-by-side pan and zoom.
+*/
 export function setPanZoomSync(state: StateManager, isSynced: boolean): void {
   if (state.get().isPanZoomSynced === isSynced) {
     return;
@@ -280,7 +290,9 @@ export function setPanZoomSync(state: StateManager, isSynced: boolean): void {
   });
 }
 
-/** Swap independent side view states so each zoom follows its image. */
+/**
+Swap independent side view states so each zoom follows its image.
+*/
 export function swapSideZoomStates(state: StateManager): void {
   commitZoomState(state);
   const { isPanZoomSynced, lastInteractedSide, panzoomInstances, zoomStates } = state.get();
@@ -307,7 +319,9 @@ export function swapSideZoomStates(state: StateManager): void {
   });
 }
 
-/** Synchronize pan and zoom between the left and right Panzoom instances when enabled. */
+/**
+Synchronize pan and zoom between the left and right Panzoom instances when enabled.
+*/
 function syncPanzoom(state: StateManager): void {
   const leftPan = $<HTMLElement>('#left-pan');
   const rightPan = $<HTMLElement>('#right-pan');

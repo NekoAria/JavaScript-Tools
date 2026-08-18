@@ -3,7 +3,9 @@ import type { AppState, StateManager } from './types';
 import { DEFAULT_ZOOM_STATE, MODES } from './constants';
 import { detectSite, extractPostIdFromPath } from './utils';
 
-/** Create the initial application state by inspecting the current page. */
+/**
+Create the initial application state by inspecting the current page.
+*/
 export function createAppState(): StateManager {
   const site = detectSite();
   const { pathname, search } = location;
@@ -67,7 +69,9 @@ export function createAppState(): StateManager {
   });
 }
 
-/** Create a reactive state container with get/update/subscribe. */
+/**
+Create a reactive state container with get/update/subscribe.
+*/
 function createReactiveState(initial: AppState): StateManager {
   let state = { ...initial };
   const listeners = new Set<(next: AppState, prev: AppState) => void>();
@@ -117,7 +121,9 @@ function createReactiveState(initial: AppState): StateManager {
   return manager;
 }
 
-/** Decode a URL parameter, falling back to the raw value on malformed encoding. */
+/**
+Decode a URL parameter, falling back to the raw value on malformed encoding.
+*/
 function safeDecodeURIComponent(raw: string | null): string | null {
   if (raw === null) {
     return null;

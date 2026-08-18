@@ -26,7 +26,9 @@ const isForce = args.includes('--force');
 const isVerbose = args.includes('--verbose');
 const { hasError: hasArgError, value: fileFilter } = getArgValue(args, '--file');
 
-/** Base input files shared by all bookmarklets (resolved to absolute paths). */
+/**
+Base input files shared by all bookmarklets (resolved to absolute paths).
+*/
 const sharedInputs = [
   path.join(rootDir, 'scripts', 'build-bookmarklets.js'),
   path.join(rootDir, 'scripts', 'lib', 'build-cache.js'),
@@ -48,7 +50,9 @@ const bookmarkletImportMap = {
 
 const getExtraFilesForSource = (file) => bookmarkletImportMap[file] || [];
 
-/** Esbuild options used for minification. */
+/**
+Esbuild options used for minification.
+*/
 const esbuildOptions = {
   minify: true,
   supported: {
@@ -59,7 +63,9 @@ const esbuildOptions = {
   },
 };
 
-/** Serialized esbuild options used in hash computation. */
+/**
+Serialized esbuild options used in hash computation.
+*/
 const esbuildOptionsHash = createContentHash(JSON.stringify(esbuildOptions));
 
 const getMinifiedFileName = (file) => file.replace(/\.js$/, '.min.js');

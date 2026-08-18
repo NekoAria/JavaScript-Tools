@@ -89,7 +89,9 @@ export async function createPostSelector(state: StateManager, onSelect: () => vo
   }
 }
 
-/** Extract parent/child post IDs from danbooru notice banners. */
+/**
+Extract parent/child post IDs from danbooru notice banners.
+*/
 function extractFromNotices(state: StateManager, posts: PostData[]): void {
   const { postId } = state.get();
   const notice = document.querySelector('.post-notice-parent, .post-notice-child');
@@ -149,7 +151,9 @@ export function extractImageUrl(data: BooruPostData, site: SiteType = 'danbooru'
   return url;
 }
 
-/** Fetch child posts of the current post via the booru API. */
+/**
+Fetch child posts of the current post via the booru API.
+*/
 async function fetchChildren(state: StateManager, posts: PostData[]): Promise<void> {
   const { postId } = state.get();
   const children = await fetchPostsByTag(`parent:${postId}`);
@@ -161,7 +165,9 @@ async function fetchChildren(state: StateManager, posts: PostData[]): Promise<vo
   }
 }
 
-/** Fetch the parent and sibling posts of the current post via the booru API. */
+/**
+Fetch the parent and sibling posts of the current post via the booru API.
+*/
 async function fetchParentSiblings(state: StateManager, posts: PostData[]): Promise<void> {
   const { postId } = state.get();
   const resp = await fetchPostsByTag(`id:${postId}`);
@@ -204,7 +210,9 @@ function getDanbooru(state: StateManager): PostData[] {
   return posts;
 }
 
-/** Extract similar posts from Danbooru IQDB results already rendered on the page. */
+/**
+Extract similar posts from Danbooru IQDB results already rendered on the page.
+*/
 function getDanbooruSimilar(state: StateManager): PostData[] {
   const { postId } = state.get();
   const posts: PostData[] = [];
@@ -225,7 +233,9 @@ function getDanbooruSimilar(state: StateManager): PostData[] {
   return posts;
 }
 
-/** Resolve the best-available source URL for the current page's main image, falling back through multiple selectors per site. */
+/**
+Resolve the best-available source URL for the current page's main image, falling back through multiple selectors per site.
+*/
 export function getOriginalImageUrl(state: StateManager): string | null {
   const { site, isUpload, isIqdb, isSimilar, searchUrl } = state.get();
 
@@ -250,14 +260,18 @@ export function getOriginalImageUrl(state: StateManager): string | null {
   return document.querySelector<HTMLAnchorElement>('a#highres')?.href || null;
 }
 
-/** Gather related/similar posts for the current page context. */
+/**
+Gather related/similar posts for the current page context.
+*/
 export async function getRelatedPosts(state: StateManager): Promise<PostData[]> {
   const { site } = state.get();
 
   return site === 'danbooru' ? getDanbooru(state) : getYandereKonachan(state);
 }
 
-/** Build related posts list for Yandere/Konachan pages. */
+/**
+Build related posts list for Yandere/Konachan pages.
+*/
 async function getYandereKonachan(state: StateManager): Promise<PostData[]> {
   const { isSimilar, postId } = state.get();
 
@@ -283,7 +297,9 @@ async function getYandereKonachan(state: StateManager): Promise<PostData[]> {
   return sortPosts(posts);
 }
 
-/** Extract similar posts from Yandere/Konachan similar-results page. */
+/**
+Extract similar posts from Yandere/Konachan similar-results page.
+*/
 function getYandereSimilar(): PostData[] {
   const posts: PostData[] = [];
 
@@ -301,7 +317,9 @@ function getYandereSimilar(): PostData[] {
   return posts;
 }
 
-/** Fill the dropdown with related post options. */
+/**
+Fill the dropdown with related post options.
+*/
 function populatePostSelector(select: HTMLSelectElement, posts: PostData[]): void {
   select.append(new Option('-- Select post --', ''));
   const currentRightId = $<HTMLImageElement>('#right-image')?.dataset.id || null;

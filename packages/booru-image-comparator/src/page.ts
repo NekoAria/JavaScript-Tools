@@ -2,7 +2,9 @@ import type { StateManager } from './types';
 
 import { extractPostIdFromArticle } from './utils';
 
-/** Inject "compare" links into post preview articles on listing pages. */
+/**
+Inject "compare" links into post preview articles on listing pages.
+*/
 export function addCompareLinks(state: StateManager, onCompare: (postId: string) => void): void {
   const { site } = state.get();
   const selector =
@@ -46,7 +48,9 @@ export function addCompareLinks(state: StateManager, onCompare: (postId: string)
   }
 }
 
-/** Add a "Compare" entry to the site main navigation menu. */
+/**
+Add a "Compare" entry to the site main navigation menu.
+*/
 export function addMainMenuLink(state: StateManager, onCompare: () => void): void {
   const { site } = state.get();
   const mainMenu =

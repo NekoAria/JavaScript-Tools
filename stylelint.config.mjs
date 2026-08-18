@@ -1,4 +1,6 @@
-/** @type {import('stylelint').Config} */
+/**
+@type {import('stylelint').Config}
+*/
 const stylelintConfig = {
   extends: ['stylelint-config-recess-order'],
   ignoreFiles: ['userscripts/**', '**/*.min.css'],

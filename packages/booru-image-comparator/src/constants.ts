@@ -26,11 +26,17 @@ export const RELATIONSHIP_PRIORITY: Record<RelationshipType, number> = {
   Child: 3,
 };
 
-/** Delay (ms) to allow DOM and Panzoom to initialize before loading the overlay image. */
+/**
+Delay (ms) to allow DOM and Panzoom to initialize before loading the overlay image.
+*/
 export const OVERLAY_INIT_DELAY_MS = 100;
 
-/** Defer execution to the next macrotask (0ms) to ensure layout is complete. */
+/**
+Defer execution to the next macrotask (0ms) to ensure layout is complete.
+*/
 export const LAYOUT_FLUSH_MS = 0;
 
-/** Fallback divider width in px. Must stay in sync with CSS --sp-1. */
+/**
+Fallback divider width in px. Must stay in sync with CSS --sp-1.
+*/
 export const DIVIDER_WIDTH = 4;

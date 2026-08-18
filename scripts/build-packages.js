@@ -49,7 +49,9 @@ async function discoverPackages() {
   return packages;
 }
 
-/** Global input files shared by all packages. */
+/**
+Global input files shared by all packages.
+*/
 const globalInputs = [
   path.join(rootDir, 'package.json'),
   path.join(rootDir, 'pnpm-lock.yaml'),

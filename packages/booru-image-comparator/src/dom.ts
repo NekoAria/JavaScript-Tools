@@ -219,7 +219,9 @@ function buildTransformControls(): HTMLElement {
   );
 }
 
-/** Create a DOM element with attributes and children. */
+/**
+Create a DOM element with attributes and children.
+*/
 function createEl<K extends keyof HTMLElementTagNameMap>(
   tag: K,
   attrs: Attrs = {},
@@ -241,7 +243,9 @@ function createEl<K extends keyof HTMLElementTagNameMap>(
   return el;
 }
 
-/** Determine a display ID for the left (current) image based on page context. */
+/**
+Determine a display ID for the left (current) image based on page context.
+*/
 export function getCurrentImageId(state: StateManager): string {
   const { kind, postId } = resolvePageContext(state);
 
@@ -280,7 +284,9 @@ function getCurrentLabel(state: StateManager): string {
   }
 }
 
-/** Resolve the page-context kind for the current (left) image. Shared by getCurrentImageId / getCurrentLabel. */
+/**
+Resolve the page-context kind for the current (left) image. Shared by getCurrentImageId / getCurrentLabel.
+*/
 function resolvePageContext(state: StateManager): {
   kind: 'iqdb' | 'upload' | 'similar' | 'post';
   postId: string | null;
@@ -301,19 +307,25 @@ function resolvePageContext(state: StateManager): {
   return { kind: 'post', postId };
 }
 
-/** Wrap an element in a styled select-wrapper div for the custom dropdown arrow. */
+/**
+Wrap an element in a styled select-wrapper div for the custom dropdown arrow.
+*/
 function wrapSelect(content: HTMLElement): HTMLElement {
   return createEl('div', { class: 'select-wrapper' }, content);
 }
 
-/** Maps special context-based image IDs (iqdb, upload, similar) to human-readable labels used in the comparator header. */
+/**
+Maps special context-based image IDs (iqdb, upload, similar) to human-readable labels used in the comparator header.
+*/
 const ID_LABELS: Record<string, string> = {
   iqdb: 'IQDB',
   upload: 'Upload',
   similar: 'Similar',
 };
 
-/** Update the input field and post selector to reflect the newly loaded comparison post ID. */
+/**
+Update the input field and post selector to reflect the newly loaded comparison post ID.
+*/
 export function updateInfoUI(postId: string): void {
   updatePostInfo();
   const input = $<HTMLInputElement>('#second-image-input');
@@ -332,7 +344,9 @@ export function updateInfoUI(postId: string): void {
   }
 }
 
-/** Update the comparison header text showing both image IDs (e.g. "Compare: #123 vs #456"). */
+/**
+Update the comparison header text showing both image IDs (e.g. "Compare: #123 vs #456").
+*/
 export function updatePostInfo(): void {
   const leftImg = $<HTMLImageElement>('#left-image');
   const rightImg = $<HTMLImageElement>('#right-image');

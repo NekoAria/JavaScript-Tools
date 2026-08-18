@@ -1,9 +1,13 @@
 import cssText from './style.css?raw';
 
-/** Module-level singleton — only one comparator overlay is open at a time. */
+/**
+Module-level singleton — only one comparator overlay is open at a time.
+*/
 const shadowState: { root: ShadowRoot | null } = { root: null };
 
-/** Query inside the shadow root */
+/**
+Query inside the shadow root
+*/
 export const $ = <T extends Element>(selector: string): T | null =>
   shadowState.root?.querySelector<T>(selector) ?? null;
 

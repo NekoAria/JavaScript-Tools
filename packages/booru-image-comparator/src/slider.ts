@@ -3,7 +3,9 @@ import type { StateManager } from './types';
 import { LAYOUT_FLUSH_MS, MODES } from './constants';
 import { $ } from './shadow';
 
-/** Cleanup array for slider DOM listeners. */
+/**
+Cleanup array for slider DOM listeners.
+*/
 const sliderCleanup: Array<() => void> = [];
 
 function bindSliderEvents(
@@ -77,7 +79,9 @@ function getSliderPosition(sliderEl: HTMLElement, container: HTMLElement): numbe
   return Number.isNaN(position) ? container.clientWidth / 2 : position;
 }
 
-/** Create and initialize the slider element in overlay mode. */
+/**
+Create and initialize the slider element in overlay mode.
+*/
 export function initSlider(state: StateManager): void {
   const container = $<HTMLElement>('#comparison-overlay-container');
   const rightImg = $<HTMLImageElement>('#overlay-image');
@@ -99,7 +103,9 @@ export function initSlider(state: StateManager): void {
   bindSliderEvents(state, el, rightImg, container);
 }
 
-/** Subscribe to state changes to recompute slider position when needed. */
+/**
+Subscribe to state changes to recompute slider position when needed.
+*/
 export function subscribeSliderUpdater(state: StateManager): () => void {
   return state.subscribe((next, prev) => {
     if (
@@ -114,7 +120,9 @@ export function subscribeSliderUpdater(state: StateManager): () => void {
   });
 }
 
-/** Remove all slider event listeners. */
+/**
+Remove all slider event listeners.
+*/
 export function unbindSlider(): void {
   for (const fn of sliderCleanup) {
     fn();

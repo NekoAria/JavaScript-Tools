@@ -47,7 +47,9 @@ function prepareOverlay(state: StateManager): void {
   initOverlayPanzoom(state);
 }
 
-/** Reset all mode-specific DOM changes to the default side-by-side layout. */
+/**
+Reset all mode-specific DOM changes to the default side-by-side layout.
+*/
 export function resetModeDisplay(): void {
   for (const id of ['left-side', 'right-side', 'comparison-divider'] as const) {
     $<HTMLElement>(`#${id}`)?.classList.remove('is-overlay-hidden');
@@ -67,7 +69,9 @@ export function resetModeDisplay(): void {
   $<HTMLElement>('#sync-pan-zoom-control')?.classList.remove('is-hidden');
 }
 
-/** Activate difference comparison mode: hide side-by-side panels, build overlay with difference blend mode. */
+/**
+Activate difference comparison mode: hide side-by-side panels, build overlay with difference blend mode.
+*/
 function setupDifference(state: StateManager): void {
   prepareOverlay(state);
 
@@ -87,7 +91,9 @@ function setupDifference(state: StateManager): void {
   $<HTMLElement>('#difference-controls')?.classList.remove('is-hidden');
 }
 
-/** Activate fade comparison mode: hide side-by-side panels, build overlay with fade-opacity blending. */
+/**
+Activate fade comparison mode: hide side-by-side panels, build overlay with fade-opacity blending.
+*/
 function setupFade(state: StateManager): void {
   prepareOverlay(state);
 
@@ -122,7 +128,9 @@ export function setupMode(state: StateManager, mode: ModeType): void {
   }
 }
 
-/** Activate slider comparison mode: hide side-by-side panels, build overlay, init panzoom, then init the draggable slider. */
+/**
+Activate slider comparison mode: hide side-by-side panels, build overlay, init panzoom, then init the draggable slider.
+*/
 function setupSlider(state: StateManager): void {
   prepareOverlay(state);
   setTimeout(() => initSlider(state), LAYOUT_FLUSH_MS);

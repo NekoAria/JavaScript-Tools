@@ -2,7 +2,9 @@ import type { SideType, StateManager, TransformState } from './types';
 
 import { $ } from './shadow';
 
-/** Apply CSS transform variables (flip, rotation) to image elements. */
+/**
+Apply CSS transform variables (flip, rotation) to image elements.
+*/
 export function applyTransforms(state: StateManager): void {
   const { transforms: t } = state.get();
   const map = {

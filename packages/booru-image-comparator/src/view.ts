@@ -31,7 +31,9 @@ interface ComparatorCallbacks {
 
 type EventBinder = (id: string, handler: () => void, event?: string) => void;
 
-/** Bind all comparator UI event listeners and register cleanup handlers. */
+/**
+Bind all comparator UI event listeners and register cleanup handlers.
+*/
 export function bindEvents(state: StateManager, deps: ComparatorCallbacks): void {
   const cleanup: Array<() => void> = [];
 
@@ -139,7 +141,9 @@ function bindTransformEvents(on: EventBinder, state: StateManager): void {
   on('reset-transform', () => resetTransforms(state));
 }
 
-/** Switch comparison mode, saving zoom state and rebuilding the overlay. */
+/**
+Switch comparison mode, saving zoom state and rebuilding the overlay.
+*/
 export function updateMode(state: StateManager): void {
   commitZoomState(state);
   destroyOverlayZoom(state);

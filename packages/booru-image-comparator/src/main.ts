@@ -5,7 +5,9 @@ import { subscribeSliderUpdater } from './slider';
 import { createAppState } from './state';
 import { isValidPage } from './utils';
 
-/** Initialize the comparator: build state, inject UI links, and watch for dynamic content. */
+/**
+Initialize the comparator: build state, inject UI links, and watch for dynamic content.
+*/
 const init = (): void => {
   if (!isValidPage()) {
     return;

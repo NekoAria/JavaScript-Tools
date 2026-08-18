@@ -3,7 +3,9 @@ import type { DiffPair, DiffResult } from './types';
 import { lcsCharDiff } from './diff';
 import { DIFF_DELETE, DIFF_INSERT } from './types';
 
-/** Escape HTML special characters to prevent XSS via URL content. */
+/**
+Escape HTML special characters to prevent XSS via URL content.
+*/
 function escapeHtml(text: string): string {
   const escapeMap: Record<string, string> = {
     '&': '&amp;',

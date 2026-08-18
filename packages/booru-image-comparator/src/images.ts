@@ -10,13 +10,17 @@ import { applyTransforms } from './transform';
 import { detectSiteFromHostname, extractPostIdFromUrl, isValidPostUrl } from './utils';
 import { updateMode } from './view';
 
-/** Tracks in-flight AbortControllers keyed by image element. Uses WeakMap so controllers are automatically garbage-collected when their element is removed from the DOM. */
+/**
+Tracks in-flight AbortControllers keyed by image element. Uses WeakMap so controllers are automatically garbage-collected when their element is removed from the DOM.
+*/
 const loadAbortMap = new WeakMap<HTMLImageElement, AbortController>();
 
 // Monotonically incremented token to discard stale async results and prevent race-condition overwrites
 const imageLoadState = { currentLoadToken: 0 };
 
-/** Clear the right image and reset overlay state. */
+/**
+Clear the right image and reset overlay state.
+*/
 function clearRightImage(): void {
   const rightImg = $<HTMLImageElement>('#right-image');
   const overlayImg = $<HTMLImageElement>('#overlay-image');
@@ -35,7 +39,9 @@ function clearRightImage(): void {
   updatePostInfo();
 }
 
-/** Refresh overlay and UI after an image loads. */
+/**
+Refresh overlay and UI after an image loads.
+*/
 function finalizeImageLoad(state: StateManager, postId: string): void {
   updateInfoUI(postId);
   const { isPanZoomSynced, mode } = state.get();
@@ -49,7 +55,9 @@ function generateLoadToken(): number {
   return ++imageLoadState.currentLoadToken;
 }
 
-/** Read the input field and trigger loading the comparison image. */
+/**
+Read the input field and trigger loading the comparison image.
+*/
 export function handleLoadImage(state: StateManager): void {
   const input = $<HTMLInputElement>('#second-image-input');
   const value = input?.value.trim();
@@ -62,7 +70,9 @@ export function handleLoadImage(state: StateManager): void {
   loadImage(state, value);
 }
 
-/** Cancel all pending image loads and bump the load token. */
+/**
+Cancel all pending image loads and bump the load token.
+*/
 export function invalidatePendingLoads(): void {
   ++imageLoadState.currentLoadToken;
   const rightImg = $<HTMLImageElement>('#right-image');
@@ -72,7 +82,9 @@ export function invalidatePendingLoads(): void {
   }
 }
 
-/** Load an image directly from a user-provided URL. */
+/**
+Load an image directly from a user-provided URL.
+*/
 function loadDirectUrl(state: StateManager, url: string): void {
   try {
     const parsed = new URL(url);
@@ -112,7 +124,9 @@ function loadDirectUrl(state: StateManager, url: string): void {
   }
 }
 
-/** Load a comparison image by post ID, URL, or direct link. */
+/**
+Load a comparison image by post ID, URL, or direct link.
+*/
 export function loadImage(state: StateManager, input: string): void {
   const rightImg = $<HTMLImageElement>('#right-image');
 
@@ -185,7 +199,9 @@ async function loadPostById(state: StateManager, postId: string, token: number):
   }
 }
 
-/** Load the left (reference) image for IQDB or similar-search pages. */
+/**
+Load the left (reference) image for IQDB or similar-search pages.
+*/
 export async function loadReferenceImage(state: StateManager): Promise<void> {
   const leftImg = $<HTMLImageElement>('#left-image');
 
@@ -231,7 +247,9 @@ function swapDataAttr(a: HTMLElement, b: HTMLElement, key: string): void {
   }
 }
 
-/** Swap the left and right images along with their transforms. */
+/**
+Swap the left and right images along with their transforms.
+*/
 export function swapImages(state: StateManager): void {
   const leftImg = $<HTMLImageElement>('#left-image');
   const rightImg = $<HTMLImageElement>('#right-image');

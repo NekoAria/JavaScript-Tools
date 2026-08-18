@@ -18,7 +18,9 @@ import { restoreBackground, restoreMode, restorePanZoomSync } from './storage';
 import { resetTransforms } from './transform';
 import { bindEvents, updateMode } from './view';
 
-/** Module-level comparator lifecycle state. */
+/**
+Module-level comparator lifecycle state.
+*/
 const comparatorState: {
   originalBodyOverflow: string | null;
   pendingLoadTimer: ReturnType<typeof setTimeout> | null;
@@ -27,7 +29,9 @@ const comparatorState: {
   pendingLoadTimer: null,
 };
 
-/** Close the comparator and clean up all resources. */
+/**
+Close the comparator and clean up all resources.
+*/
 function closeComparator(state: StateManager): void {
   if (comparatorState.pendingLoadTimer) {
     clearTimeout(comparatorState.pendingLoadTimer);
@@ -50,7 +54,9 @@ function closeComparator(state: StateManager): void {
   destroyShadow();
 }
 
-/** Open the image comparator overlay. */
+/**
+Open the image comparator overlay.
+*/
 export async function openComparator(postId: string | null, state: StateManager): Promise<void> {
   const { host, shadow } = createShadowHost();
   const container = buildInterface(state);
@@ -81,7 +87,9 @@ export async function openComparator(postId: string | null, state: StateManager)
   }
 }
 
-/** Set up UI controls, event bindings, and load related images. */
+/**
+Set up UI controls, event bindings, and load related images.
+*/
 async function setupComparator(state: StateManager): Promise<void> {
   await createPostSelector(state, () => handleLoadImage(state));
 

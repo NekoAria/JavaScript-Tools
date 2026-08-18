@@ -87,6 +87,7 @@ const createProfileResult = (
   secondaryUrl: string | null = null,
 ): ProfileUrls => ({ primaryUrl, secondaryUrl });
 const LOG_PREFIX = '[artist-profile-urls-extractor]';
+const isInvalidBlueskyHandle = (value?: string | null) => value?.toLowerCase() === 'handle.invalid';
 const TWITTER_RESERVED_PATHS = new Set([
   'compose',
   'explore',
@@ -163,13 +164,12 @@ const fail = (message: string, details?: unknown): never => {
 };
 
 const handleBluesky = async () => {
-  const profileMatch = /\/profile\/([^/]+)/.exec(location.pathname);
+  const identifier = /\/profile\/([^/]+)/.exec(location.pathname)?.[1];
 
-  if (!profileMatch?.[1]) {
+  if (!identifier || isInvalidBlueskyHandle(identifier)) {
     return fail(utils.userNotFoundError('Bluesky'));
   }
 
-  const identifier = profileMatch[1];
   let primaryUrl = `https://bsky.app/profile/${identifier}`;
   let secondaryUrl;
 
@@ -182,6 +182,10 @@ const handleBluesky = async () => {
     if (profileResponse) {
       const profileData: unknown = await profileResponse.json();
       const handle = getString(profileData, 'handle');
+
+      if (isInvalidBlueskyHandle(handle)) {
+        return fail(utils.userNotFoundError('Bluesky'));
+      }
 
       if (handle) {
         primaryUrl = `https://bsky.app/profile/${handle}`;

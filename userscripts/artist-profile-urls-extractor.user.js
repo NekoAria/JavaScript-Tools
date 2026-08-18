@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Artist Profile URLs Extractor
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      1.0.12
+// @version      1.0.13
 // @author       Neko_Aria
 // @description  Add a draggable floating button on supported artist profile pages that opens a modal with canonical profile URLs and copy actions
 // @homepageURL  https://github.com/NekoAria/JavaScript-Tools/tree/main/packages/artist-profile-urls-extractor
@@ -51,6 +51,7 @@
 		secondaryUrl
 	});
 	var LOG_PREFIX = "[artist-profile-urls-extractor]";
+	var isInvalidBlueskyHandle = (value) => value?.toLowerCase() === "handle.invalid";
 	var TWITTER_RESERVED_PATHS = new Set([
 		"compose",
 		"explore",
@@ -113,15 +114,15 @@
 		throw new ProfileExtractionError(message, details);
 	};
 	var handleBluesky = async () => {
-		const profileMatch = /\/profile\/([^/]+)/.exec(location.pathname);
-		if (!profileMatch?.[1]) return fail(utils.userNotFoundError("Bluesky"));
-		const identifier = profileMatch[1];
+		const identifier = /\/profile\/([^/]+)/.exec(location.pathname)?.[1];
+		if (!identifier || isInvalidBlueskyHandle(identifier)) return fail(utils.userNotFoundError("Bluesky"));
 		let primaryUrl = `https://bsky.app/profile/${identifier}`;
 		let secondaryUrl;
 		if (identifier.startsWith("did:")) {
 			const profileResponse = await utils.safeFetch(`https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${identifier}`);
 			if (profileResponse) {
 				const handle = getString(await profileResponse.json(), "handle");
+				if (isInvalidBlueskyHandle(handle)) return fail(utils.userNotFoundError("Bluesky"));
 				if (handle) primaryUrl = `https://bsky.app/profile/${handle}`;
 			}
 			secondaryUrl = `https://bsky.app/profile/${identifier}`;

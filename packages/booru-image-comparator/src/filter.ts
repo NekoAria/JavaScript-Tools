@@ -77,7 +77,10 @@ export function updateFilters(): void {
   brightVl.textContent = brightSl.value;
   satVl.textContent = satSl.value;
 
-  const filter = `brightness(${+brightSl.value / 100}) saturate(${+satSl.value / 100})`;
+  const brightness = Number(brightSl.value) / 100;
+  const saturation = Number(satSl.value) / 100;
+  const filter =
+    brightness === 1 && saturation === 1 ? '' : `brightness(${brightness}) saturate(${saturation})`;
 
   for (const id of ['overlay-pan', 'left-pan', 'right-pan'] as const) {
     const pan = $<HTMLElement>(`#${id}`);

@@ -64,10 +64,8 @@ function bindSliderEvents(
   const overlayPan = $<HTMLElement>('#overlay-pan');
 
   if (overlayPan && state.get().panzoomInstances.overlay) {
-    for (const ev of ['panzoomchange', 'panzoomzoom', 'panzoompan'] as const) {
-      overlayPan.addEventListener(ev, onPanzoomChange);
-      newCleanup.push(() => overlayPan.removeEventListener(ev, onPanzoomChange));
-    }
+    overlayPan.addEventListener('panzoomchange', onPanzoomChange);
+    newCleanup.push(() => overlayPan.removeEventListener('panzoomchange', onPanzoomChange));
   }
 
   sliderCleanup.push(...newCleanup);

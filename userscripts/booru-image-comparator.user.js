@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Universal Booru Image Comparator
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      2.1.0
+// @version      2.1.1
 // @author       Neko_Aria
 // @description  Compare images on Danbooru / Yande.re / Konachan with multiple modes and transformations
 // @homepageURL  https://github.com/NekoAria/JavaScript-Tools/tree/main/packages/booru-image-comparator
@@ -1461,7 +1461,9 @@
 		if (!brightSl || !satSl || !brightVl || !satVl) return;
 		brightVl.textContent = brightSl.value;
 		satVl.textContent = satSl.value;
-		const filter = `brightness(${+brightSl.value / 100}) saturate(${+satSl.value / 100})`;
+		const brightness = Number(brightSl.value) / 100;
+		const saturation = Number(satSl.value) / 100;
+		const filter = brightness === 1 && saturation === 1 ? "" : `brightness(${brightness}) saturate(${saturation})`;
 		for (const id of [
 			"overlay-pan",
 			"left-pan",
@@ -1511,13 +1513,9 @@
 			() => document.removeEventListener("mouseup", onMouseUp)
 		];
 		const overlayPan = $("#overlay-pan");
-		if (overlayPan && state.get().panzoomInstances.overlay) for (const ev of [
-			"panzoomchange",
-			"panzoomzoom",
-			"panzoompan"
-		]) {
-			overlayPan.addEventListener(ev, onPanzoomChange);
-			newCleanup.push(() => overlayPan.removeEventListener(ev, onPanzoomChange));
+		if (overlayPan && state.get().panzoomInstances.overlay) {
+			overlayPan.addEventListener("panzoomchange", onPanzoomChange);
+			newCleanup.push(() => overlayPan.removeEventListener("panzoomchange", onPanzoomChange));
 		}
 		sliderCleanup.push(...newCleanup);
 	}

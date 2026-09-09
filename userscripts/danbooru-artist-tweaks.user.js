@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         Danbooru Artist Tweaks
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      1.0.9
+// @version      1.0.10
 // @author       Neko_Aria
-// @description  Add Create wiki link for artist pages without wiki page, copy artist name button, replace wiki links with bulk update request links for tag aliases, show pending BURs, highlight unrecognized external hostnames in artist versions, provide an expandable multi-line editor for the artist "Other Names" field, and warn about unmigrated posts on artist rename
+// @description  Add Create wiki link for artist pages without wiki page, copy artist name button, replace tag alias links with bulk update request links, show pending BURs, highlight unrecognized external hostnames in artist versions, provide an expandable multi-line editor for the artist "Other Names" field, and warn about unmigrated posts on artist rename
 // @homepageURL  https://github.com/NekoAria/JavaScript-Tools/tree/main/packages/danbooru-artist-tweaks
 // @supportURL   https://github.com/NekoAria/JavaScript-Tools/issues
 // @match        *://*.donmai.us/artists/*
@@ -65,12 +65,17 @@
 		link.textContent = "Create wiki";
 		return link;
 	};
+	var getAliasTagNameFromHref = (href) => {
+		if (href?.startsWith("/artists/show_or_new?")) return new URL(href, location.origin).searchParams.get("name");
+		if (href !== "/wiki_pages/help:tag_aliases" && href?.startsWith("/wiki_pages/")) return href.replace("/wiki_pages/", "");
+		return null;
+	};
 	var replaceWikiLinksWithBulkUpdateRequests = () => {
 		const fineprintLinks = document.querySelectorAll("p.fineprint a");
 		for (const link of fineprintLinks) {
-			const href = link.getAttribute("href");
-			if (href !== "/wiki_pages/help:tag_aliases" && href?.startsWith("/wiki_pages/")) {
-				const newHref = `/bulk_update_requests?commit=search[status]=approved&search[tags_include_any]=${href.replace("/wiki_pages/", "")}`;
+			const tagName = getAliasTagNameFromHref(link.getAttribute("href"));
+			if (tagName) {
+				const newHref = `/bulk_update_requests?commit=search[status]=approved&search[tags_include_any]=${encodeURIComponent(tagName)}`;
 				link.setAttribute("href", newHref);
 			}
 		}

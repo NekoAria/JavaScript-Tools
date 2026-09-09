@@ -43,7 +43,7 @@ Unlike the bookmarklet version, this userscript stays active on supported artist
 ### Danbooru Artist Tweaks
 
 - **File**: [danbooru-artist-tweaks.user.js](userscripts/danbooru-artist-tweaks.user.js)
-- **Function**: Add Create wiki link for artist pages without wiki page, copy artist name button, replace wiki links with bulk update request links for tag aliases, show pending BURs, highlight unrecognized external hostnames in artist versions, provide an expandable multi-line editor for the artist "Other Names" field, and warn about unmigrated posts on artist rename
+- **Function**: Add Create wiki link for artist pages without wiki page, copy artist name button, replace tag alias links with bulk update request links, show pending BURs, highlight unrecognized external hostnames in artist versions, provide an expandable multi-line editor for the artist "Other Names" field, and warn about unmigrated posts on artist rename
 
 ### Danbooru Artist URL Diff Enhancer
 

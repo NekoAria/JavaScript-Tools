@@ -88,16 +88,26 @@ const createWikiLinkElement = (tagName: string): HTMLAnchorElement => {
   return link;
 };
 
+const getAliasTagNameFromHref = (href: string | null): string | null => {
+  if (href?.startsWith('/artists/show_or_new?')) {
+    return new URL(href, location.origin).searchParams.get('name');
+  }
+
+  if (href !== '/wiki_pages/help:tag_aliases' && href?.startsWith('/wiki_pages/')) {
+    return href.replace('/wiki_pages/', '');
+  }
+
+  return null;
+};
+
 const replaceWikiLinksWithBulkUpdateRequests = (): void => {
   const fineprintLinks = document.querySelectorAll<HTMLAnchorElement>('p.fineprint a');
 
   for (const link of fineprintLinks) {
-    const href = link.getAttribute('href');
+    const tagName = getAliasTagNameFromHref(link.getAttribute('href'));
 
-    if (href !== '/wiki_pages/help:tag_aliases' && href?.startsWith('/wiki_pages/')) {
-      // Keep the tag alias help page intact; other wiki links point to alias targets.
-      const tagName = href.replace('/wiki_pages/', '');
-      const newHref = `/bulk_update_requests?commit=search[status]=approved&search[tags_include_any]=${tagName}`;
+    if (tagName) {
+      const newHref = `/bulk_update_requests?commit=search[status]=approved&search[tags_include_any]=${encodeURIComponent(tagName)}`;
 
       link.setAttribute('href', newHref);
     }

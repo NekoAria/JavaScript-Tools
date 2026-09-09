@@ -1,0 +1,35 @@
+name: Dependabot release-age retry
+
+on:
+  schedule:
+    - cron: '37 */6 * * *'
+
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: dependabot-release-age-retry
+  cancel-in-progress: false
+
+jobs:
+  retry:
+    if: github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Retry release-age failures
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          DEPENDABOT_WORKFLOW_FILE: dependabot-auto-merge.yml
+          MAX_RUN_ATTEMPTS: '6'
+        run: bash .github/scripts/retry-dependabot-release-age.sh

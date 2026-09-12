@@ -209,6 +209,7 @@
 		return fail(utils.userNotFoundError("Mihuashi"));
 	};
 	var PATREON_BASE_URL = "https://www.patreon.com";
+	var PATREON_FLIGHT_PUSH_PREFIX = "self.__next_f.push(";
 	var PATREON_NON_VANITY_PATHS = new Set([
 		"checkout",
 		"creation",
@@ -254,8 +255,40 @@
 			return null;
 		}
 	};
-	var getPatreonHtmlUserId = () => {
-		return toPatreonNumericId(document.documentElement.outerHTML.replaceAll(String.raw`\/`, "/").match(/https:\/\/www\.patreon\.com\/api\/user\/(\d+)/)?.[1]);
+	var findPatreonBootstrapEnvelope = (value) => {
+		const record = asRecord(value);
+		const envelope = getRecord(record, "bootstrapEnvelope");
+		if (envelope) return envelope;
+		const children = Array.isArray(value) ? value : record && Object.values(record);
+		if (!children) return null;
+		for (const child of children) {
+			const nestedEnvelope = findPatreonBootstrapEnvelope(child);
+			if (nestedEnvelope) return nestedEnvelope;
+		}
+		return null;
+	};
+	var getPatreonFlightBootstrapEnvelope = () => {
+		const flightChunks = [];
+		for (const script of document.scripts) {
+			const scriptText = script.textContent;
+			if (!scriptText) continue;
+			const pushCallIndex = scriptText.indexOf(PATREON_FLIGHT_PUSH_PREFIX);
+			if (pushCallIndex === -1) continue;
+			const argumentStart = pushCallIndex + 19;
+			const argumentEnd = scriptText.lastIndexOf(")");
+			if (argumentEnd <= argumentStart) continue;
+			const flightEntry = utils.safeJsonParse(scriptText.slice(argumentStart, argumentEnd));
+			const chunk = Array.isArray(flightEntry) ? flightEntry[1] : null;
+			if (typeof chunk === "string") flightChunks.push(chunk);
+		}
+		for (const row of flightChunks.join("").split("\n")) {
+			if (!row.includes("\"bootstrapEnvelope\"")) continue;
+			const separatorIndex = row.indexOf(":");
+			if (separatorIndex === -1) continue;
+			const envelope = findPatreonBootstrapEnvelope(utils.safeJsonParse(row.slice(separatorIndex + 1)));
+			if (envelope) return envelope;
+		}
+		return null;
 	};
 	var handlePatreon = () => {
 		const currentUrl = new URL(location.href);
@@ -263,7 +296,7 @@
 		if (explicitUserId) return createProfileResult(getPatreonUserProfileUrl(explicitUserId));
 		const nextData = asRecord(globalThis.__NEXT_DATA__) ?? asRecord(utils.safeJsonParse(document.querySelector("#__NEXT_DATA__")?.textContent));
 		const pageProps = getRecordAt(nextData, "props", "pageProps");
-		const bootstrap = getRecord(pageProps, "bootstrapEnvelope") ?? pageProps;
+		const bootstrap = getRecord(pageProps, "bootstrapEnvelope") ?? pageProps ?? getPatreonFlightBootstrapEnvelope();
 		const routeVanityPath = getPatreonVanityPathFromUrl(currentUrl);
 		const routeVanityKey = routeVanityPath?.toLowerCase();
 		const campaignCandidates = [getRecordAt(bootstrap, "pageBootstrap", "campaign", "data"), getRecordAt(bootstrap, "commonBootstrap", "campaign", "data")].filter((campaign) => campaign !== null).map((campaign) => {
@@ -284,9 +317,8 @@
 		const postId = toPatreonNumericId(currentUrl.pathname.startsWith("/creation") ? currentUrl.searchParams.get("hid") : /^\/posts\/(?:[^/]*-)?(\d+)\/?$/.exec(currentUrl.pathname)?.[1]);
 		const queryVanityKey = getPatreonVanityPath(getValueAt(nextData, "query", "vanity"))?.toLowerCase();
 		const isCurrentBootstrapPost = postId ? toPatreonNumericId(currentPost?.id) === postId : Boolean(routeVanityKey && queryVanityKey === routeVanityKey);
-		const hasCreatorRouteContext = Boolean(routeVanityPath || membershipCampaignId || postId);
-		const pageUserId = hasCreatorRouteContext ? toPatreonNumericId(getValueAt(bootstrap, "pageBootstrap", "pageUser", "data", "id")) : null;
-		const creatorUserId = (isCurrentBootstrapPost ? getPatreonRelationshipId(currentPost, "user") : null) ?? matchedCampaign?.creatorUserId ?? pageUserId ?? (hasCreatorRouteContext ? getPatreonHtmlUserId() : null);
+		const pageUserId = Boolean(routeVanityPath || membershipCampaignId || postId) ? toPatreonNumericId(getValueAt(bootstrap, "pageBootstrap", "pageUser", "data", "id")) : null;
+		const creatorUserId = (isCurrentBootstrapPost ? getPatreonRelationshipId(currentPost, "user") : null) ?? matchedCampaign?.creatorUserId ?? pageUserId;
 		if (!creatorUserId) return fail(utils.userNotFoundError("Patreon"));
 		const creatorVanityPath = matchedCampaign?.vanityPath ?? campaignCandidates.find(({ creatorUserId: campaignCreatorUserId }) => campaignCreatorUserId === creatorUserId)?.vanityPath ?? routeVanityPath;
 		const userProfileUrl = getPatreonUserProfileUrl(creatorUserId);

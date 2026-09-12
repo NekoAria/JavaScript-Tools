@@ -393,6 +393,7 @@ const handleMihuashi = async () => {
 };
 
 const PATREON_BASE_URL = 'https://www.patreon.com';
+const PATREON_FLIGHT_PUSH_PREFIX = 'self.__next_f.push(';
 const PATREON_NON_VANITY_PATHS = new Set([
   'checkout',
   'creation',
@@ -464,12 +465,83 @@ const getPatreonCampaignVanityPath = (campaign: unknown): string | null => {
   }
 };
 
-const getPatreonHtmlUserId = (): string | null => {
-  const normalizedHtml = document.documentElement.outerHTML.replaceAll(String.raw`\/`, '/');
+const findPatreonBootstrapEnvelope = (value: unknown): JsonRecord | null => {
+  const record = asRecord(value);
+  const envelope = getRecord(record, 'bootstrapEnvelope');
 
-  return toPatreonNumericId(
-    normalizedHtml.match(/https:\/\/www\.patreon\.com\/api\/user\/(\d+)/)?.[1],
-  );
+  if (envelope) {
+    return envelope;
+  }
+
+  const children = Array.isArray(value) ? value : record && Object.values(record);
+
+  if (!children) {
+    return null;
+  }
+
+  for (const child of children) {
+    const nestedEnvelope = findPatreonBootstrapEnvelope(child);
+
+    if (nestedEnvelope) {
+      return nestedEnvelope;
+    }
+  }
+
+  return null;
+};
+
+const getPatreonFlightBootstrapEnvelope = (): JsonRecord | null => {
+  const flightChunks: string[] = [];
+
+  for (const script of document.scripts) {
+    const scriptText = script.textContent;
+
+    if (!scriptText) {
+      continue;
+    }
+
+    const pushCallIndex = scriptText.indexOf(PATREON_FLIGHT_PUSH_PREFIX);
+
+    if (pushCallIndex === -1) {
+      continue;
+    }
+
+    const argumentStart = pushCallIndex + PATREON_FLIGHT_PUSH_PREFIX.length;
+    const argumentEnd = scriptText.lastIndexOf(')');
+
+    if (argumentEnd <= argumentStart) {
+      continue;
+    }
+
+    const flightEntry = utils.safeJsonParse(scriptText.slice(argumentStart, argumentEnd));
+    const chunk: unknown = Array.isArray(flightEntry) ? flightEntry[1] : null;
+
+    if (typeof chunk === 'string') {
+      flightChunks.push(chunk);
+    }
+  }
+
+  for (const row of flightChunks.join('').split('\n')) {
+    if (!row.includes('"bootstrapEnvelope"')) {
+      continue;
+    }
+
+    const separatorIndex = row.indexOf(':');
+
+    if (separatorIndex === -1) {
+      continue;
+    }
+
+    const envelope = findPatreonBootstrapEnvelope(
+      utils.safeJsonParse(row.slice(separatorIndex + 1)),
+    );
+
+    if (envelope) {
+      return envelope;
+    }
+  }
+
+  return null;
 };
 
 const handlePatreon = () => {
@@ -486,7 +558,8 @@ const handlePatreon = () => {
     asRecord(globalThis.__NEXT_DATA__) ??
     asRecord(utils.safeJsonParse(document.querySelector('#__NEXT_DATA__')?.textContent));
   const pageProps = getRecordAt(nextData, 'props', 'pageProps');
-  const bootstrap = getRecord(pageProps, 'bootstrapEnvelope') ?? pageProps;
+  const bootstrap =
+    getRecord(pageProps, 'bootstrapEnvelope') ?? pageProps ?? getPatreonFlightBootstrapEnvelope();
   const routeVanityPath = getPatreonVanityPathFromUrl(currentUrl);
   const routeVanityKey = routeVanityPath?.toLowerCase();
   const campaignCandidates = [
@@ -533,8 +606,7 @@ const handlePatreon = () => {
   const creatorUserId =
     (isCurrentBootstrapPost ? getPatreonRelationshipId(currentPost, 'user') : null) ??
     matchedCampaign?.creatorUserId ??
-    pageUserId ??
-    (hasCreatorRouteContext ? getPatreonHtmlUserId() : null);
+    pageUserId;
 
   if (!creatorUserId) {
     return fail(utils.userNotFoundError('Patreon'));

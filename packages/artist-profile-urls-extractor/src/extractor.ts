@@ -99,6 +99,8 @@ const TWITTER_RESERVED_PATHS = new Set([
   'settings',
 ]);
 const TWITTER_PROFILE_TAB_PATHS = new Set(['', 'articles', 'highlights', 'media', 'with_replies']);
+const TWITTER_SSR_USER_PATTERN =
+  /(?:^|[,{])\s*"?restId"?\s*:\s*"(\d+)"\s*,\s*"?screenName"?\s*:\s*"([a-zA-Z0-9_]{1,15})"/g;
 const TWITTER_STATUS_PATH_PATTERN = /^status\/\d+(?:\/(?:photo|video)\/\d+)?$/;
 const TUMBLR_API_AUTHORIZATION = 'Bearer aIcXSOoTtqrzR8L8YEIOmBeW94c3FmbSNSWAUbxsny9KKx5VFh';
 
@@ -685,6 +687,25 @@ const createMatchingTwitterUserEntity = (
   return { additionalName, identifier };
 };
 
+const findTwitterSsrUserEntity = (
+  root: ParentNode,
+  expectedName: string,
+): TwitterUserEntity | null => {
+  for (const scriptTag of root.querySelectorAll('script:not([src])')) {
+    const scriptText = scriptTag.textContent ?? '';
+
+    for (const [, restId, screenName] of scriptText.matchAll(TWITTER_SSR_USER_PATTERN)) {
+      const matchedEntity = createMatchingTwitterUserEntity(screenName, restId, expectedName);
+
+      if (matchedEntity) {
+        return matchedEntity;
+      }
+    }
+  }
+
+  return null;
+};
+
 const findTwitterUserEntity = (
   root: ParentNode,
   expectedProfileName: string,
@@ -724,7 +745,7 @@ const findTwitterUserEntity = (
     }
   }
 
-  return null;
+  return findTwitterSsrUserEntity(root, expectedName);
 };
 
 const handleTwitter = async () => {

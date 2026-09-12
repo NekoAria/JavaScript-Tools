@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Artist Profile URLs Extractor
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      1.0.13
+// @version      1.0.14
 // @author       Neko_Aria
 // @description  Add a draggable floating button on supported artist profile pages that opens a modal with canonical profile URLs and copy actions
 // @homepageURL  https://github.com/NekoAria/JavaScript-Tools/tree/main/packages/artist-profile-urls-extractor
@@ -69,6 +69,7 @@
 		"media",
 		"with_replies"
 	]);
+	var TWITTER_SSR_USER_PATTERN = /(?:^|[,{])\s*"?restId"?\s*:\s*"(\d+)"\s*,\s*"?screenName"?\s*:\s*"([a-zA-Z0-9_]{1,15})"/g;
 	var TWITTER_STATUS_PATH_PATTERN = /^status\/\d+(?:\/(?:photo|video)\/\d+)?$/;
 	var TUMBLR_API_AUTHORIZATION = "Bearer aIcXSOoTtqrzR8L8YEIOmBeW94c3FmbSNSWAUbxsny9KKx5VFh";
 	var utils = {
@@ -345,6 +346,16 @@
 			identifier
 		};
 	};
+	var findTwitterSsrUserEntity = (root, expectedName) => {
+		for (const scriptTag of root.querySelectorAll("script:not([src])")) {
+			const scriptText = scriptTag.textContent ?? "";
+			for (const [, restId, screenName] of scriptText.matchAll(TWITTER_SSR_USER_PATTERN)) {
+				const matchedEntity = createMatchingTwitterUserEntity(screenName, restId, expectedName);
+				if (matchedEntity) return matchedEntity;
+			}
+		}
+		return null;
+	};
 	var findTwitterUserEntity = (root, expectedProfileName) => {
 		const expectedName = normalizeTwitterProfileName(expectedProfileName);
 		const scriptTags = root.querySelectorAll("script[type='application/ld+json']");
@@ -360,7 +371,7 @@
 			const matchedEntity = createMatchingTwitterUserEntity(additionalName, identifier, expectedName);
 			if (matchedEntity) return matchedEntity;
 		}
-		return null;
+		return findTwitterSsrUserEntity(root, expectedName);
 	};
 	var handleTwitter = async () => {
 		const profileName = getTwitterProfileName();

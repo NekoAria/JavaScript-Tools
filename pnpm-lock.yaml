@@ -48,8 +48,8 @@ importers:
         specifier: ^4.4.1
         version: 4.4.1(@typescript-eslint/eslint-plugin@8.70.1(@typescript-eslint/parser@8.70.1(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3))(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3))(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))
       globals:
-        specifier: ^17.12.0
-        version: 17.12.0
+        specifier: ^17.13.0
+        version: 17.13.0
       knip:
         specifier: ^6.39.0
         version: 6.39.0
@@ -1676,8 +1676,8 @@ packages:
     resolution: {integrity: sha512-awConJSVCHVGND6x3tmMaKcQvwXLhjdkmomy2W+Goaui8YPgYgXJZewhg3fWC+DlfqqQuWg8AwqjGTD2nAPVWg==}
     engines: {node: '>=6'}
 
-  globals@17.12.0:
-    resolution: {integrity: sha512-cezEd/DTyyht9cvSSURyygXPfy04GtWO/5e6ZPvH7fCtjKz9PYOmuawphw1Ctd1f6C+5JypXfGD7ahNMXvevBA==}
+  globals@17.13.0:
+    resolution: {integrity: sha512-RwMTC61u7hrG3ZJMkZQOK4JLJrKS8QtoTii63EmWvFXHqycY9FObBJQCbsLxSO8kjKhWE5kV1GC+Vb1g3RI0Zg==}
     engines: {node: '>=18'}
 
   globby@16.2.4:
@@ -3459,7 +3459,7 @@ snapshots:
       entities: 8.1.0
       eslint: 10.11.0(jiti@2.7.0)(supports-color@10.2.2)
       find-up-simple: 1.0.1
-      globals: 17.12.0
+      globals: 17.13.0
       indent-string: 5.0.0
       is-builtin-module: 5.0.0
       is-identifier: 1.1.0
@@ -3638,7 +3638,7 @@ snapshots:
       kind-of: 6.0.3
       which: 1.3.1
 
-  globals@17.12.0: {}
+  globals@17.13.0: {}
 
   globby@16.2.4:
     dependencies:

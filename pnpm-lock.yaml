@@ -10,8 +10,8 @@ catalogs:
       specifier: 6.0.3
       version: 6.0.3
     vite:
-      specifier: 8.3.1
-      version: 8.3.1
+      specifier: 8.3.2
+      version: 8.3.2
     vite-plugin-monkey:
       specifier: 8.1.1
       version: 8.1.1
@@ -76,10 +76,10 @@ importers:
         version: 8.70.1(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)
       vite:
         specifier: 'catalog:'
-        version: 8.3.1(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0)
+        version: 8.3.2(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
       vite-plugin-monkey:
         specifier: 'catalog:'
-        version: 8.1.1(postcss@8.5.28)(vite@8.3.1(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0))
+        version: 8.1.1(postcss@8.5.28)(vite@8.3.2(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
 
   packages/artist-profile-urls-extractor:
     devDependencies:
@@ -88,10 +88,10 @@ importers:
         version: 6.0.3
       vite:
         specifier: 'catalog:'
-        version: 8.3.1(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0)
+        version: 8.3.2(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
       vite-plugin-monkey:
         specifier: 'catalog:'
-        version: 8.1.1(postcss@8.5.28)(vite@8.3.1(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0))
+        version: 8.1.1(postcss@8.5.28)(vite@8.3.2(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
 
   packages/booru-image-comparator:
     dependencies:
@@ -104,10 +104,10 @@ importers:
         version: 6.0.3
       vite:
         specifier: 'catalog:'
-        version: 8.3.1(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0)
+        version: 8.3.2(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
       vite-plugin-monkey:
         specifier: 'catalog:'
-        version: 8.1.1(postcss@8.5.28)(vite@8.3.1(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0))
+        version: 8.1.1(postcss@8.5.28)(vite@8.3.2(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
 
   packages/danbooru-artist-tweaks:
     devDependencies:
@@ -116,10 +116,10 @@ importers:
         version: 6.0.3
       vite:
         specifier: 'catalog:'
-        version: 8.3.1(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0)
+        version: 8.3.2(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
       vite-plugin-monkey:
         specifier: 'catalog:'
-        version: 8.1.1(postcss@8.5.28)(vite@8.3.1(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0))
+        version: 8.1.1(postcss@8.5.28)(vite@8.3.2(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
 
   packages/danbooru-artist-url-diff-enhancer:
     devDependencies:
@@ -128,19 +128,19 @@ importers:
         version: 6.0.3
       vite:
         specifier: 'catalog:'
-        version: 8.3.1(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0)
+        version: 8.3.2(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
       vite-plugin-monkey:
         specifier: 'catalog:'
-        version: 8.1.1(postcss@8.5.28)(vite@8.3.1(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0))
+        version: 8.1.1(postcss@8.5.28)(vite@8.3.2(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
 
   packages/deviantart-base36-auto-converter:
     devDependencies:
       vite:
         specifier: 'catalog:'
-        version: 8.3.1(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0)
+        version: 8.3.2(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
       vite-plugin-monkey:
         specifier: 'catalog:'
-        version: 8.1.1(postcss@8.5.28)(vite@8.3.1(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0))
+        version: 8.1.1(postcss@8.5.28)(vite@8.3.2(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
 
   packages/kemono-grid-gallery:
     devDependencies:
@@ -149,10 +149,10 @@ importers:
         version: 6.0.3
       vite:
         specifier: 'catalog:'
-        version: 8.3.1(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0)
+        version: 8.3.2(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
       vite-plugin-monkey:
         specifier: 'catalog:'
-        version: 8.1.1(postcss@8.5.28)(vite@8.3.1(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0))
+        version: 8.1.1(postcss@8.5.28)(vite@8.3.2(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
 
 packages:
 
@@ -2415,8 +2415,8 @@ packages:
       vite:
         optional: true
 
-  vite@8.3.1:
-    resolution: {integrity: sha512-/bvH9E9tmCXRGp2uXY3WbOldqpTwFkbha/8ANaEQ6VkxhH60KyqLwgZq6lG2y+4uT55x9+9eUHMpQ7uGnOCKjA==}
+  vite@8.3.2:
+    resolution: {integrity: sha512-SQr1x6W5vVSbROg7vsyXIaxK9b0G7zsT68acdWWRmnBUsgDieLCRG+Rep9WdZgcposvv/GSnr4GUUBqB3vXq6w==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
     peerDependencies:
@@ -4384,7 +4384,7 @@ snapshots:
 
   util-deprecate@1.0.2: {}
 
-  vite-plugin-monkey@8.1.1(postcss@8.5.28)(vite@8.3.1(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0)):
+  vite-plugin-monkey@8.1.1(postcss@8.5.28)(vite@8.3.2(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)):
     dependencies:
       acorn-walk: 8.3.5
       cross-spawn: 7.0.6
@@ -4398,11 +4398,11 @@ snapshots:
       rollup: 4.62.3
       systemjs: 6.15.1
     optionalDependencies:
-      vite: 8.3.1(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0)
+      vite: 8.3.2(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
     transitivePeerDependencies:
       - postcss
 
-  vite@8.3.1(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0):
+  vite@8.3.2(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1):
     dependencies:
       lightningcss: 1.33.0
       picomatch: 4.0.7
@@ -4413,7 +4413,7 @@ snapshots:
       esbuild: 0.28.2
       fsevents: 2.3.3
       jiti: 2.7.0
-      yaml: 2.9.0
+      yaml: 2.9.1
 
   walk-up-path@4.0.0: {}
 

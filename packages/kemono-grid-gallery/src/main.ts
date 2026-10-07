@@ -17,6 +17,8 @@ const galleryState: GalleryState = {
 };
 
 async function initializeGallery(): Promise<void> {
+  addGalleryStyles();
+
   const siteConfig = getCurrentSiteConfig();
   const userPath = getCurrentUserPath();
 
@@ -74,7 +76,6 @@ function start(): void {
     return;
   }
 
-  addGalleryStyles();
   void requestGalleryInitialization();
   setupUrlChangeListener(scheduleGalleryInitialization);
 }

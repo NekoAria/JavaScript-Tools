@@ -78,10 +78,9 @@
 			}
 			new MutationObserver((_, currentObserver) => {
 				const nextElement = document.querySelector(selector);
-				if (nextElement) {
-					currentObserver.disconnect();
-					resolve(nextElement);
-				}
+				if (!nextElement) return;
+				currentObserver.disconnect();
+				resolve(nextElement);
 			}).observe(document.body, {
 				childList: true,
 				subtree: true

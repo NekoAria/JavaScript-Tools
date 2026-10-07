@@ -43,10 +43,10 @@ jobs:
           pnpm install --frozen-lockfile --ignore-scripts
           echo "✅ pnpm-lock.yaml validation passed"
 
-      - name: Run ESLint check
+      - name: Lint
         run: pnpm lint
 
-      - name: Run Prettier check
+      - name: Check formatting
         run: pnpm format:check
 
   comment:
@@ -61,7 +61,8 @@ jobs:
     steps:
       - name: Comment on failed validation
         run: |
-          gh pr comment ${{ github.event.pull_request.number }} --body "❌ **Automatic merge failed**
+          gh pr comment "${{ github.event.pull_request.html_url }}" \
+            --body "❌ **Automatic merge failed**
 
           Validation of this dependency update failed. Possible reasons include:
           - pnpm's minimum release age policy blocked a newly published package

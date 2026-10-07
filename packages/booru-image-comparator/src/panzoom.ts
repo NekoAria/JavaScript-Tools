@@ -75,17 +75,20 @@ function bindWheelEvents(state: StateManager): void {
 }
 
 export function cleanupOverlayWheelListeners(): void {
-  const el = $<HTMLElement>('#comparison-overlay-container');
+  const overlayContainer = $<HTMLElement>('#comparison-overlay-container');
 
-  if (!el) {
+  if (!overlayContainer) {
     return;
   }
-  const h = wheelListeners.get(el);
 
-  if (h) {
-    el.removeEventListener('wheel', h);
-    wheelListeners.delete(el);
+  const wheelHandler = wheelListeners.get(overlayContainer);
+
+  if (!wheelHandler) {
+    return;
   }
+
+  overlayContainer.removeEventListener('wheel', wheelHandler);
+  wheelListeners.delete(overlayContainer);
 }
 
 /**
@@ -118,10 +121,12 @@ export function destroyAllZoom(state: StateManager): void {
 export function destroyOverlayZoom(state: StateManager): void {
   const { panzoomInstances } = state.get();
 
-  if (panzoomInstances.overlay) {
-    panzoomInstances.overlay.destroy();
-    state.update('panzoomInstances', { ...panzoomInstances, overlay: null });
+  if (!panzoomInstances.overlay) {
+    return;
   }
+
+  panzoomInstances.overlay.destroy();
+  state.update('panzoomInstances', { ...panzoomInstances, overlay: null });
 }
 
 function hasImage(side: SideType): boolean {

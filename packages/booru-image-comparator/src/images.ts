@@ -254,11 +254,7 @@ export function swapImages(state: StateManager): void {
   const leftImg = $<HTMLImageElement>('#left-image');
   const rightImg = $<HTMLImageElement>('#right-image');
 
-  if (!leftImg || !rightImg) {
-    return;
-  }
-
-  if (!rightImg.src.trim()) {
+  if (!leftImg || !rightImg || !rightImg.src.trim()) {
     return;
   }
 

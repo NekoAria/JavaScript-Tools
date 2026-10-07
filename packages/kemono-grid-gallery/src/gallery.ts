@@ -111,10 +111,12 @@ function waitForElement<T extends Element>(selector: string): Promise<T> {
     const observer = new MutationObserver((_, currentObserver) => {
       const nextElement = document.querySelector<T>(selector);
 
-      if (nextElement) {
-        currentObserver.disconnect();
-        resolve(nextElement);
+      if (!nextElement) {
+        return;
       }
+
+      currentObserver.disconnect();
+      resolve(nextElement);
     });
 
     observer.observe(document.body, {

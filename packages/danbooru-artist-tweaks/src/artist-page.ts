@@ -106,11 +106,13 @@ const replaceWikiLinksWithBulkUpdateRequests = (): void => {
   for (const link of fineprintLinks) {
     const tagName = getAliasTagNameFromHref(link.getAttribute('href'));
 
-    if (tagName) {
-      const newHref = `/bulk_update_requests?commit=search[status]=approved&search[tags_include_any]=${encodeURIComponent(tagName)}`;
-
-      link.setAttribute('href', newHref);
+    if (!tagName) {
+      continue;
     }
+
+    const bulkUpdateRequestHref = `/bulk_update_requests?commit=search[status]=approved&search[tags_include_any]=${encodeURIComponent(tagName)}`;
+
+    link.setAttribute('href', bulkUpdateRequestHref);
   }
 };
 

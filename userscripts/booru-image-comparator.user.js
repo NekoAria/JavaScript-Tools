@@ -963,13 +963,12 @@
 		]);
 	}
 	function cleanupOverlayWheelListeners() {
-		const el = $("#comparison-overlay-container");
-		if (!el) return;
-		const h = wheelListeners.get(el);
-		if (h) {
-			el.removeEventListener("wheel", h);
-			wheelListeners.delete(el);
-		}
+		const overlayContainer = $("#comparison-overlay-container");
+		if (!overlayContainer) return;
+		const wheelHandler = wheelListeners.get(overlayContainer);
+		if (!wheelHandler) return;
+		overlayContainer.removeEventListener("wheel", wheelHandler);
+		wheelListeners.delete(overlayContainer);
 	}
 	function commitZoomState(state) {
 		const { panzoomInstances, zoomStates } = state.get();
@@ -992,13 +991,12 @@
 	}
 	function destroyOverlayZoom(state) {
 		const { panzoomInstances } = state.get();
-		if (panzoomInstances.overlay) {
-			panzoomInstances.overlay.destroy();
-			state.update("panzoomInstances", {
-				...panzoomInstances,
-				overlay: null
-			});
-		}
+		if (!panzoomInstances.overlay) return;
+		panzoomInstances.overlay.destroy();
+		state.update("panzoomInstances", {
+			...panzoomInstances,
+			overlay: null
+		});
 	}
 	function hasImage(side) {
 		return Boolean($(`#${side}-image`)?.getAttribute("src")?.trim());
@@ -1930,8 +1928,7 @@
 	function swapImages(state) {
 		const leftImg = $("#left-image");
 		const rightImg = $("#right-image");
-		if (!leftImg || !rightImg) return;
-		if (!rightImg.src.trim()) return;
+		if (!leftImg || !rightImg || !rightImg.src.trim()) return;
 		[leftImg.src, rightImg.src] = [rightImg.src, leftImg.src];
 		swapDataAttr(leftImg, rightImg, "id");
 		const { transforms: t, mode, isPanZoomSynced } = state.get();

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Artist Profile URLs Extractor
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      1.0.14
+// @version      1.0.15
 // @author       Neko_Aria
 // @description  Add a draggable floating button on supported artist profile pages that opens a modal with canonical profile URLs and copy actions
 // @homepageURL  https://github.com/NekoAria/JavaScript-Tools/tree/main/packages/artist-profile-urls-extractor
@@ -69,7 +69,7 @@
 		"media",
 		"with_replies"
 	]);
-	var TWITTER_SSR_USER_PATTERN = /(?:^|[,{])\s*"?restId"?\s*:\s*"(\d+)"\s*,\s*"?screenName"?\s*:\s*"([a-zA-Z0-9_]{1,15})"/g;
+	var TWITTER_SSR_USER_PATTERN = /(?:^|[,{])\s*"?restId"?\s*:\s*"(\d+)"\s*,\s*(?:"?schema"?\s*:\s*null\s*,\s*)?"?screenName"?\s*:\s*"([a-zA-Z0-9_]{1,15})"/g;
 	var TWITTER_STATUS_PATH_PATTERN = /^status\/\d+(?:\/(?:photo|video)\/\d+)?$/;
 	var TUMBLR_API_AUTHORIZATION = "Bearer aIcXSOoTtqrzR8L8YEIOmBeW94c3FmbSNSWAUbxsny9KKx5VFh";
 	var utils = {

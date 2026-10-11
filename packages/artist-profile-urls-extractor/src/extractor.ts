@@ -99,8 +99,9 @@ const TWITTER_RESERVED_PATHS = new Set([
   'settings',
 ]);
 const TWITTER_PROFILE_TAB_PATHS = new Set(['', 'articles', 'highlights', 'media', 'with_replies']);
+// Guest SSR may insert schema:null between restId and screenName.
 const TWITTER_SSR_USER_PATTERN =
-  /(?:^|[,{])\s*"?restId"?\s*:\s*"(\d+)"\s*,\s*"?screenName"?\s*:\s*"([a-zA-Z0-9_]{1,15})"/g;
+  /(?:^|[,{])\s*"?restId"?\s*:\s*"(\d+)"\s*,\s*(?:"?schema"?\s*:\s*null\s*,\s*)?"?screenName"?\s*:\s*"([a-zA-Z0-9_]{1,15})"/g;
 const TWITTER_STATUS_PATH_PATTERN = /^status\/\d+(?:\/(?:photo|video)\/\d+)?$/;
 const TUMBLR_API_AUTHORIZATION = 'Bearer aIcXSOoTtqrzR8L8YEIOmBeW94c3FmbSNSWAUbxsny9KKx5VFh';
 

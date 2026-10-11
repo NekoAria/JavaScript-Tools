@@ -211,6 +211,7 @@
 	};
 	var PATREON_BASE_URL = "https://www.patreon.com";
 	var PATREON_FLIGHT_PUSH_PREFIX = "self.__next_f.push(";
+	var PATREON_FLIGHT_LENGTH_TAGS = new Set("TAOobUSsLlGgMmV");
 	var PATREON_NON_VANITY_PATHS = new Set([
 		"checkout",
 		"creation",
@@ -268,6 +269,32 @@
 		}
 		return null;
 	};
+	function* getPatreonFlightRows(flightText) {
+		const bytes = new TextEncoder().encode(flightText);
+		const decoder = new TextDecoder();
+		let offset = 0;
+		while (offset < bytes.length) {
+			const separatorIndex = bytes.indexOf(58, offset);
+			const payloadStart = separatorIndex + 1;
+			if (separatorIndex === -1 || payloadStart >= bytes.length || !/^[\da-f]*$/.test(decoder.decode(bytes.subarray(offset, separatorIndex)))) return;
+			const rowTag = String.fromCodePoint(bytes[payloadStart]);
+			if (PATREON_FLIGHT_LENGTH_TAGS.has(rowTag)) {
+				const lengthStart = payloadStart + 1;
+				const lengthEnd = bytes.indexOf(44, lengthStart);
+				if (lengthEnd === -1) return;
+				const byteLengthText = decoder.decode(bytes.subarray(lengthStart, lengthEnd));
+				if (!/^[\da-f]+$/.test(byteLengthText)) return;
+				const rowEnd = lengthEnd + 1 + Number.parseInt(byteLengthText, 16);
+				if (!Number.isSafeInteger(rowEnd) || rowEnd > bytes.length) return;
+				offset = rowEnd;
+				continue;
+			}
+			const newlineIndex = bytes.indexOf(10, payloadStart);
+			const rowEnd = newlineIndex === -1 ? bytes.length : newlineIndex;
+			offset = rowEnd + 1;
+			yield decoder.decode(bytes.subarray(payloadStart, rowEnd));
+		}
+	}
 	var getPatreonFlightBootstrapEnvelope = () => {
 		const flightChunks = [];
 		for (const script of document.scripts) {
@@ -282,11 +309,10 @@
 			const chunk = Array.isArray(flightEntry) ? flightEntry[1] : null;
 			if (typeof chunk === "string") flightChunks.push(chunk);
 		}
-		for (const row of flightChunks.join("").split("\n")) {
+		const flightRows = getPatreonFlightRows(flightChunks.join(""));
+		for (const row of flightRows) {
 			if (!row.includes("\"bootstrapEnvelope\"")) continue;
-			const separatorIndex = row.indexOf(":");
-			if (separatorIndex === -1) continue;
-			const envelope = findPatreonBootstrapEnvelope(utils.safeJsonParse(row.slice(separatorIndex + 1)));
+			const envelope = findPatreonBootstrapEnvelope(utils.safeJsonParse(row));
 			if (envelope) return envelope;
 		}
 		return null;

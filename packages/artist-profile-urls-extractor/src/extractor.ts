@@ -397,6 +397,7 @@ const handleMihuashi = async () => {
 
 const PATREON_BASE_URL = 'https://www.patreon.com';
 const PATREON_FLIGHT_PUSH_PREFIX = 'self.__next_f.push(';
+const PATREON_FLIGHT_LENGTH_TAGS = new Set('TAOobUSsLlGgMmV');
 const PATREON_NON_VANITY_PATHS = new Set([
   'checkout',
   'creation',
@@ -493,6 +494,58 @@ const findPatreonBootstrapEnvelope = (value: unknown): JsonRecord | null => {
   return null;
 };
 
+function* getPatreonFlightRows(flightText: string): Generator<string> {
+  const bytes = new TextEncoder().encode(flightText);
+  const decoder = new TextDecoder();
+  let offset = 0;
+
+  while (offset < bytes.length) {
+    const separatorIndex = bytes.indexOf(0x3a, offset); // ASCII ':'
+    const payloadStart = separatorIndex + 1;
+
+    if (
+      separatorIndex === -1 ||
+      payloadStart >= bytes.length ||
+      !/^[\da-f]*$/.test(decoder.decode(bytes.subarray(offset, separatorIndex)))
+    ) {
+      return;
+    }
+
+    const rowTag = String.fromCodePoint(bytes[payloadStart]);
+
+    // Flight text and binary records end at a byte boundary, not at a newline.
+    if (PATREON_FLIGHT_LENGTH_TAGS.has(rowTag)) {
+      const lengthStart = payloadStart + 1;
+      const lengthEnd = bytes.indexOf(0x2c, lengthStart); // ASCII ','
+
+      if (lengthEnd === -1) {
+        return;
+      }
+
+      const byteLengthText = decoder.decode(bytes.subarray(lengthStart, lengthEnd));
+
+      if (!/^[\da-f]+$/.test(byteLengthText)) {
+        return;
+      }
+
+      const rowEnd = lengthEnd + 1 + Number.parseInt(byteLengthText, 16);
+
+      if (!Number.isSafeInteger(rowEnd) || rowEnd > bytes.length) {
+        return;
+      }
+
+      offset = rowEnd;
+      continue;
+    }
+
+    const newlineIndex = bytes.indexOf(0x0a, payloadStart); // ASCII '\n'
+    const rowEnd = newlineIndex === -1 ? bytes.length : newlineIndex;
+
+    offset = rowEnd + 1;
+    yield decoder.decode(bytes.subarray(payloadStart, rowEnd));
+  }
+}
+
 const getPatreonFlightBootstrapEnvelope = (): JsonRecord | null => {
   const flightChunks: string[] = [];
 
@@ -524,20 +577,14 @@ const getPatreonFlightBootstrapEnvelope = (): JsonRecord | null => {
     }
   }
 
-  for (const row of flightChunks.join('').split('\n')) {
+  const flightRows = getPatreonFlightRows(flightChunks.join(''));
+
+  for (const row of flightRows) {
     if (!row.includes('"bootstrapEnvelope"')) {
       continue;
     }
 
-    const separatorIndex = row.indexOf(':');
-
-    if (separatorIndex === -1) {
-      continue;
-    }
-
-    const envelope = findPatreonBootstrapEnvelope(
-      utils.safeJsonParse(row.slice(separatorIndex + 1)),
-    );
+    const envelope = findPatreonBootstrapEnvelope(utils.safeJsonParse(row));
 
     if (envelope) {
       return envelope;

@@ -48,6 +48,7 @@ const uiState: UiState = {
   refreshToken: 0,
 };
 
+// eslint-disable-next-line unicorn/no-unnecessary-parameters -- Preserve the general-purpose clamp signature.
 const clamp = (value: number, minimum: number, maximum: number): number =>
   Math.min(Math.max(value, minimum), maximum);
 

@@ -22,6 +22,14 @@ export default defineConfig([
   // Disable type-checked rules for plain JS/MJS and build config TS files
   { files: ['**/*.{js,mjs}', '**/vite.config.ts'], ...tseslint.configs.disableTypeChecked },
 
+  // Configuration factories intentionally run during module initialization.
+  {
+    files: ['eslint.config.mjs', '**/vite.config.{js,ts}'],
+    rules: {
+      'unicorn/no-top-level-side-effects': 'off',
+    },
+  },
+
   // Covered by equivalent Oxlint Unicorn rules
   {
     rules: {
@@ -120,6 +128,8 @@ export default defineConfig([
       // ── Unicorn overrides ─────────────────
       'unicorn/name-replacements': 'off',
       'unicorn/no-array-reduce': 'off',
+      // Keep conventional JSDoc formatting.
+      'unicorn/no-asterisk-prefix-in-documentation-comments': 'off',
       'unicorn/no-null': 'off',
       'unicorn/no-useless-undefined': 'warn',
       'unicorn/prefer-module': 'off',

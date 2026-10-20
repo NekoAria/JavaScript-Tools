@@ -287,6 +287,7 @@ const checkUnmigratedPostsOnRename = async (artistId: string): Promise<void> => 
     // In the API response, the version after the rename row contains the old name.
     const oldName = versions[renameIndex + 1]?.name;
 
+    /* eslint-disable unicorn/prefer-combined-guards -- Keep each documented exit reason separate. */
     if (!oldName || !newName) {
       return;
     }
@@ -302,6 +303,7 @@ const checkUnmigratedPostsOnRename = async (artistId: string): Promise<void> => 
     if (await hasActiveArtistEntry(oldName)) {
       return;
     }
+    /* eslint-enable unicorn/prefer-combined-guards */
 
     const postsParams = new URLSearchParams({
       limit: '1',

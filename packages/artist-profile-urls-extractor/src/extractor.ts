@@ -88,6 +88,31 @@ const createProfileResult = (
 ): ProfileUrls => ({ primaryUrl, secondaryUrl });
 const LOG_PREFIX = '[artist-profile-urls-extractor]';
 const isInvalidBlueskyHandle = (value?: string | null) => value?.toLowerCase() === 'handle.invalid';
+const INSTAGRAM_USERNAME_PATTERN = /^[a-zA-Z0-9_.]{1,30}$/;
+const INSTAGRAM_RESERVED_PATHS = new Set([
+  'about',
+  'accounts',
+  'api',
+  'challenge',
+  'developer',
+  'direct',
+  'directory',
+  'emails',
+  'explore',
+  'legal',
+  'oauth',
+  'p',
+  'press',
+  'privacy',
+  'reel',
+  'reels',
+  'settings',
+  'stories',
+  'terms',
+  'tv',
+  'uid',
+  'web',
+]);
 const TWITTER_RESERVED_PATHS = new Set([
   'compose',
   'explore',
@@ -299,6 +324,80 @@ const handleInkbunny = () => {
   const secondaryUrl = `https://inkbunny.net/user.php?user_id=${userId}`;
 
   return createProfileResult(primaryUrl, secondaryUrl);
+};
+
+const findInstagramProfileUrls = (
+  value: unknown,
+  expectedUsername: string | null,
+  expectedUserId: string | null,
+): ProfileUrls | null => {
+  const pendingValues = [value];
+
+  while (pendingValues.length > 0) {
+    const current = pendingValues.pop();
+    const record = asRecord(current);
+    const user = getRecord(record, 'xig_user_by_username');
+    const username = getString(user, 'username');
+    const userId = getString(user, 'pk');
+    const normalizedUsername = username?.toLowerCase() ?? '';
+
+    // Only pair fields from the profile query; media PKs and Relay IDs are unrelated.
+    if (
+      username &&
+      userId &&
+      INSTAGRAM_USERNAME_PATTERN.test(username) &&
+      !INSTAGRAM_RESERVED_PATHS.has(normalizedUsername) &&
+      /^[1-9]\d*$/.test(userId) &&
+      (expectedUsername ? normalizedUsername === expectedUsername : userId === expectedUserId)
+    ) {
+      return createProfileResult(
+        `https://www.instagram.com/${normalizedUsername}/`,
+        `https://www.instagram.com/uid/${userId}`,
+      );
+    }
+
+    const children = Array.isArray(current) ? current : Object.values(record ?? {});
+
+    for (const child of children) {
+      pendingValues.push(child);
+    }
+  }
+
+  return null;
+};
+
+const handleInstagram = () => {
+  const expectedUsername = /^\/([^/]+)\/?$/.exec(location.pathname)?.[1]?.toLowerCase() ?? null;
+  const expectedUserId = /^\/uid\/([1-9]\d*)\/?$/.exec(location.pathname)?.[1] ?? null;
+
+  if (
+    !expectedUserId &&
+    (!expectedUsername ||
+      !INSTAGRAM_USERNAME_PATTERN.test(expectedUsername) ||
+      INSTAGRAM_RESERVED_PATHS.has(expectedUsername))
+  ) {
+    return fail(utils.userNotFoundError('Instagram'));
+  }
+
+  for (const script of document.querySelectorAll('script[type="application/json"]')) {
+    const scriptText = script.textContent;
+
+    if (!scriptText?.includes('xig_user_by_username')) {
+      continue;
+    }
+
+    const profileUrls = findInstagramProfileUrls(
+      utils.safeJsonParse(scriptText),
+      expectedUsername,
+      expectedUserId,
+    );
+
+    if (profileUrls) {
+      return profileUrls;
+    }
+  }
+
+  return fail(utils.userNotFoundError('Instagram'));
 };
 
 const handleKoFi = () => {
@@ -1229,6 +1328,7 @@ const PLATFORM_HANDLERS: Record<string, PlatformHandler> = {
   'rule34.xxx': handleRule34,
   'tieba.baidu.com': handleTieba,
   'www.facebook.com': handleFacebook,
+  'www.instagram.com': handleInstagram,
   'www.patreon.com': handlePatreon,
   'www.pixiv.net': handlePixiv,
   'www.youtube.com': handleYouTube,

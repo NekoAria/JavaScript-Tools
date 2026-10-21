@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Artist Profile URLs Extractor
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      1.0.15
+// @version      1.0.16
 // @author       Neko_Aria
 // @description  Add a draggable floating button on supported artist profile pages that opens a modal with canonical profile URLs and copy actions
 // @homepageURL  https://github.com/NekoAria/JavaScript-Tools/tree/main/packages/artist-profile-urls-extractor
@@ -52,6 +52,31 @@
 	});
 	var LOG_PREFIX = "[artist-profile-urls-extractor]";
 	var isInvalidBlueskyHandle = (value) => value?.toLowerCase() === "handle.invalid";
+	var INSTAGRAM_USERNAME_PATTERN = /^[a-zA-Z0-9_.]{1,30}$/;
+	var INSTAGRAM_RESERVED_PATHS = new Set([
+		"about",
+		"accounts",
+		"api",
+		"challenge",
+		"developer",
+		"direct",
+		"directory",
+		"emails",
+		"explore",
+		"legal",
+		"oauth",
+		"p",
+		"press",
+		"privacy",
+		"reel",
+		"reels",
+		"settings",
+		"stories",
+		"terms",
+		"tv",
+		"uid",
+		"web"
+	]);
 	var TWITTER_RESERVED_PATHS = new Set([
 		"compose",
 		"explore",
@@ -170,6 +195,33 @@
 		if (!userId) return fail(utils.userNotFoundError("Inkbunny"));
 		const primaryUrl = location.href;
 		return createProfileResult(primaryUrl, `https://inkbunny.net/user.php?user_id=${userId}`);
+	};
+	var findInstagramProfileUrls = (value, expectedUsername, expectedUserId) => {
+		const pendingValues = [value];
+		while (pendingValues.length > 0) {
+			const current = pendingValues.pop();
+			const record = asRecord(current);
+			const user = getRecord(record, "xig_user_by_username");
+			const username = getString(user, "username");
+			const userId = getString(user, "pk");
+			const normalizedUsername = username?.toLowerCase() ?? "";
+			if (username && userId && INSTAGRAM_USERNAME_PATTERN.test(username) && !INSTAGRAM_RESERVED_PATHS.has(normalizedUsername) && /^[1-9]\d*$/.test(userId) && (expectedUsername ? normalizedUsername === expectedUsername : userId === expectedUserId)) return createProfileResult(`https://www.instagram.com/${normalizedUsername}/`, `https://www.instagram.com/uid/${userId}`);
+			const children = Array.isArray(current) ? current : Object.values(record ?? {});
+			for (const child of children) pendingValues.push(child);
+		}
+		return null;
+	};
+	var handleInstagram = () => {
+		const expectedUsername = /^\/([^/]+)\/?$/.exec(location.pathname)?.[1]?.toLowerCase() ?? null;
+		const expectedUserId = /^\/uid\/([1-9]\d*)\/?$/.exec(location.pathname)?.[1] ?? null;
+		if (!expectedUserId && (!expectedUsername || !INSTAGRAM_USERNAME_PATTERN.test(expectedUsername) || INSTAGRAM_RESERVED_PATHS.has(expectedUsername))) return fail(utils.userNotFoundError("Instagram"));
+		for (const script of document.querySelectorAll("script[type=\"application/json\"]")) {
+			const scriptText = script.textContent;
+			if (!scriptText?.includes("xig_user_by_username")) continue;
+			const profileUrls = findInstagramProfileUrls(utils.safeJsonParse(scriptText), expectedUsername, expectedUserId);
+			if (profileUrls) return profileUrls;
+		}
+		return fail(utils.userNotFoundError("Instagram"));
 	};
 	var handleKoFi = () => {
 		const canonicalUrl = document.querySelector("link[rel='canonical'][href]")?.href;
@@ -607,6 +659,7 @@
 		"rule34.xxx": handleRule34,
 		"tieba.baidu.com": handleTieba,
 		"www.facebook.com": handleFacebook,
+		"www.instagram.com": handleInstagram,
 		"www.patreon.com": handlePatreon,
 		"www.pixiv.net": handlePixiv,
 		"www.youtube.com": handleYouTube,

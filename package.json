@@ -24,7 +24,7 @@
     "eslint": "^10.13.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-oxlint": "^1.89.0",
-    "eslint-plugin-perfectionist": "^5.12.1",
+    "eslint-plugin-perfectionist": "^5.13.0",
     "eslint-plugin-unicorn": "^78.0.0",
     "eslint-plugin-unused-imports": "^4.4.1",
     "globals": "^17.13.0",

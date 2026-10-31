@@ -66,8 +66,8 @@ importers:
         specifier: ^17.16.0
         version: 17.16.0(supports-color@10.2.2)(typescript@6.0.3)
       stylelint-config-recess-order:
-        specifier: ^7.8.2
-        version: 7.8.2(stylelint-order@8.1.2(stylelint@17.16.0(supports-color@10.2.2)(typescript@6.0.3)))(stylelint@17.16.0(supports-color@10.2.2)(typescript@6.0.3))
+        specifier: ^7.9.0
+        version: 7.9.0(stylelint-order@8.1.2(stylelint@17.16.0(supports-color@10.2.2)(typescript@6.0.3)))(stylelint@17.16.0(supports-color@10.2.2)(typescript@6.0.3))
       stylelint-order:
         specifier: ^8.1.2
         version: 8.1.2(stylelint@17.16.0(supports-color@10.2.2)(typescript@6.0.3))
@@ -2377,8 +2377,8 @@ packages:
     resolution: {integrity: sha512-1tB5mhVo7U+ETBKNf92xT4hrQa3pm0MZ0PQvuDnWgAAGHDsfp4lPSpiS6psrSiet87wyGPh9ft6wmhOMQ0hDiw==}
     engines: {node: '>=14.16'}
 
-  stylelint-config-recess-order@7.8.2:
-    resolution: {integrity: sha512-IIRCTkrGiynshEapnjdc53Nq/EaoqdWr/5U0Kk42b9O026+CmgBu4BHQPraWdV98E/U/XsotAhWZXs5gS7/7Zw==}
+  stylelint-config-recess-order@7.9.0:
+    resolution: {integrity: sha512-Pu3zhefjou7PYNkEtx4uLnsCSmXpiNIx8ALd20r+PGO1LApcf2Gowh2pKEaY9h8gdR8Wp6rUGqhqEIAhdyoHxg==}
     peerDependencies:
       stylelint: ^16.18.0 || ^17.0.0
       stylelint-order: ^7.0.0 || ^8.0.0
@@ -4446,7 +4446,7 @@ snapshots:
 
   strip-json-comments@5.0.3: {}
 
-  stylelint-config-recess-order@7.8.2(stylelint-order@8.1.2(stylelint@17.16.0(supports-color@10.2.2)(typescript@6.0.3)))(stylelint@17.16.0(supports-color@10.2.2)(typescript@6.0.3)):
+  stylelint-config-recess-order@7.9.0(stylelint-order@8.1.2(stylelint@17.16.0(supports-color@10.2.2)(typescript@6.0.3)))(stylelint@17.16.0(supports-color@10.2.2)(typescript@6.0.3)):
     dependencies:
       stylelint: 17.16.0(supports-color@10.2.2)(typescript@6.0.3)
       stylelint-order: 8.1.2(stylelint@17.16.0(supports-color@10.2.2)(typescript@6.0.3))

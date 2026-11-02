@@ -326,6 +326,83 @@ const handleInkbunny = () => {
   return createProfileResult(primaryUrl, secondaryUrl);
 };
 
+const createMatchingInstagramProfileUrls = (
+  username: string | null,
+  userId: string | null,
+  expectedUsername: string | null,
+  expectedUserId: string | null,
+): ProfileUrls | null => {
+  if (
+    !username ||
+    !userId ||
+    !INSTAGRAM_USERNAME_PATTERN.test(username) ||
+    !/^[1-9]\d*$/.test(userId)
+  ) {
+    return null;
+  }
+
+  const normalizedUsername = username.toLowerCase();
+  const isExpectedProfile = expectedUsername
+    ? normalizedUsername === expectedUsername
+    : userId === expectedUserId;
+
+  if (!isExpectedProfile || INSTAGRAM_RESERVED_PATHS.has(normalizedUsername)) {
+    return null;
+  }
+
+  return createProfileResult(
+    `https://www.instagram.com/${normalizedUsername}/`,
+    `https://www.instagram.com/uid/${userId}`,
+  );
+};
+
+const getInstagramRouteProfileUrls = (
+  route: JsonRecord | null,
+  expectedUsername: string | null,
+  expectedUserId: string | null,
+): ProfileUrls | null => {
+  const username = getString(route?.params, 'username');
+  const routePath = getString(route, 'url');
+  const isProfileRoute =
+    route?.tracePolicy === 'polaris.profilePage' ||
+    getValueAt(route, 'polarisRouteConfig', 'pageID') === 'profilePage';
+
+  if (!username || !routePath || !isProfileRoute) {
+    return null;
+  }
+
+  let routeUrl: URL;
+
+  try {
+    routeUrl = new URL(routePath, 'https://www.instagram.com');
+  } catch {
+    return null;
+  }
+
+  const routeUsername = /^\/([^/]+)\/?$/.exec(routeUrl.pathname)?.[1]?.toLowerCase();
+
+  if (routeUrl.origin !== 'https://www.instagram.com' || routeUsername !== username.toLowerCase()) {
+    return null;
+  }
+
+  const rootViewId = getValueAt(route, 'rootView', 'props', 'id') ?? null;
+  const hostableViewId = getValueAt(route, 'hostableView', 'props', 'id') ?? null;
+
+  // Both views describe the same profile; conflicting IDs are not safe to choose between.
+  if (rootViewId !== null && hostableViewId !== null && rootViewId !== hostableViewId) {
+    return null;
+  }
+
+  const userId = rootViewId ?? hostableViewId;
+
+  return createMatchingInstagramProfileUrls(
+    username,
+    typeof userId === 'string' ? userId : null,
+    expectedUsername,
+    expectedUserId,
+  );
+};
+
 const findInstagramProfileUrls = (
   value: unknown,
   expectedUsername: string | null,
@@ -337,23 +414,22 @@ const findInstagramProfileUrls = (
     const current = pendingValues.pop();
     const record = asRecord(current);
     const user = getRecord(record, 'xig_user_by_username');
-    const username = getString(user, 'username');
-    const userId = getString(user, 'pk');
-    const normalizedUsername = username?.toLowerCase() ?? '';
-
-    // Only pair fields from the profile query; media PKs and Relay IDs are unrelated.
-    if (
-      username &&
-      userId &&
-      INSTAGRAM_USERNAME_PATTERN.test(username) &&
-      !INSTAGRAM_RESERVED_PATHS.has(normalizedUsername) &&
-      /^[1-9]\d*$/.test(userId) &&
-      (expectedUsername ? normalizedUsername === expectedUsername : userId === expectedUserId)
-    ) {
-      return createProfileResult(
-        `https://www.instagram.com/${normalizedUsername}/`,
-        `https://www.instagram.com/uid/${userId}`,
+    // Only pair identity fields from profile queries or profile routes, never media or actor IDs.
+    const profileUrls =
+      createMatchingInstagramProfileUrls(
+        getString(user, 'username'),
+        getString(user, 'pk'),
+        expectedUsername,
+        expectedUserId,
+      ) ??
+      getInstagramRouteProfileUrls(
+        getRecordAt(record, 'initialRouteInfo', 'route'),
+        expectedUsername,
+        expectedUserId,
       );
+
+    if (profileUrls) {
+      return profileUrls;
     }
 
     const children = Array.isArray(current) ? current : Object.values(record ?? {});
@@ -382,7 +458,10 @@ const handleInstagram = () => {
   for (const script of document.querySelectorAll('script[type="application/json"]')) {
     const scriptText = script.textContent;
 
-    if (!scriptText?.includes('xig_user_by_username')) {
+    if (
+      !scriptText?.includes('xig_user_by_username') &&
+      !scriptText?.includes('initialRouteInfo')
+    ) {
       continue;
     }
 

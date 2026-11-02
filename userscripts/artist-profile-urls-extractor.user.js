@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Artist Profile URLs Extractor
 // @namespace    https://github.com/NekoAria/JavaScript-Tools
-// @version      1.0.16
+// @version      1.0.17
 // @author       Neko_Aria
 // @description  Add a draggable floating button on supported artist profile pages that opens a modal with canonical profile URLs and copy actions
 // @homepageURL  https://github.com/NekoAria/JavaScript-Tools/tree/main/packages/artist-profile-urls-extractor
@@ -196,16 +196,39 @@
 		const primaryUrl = location.href;
 		return createProfileResult(primaryUrl, `https://inkbunny.net/user.php?user_id=${userId}`);
 	};
+	var createMatchingInstagramProfileUrls = (username, userId, expectedUsername, expectedUserId) => {
+		if (!username || !userId || !INSTAGRAM_USERNAME_PATTERN.test(username) || !/^[1-9]\d*$/.test(userId)) return null;
+		const normalizedUsername = username.toLowerCase();
+		if (!(expectedUsername ? normalizedUsername === expectedUsername : userId === expectedUserId) || INSTAGRAM_RESERVED_PATHS.has(normalizedUsername)) return null;
+		return createProfileResult(`https://www.instagram.com/${normalizedUsername}/`, `https://www.instagram.com/uid/${userId}`);
+	};
+	var getInstagramRouteProfileUrls = (route, expectedUsername, expectedUserId) => {
+		const username = getString(route?.params, "username");
+		const routePath = getString(route, "url");
+		const isProfileRoute = route?.tracePolicy === "polaris.profilePage" || getValueAt(route, "polarisRouteConfig", "pageID") === "profilePage";
+		if (!username || !routePath || !isProfileRoute) return null;
+		let routeUrl;
+		try {
+			routeUrl = new URL(routePath, "https://www.instagram.com");
+		} catch {
+			return null;
+		}
+		const routeUsername = /^\/([^/]+)\/?$/.exec(routeUrl.pathname)?.[1]?.toLowerCase();
+		if (routeUrl.origin !== "https://www.instagram.com" || routeUsername !== username.toLowerCase()) return null;
+		const rootViewId = getValueAt(route, "rootView", "props", "id") ?? null;
+		const hostableViewId = getValueAt(route, "hostableView", "props", "id") ?? null;
+		if (rootViewId !== null && hostableViewId !== null && rootViewId !== hostableViewId) return null;
+		const userId = rootViewId ?? hostableViewId;
+		return createMatchingInstagramProfileUrls(username, typeof userId === "string" ? userId : null, expectedUsername, expectedUserId);
+	};
 	var findInstagramProfileUrls = (value, expectedUsername, expectedUserId) => {
 		const pendingValues = [value];
 		while (pendingValues.length > 0) {
 			const current = pendingValues.pop();
 			const record = asRecord(current);
 			const user = getRecord(record, "xig_user_by_username");
-			const username = getString(user, "username");
-			const userId = getString(user, "pk");
-			const normalizedUsername = username?.toLowerCase() ?? "";
-			if (username && userId && INSTAGRAM_USERNAME_PATTERN.test(username) && !INSTAGRAM_RESERVED_PATHS.has(normalizedUsername) && /^[1-9]\d*$/.test(userId) && (expectedUsername ? normalizedUsername === expectedUsername : userId === expectedUserId)) return createProfileResult(`https://www.instagram.com/${normalizedUsername}/`, `https://www.instagram.com/uid/${userId}`);
+			const profileUrls = createMatchingInstagramProfileUrls(getString(user, "username"), getString(user, "pk"), expectedUsername, expectedUserId) ?? getInstagramRouteProfileUrls(getRecordAt(record, "initialRouteInfo", "route"), expectedUsername, expectedUserId);
+			if (profileUrls) return profileUrls;
 			const children = Array.isArray(current) ? current : Object.values(record ?? {});
 			for (const child of children) pendingValues.push(child);
 		}
@@ -217,7 +240,7 @@
 		if (!expectedUserId && (!expectedUsername || !INSTAGRAM_USERNAME_PATTERN.test(expectedUsername) || INSTAGRAM_RESERVED_PATHS.has(expectedUsername))) return fail(utils.userNotFoundError("Instagram"));
 		for (const script of document.querySelectorAll("script[type=\"application/json\"]")) {
 			const scriptText = script.textContent;
-			if (!scriptText?.includes("xig_user_by_username")) continue;
+			if (!scriptText?.includes("xig_user_by_username") && !scriptText?.includes("initialRouteInfo")) continue;
 			const profileUrls = findInstagramProfileUrls(utils.safeJsonParse(scriptText), expectedUsername, expectedUserId);
 			if (profileUrls) return profileUrls;
 		}
